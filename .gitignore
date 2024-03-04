@@ -39,8 +39,6 @@
 **/_project/
 
 # Prebuild files and assets
-assets/textures/
-assets/settings/
 lib/
 include/
 
