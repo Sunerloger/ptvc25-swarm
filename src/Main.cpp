@@ -14,7 +14,7 @@
 #include <array>
 
 #include <sstream>
-#include "Camera.h"
+#include "camera/Camera.h"
 #include "Geometry.h"
 
 #undef min
@@ -893,10 +893,16 @@ int main(int argc, char** argv) {
     // Subtask 2.6: Orbit Camera
     /* --------------------------------------------- */
 
-    // Create a camera helper object:
-    Camera camera(gcgCreatePerspectiveProjectionMatrix(glm::radians(field_of_view), aspect_ratio, near_plane_distance, far_plane_distance));
+    // Initialize Camera
+    Camera camera(field_of_view, aspect_ratio, near_plane_distance, far_plane_distance);
     camera.setYaw(camera_yaw);
     camera.setPitch(camera_pitch);
+    static bool isMovingForward = false;
+    static bool isMovingBackward = false;
+    static bool isMovingLeft = false;
+    static bool isMovingRight = false;
+
+    glfwSetWindowUserPointer(window, &camera);
 
     // Establish a callback function for handling mouse button events:
     glfwSetMouseButtonCallback(window, mouseButtonCallbackFromGlfw);
@@ -908,15 +914,26 @@ int main(int argc, char** argv) {
     // Subtask 1.11: Register a Key Callback
     /* --------------------------------------------- */
 
-    glfwSetKeyCallback(window, [](GLFWwindow* glfw_window, int key, int scancode, int action, int mods) {
-        if (action != GLFW_RELEASE)
-            return;
-        if (key == GLFW_KEY_ESCAPE) {
-            glfwSetWindowShouldClose(glfw_window, true);
+    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+            glfwSetWindowShouldClose(window, true);
         }
-        /* --------------------------------------------- */
-        // Subtask 3.3: Interaction
-        /* --------------------------------------------- */
+
+        Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+
+        if (key == GLFW_KEY_UP) {
+            isMovingForward = (action != GLFW_RELEASE);
+        }
+        if (key == GLFW_KEY_DOWN) {
+            isMovingBackward = (action != GLFW_RELEASE);
+        }
+        if (key == GLFW_KEY_LEFT) {
+            isMovingLeft = (action != GLFW_RELEASE);
+        }
+        if (key == GLFW_KEY_RIGHT) {
+            isMovingRight = (action != GLFW_RELEASE);
+        }
+
         if (key == GLFW_KEY_F1) {
             g_polygon_mode_index = 1 - g_polygon_mode_index;
         }
@@ -938,15 +955,53 @@ int main(int argc, char** argv) {
         // Handle user input:
         glfwPollEvents();
         glfwGetCursorPos(window, &mouse_x, &mouse_y);
-        camera.update(mouse_x, mouse_y, g_zoom, g_dragging, g_strafing);
+
+
+
+
+
+
+
+        // Handle continuous movement
+        const float cameraSpeed = 0.05f; // Adjust as needed
+        if (isMovingForward) {
+            camera.moveForward(cameraSpeed);
+        }
+        if (isMovingBackward) {
+            camera.moveBackward(cameraSpeed);
+        }
+        if (isMovingLeft) {
+            camera.moveLeft(cameraSpeed);
+        }
+        if (isMovingRight) {
+            camera.moveRight(cameraSpeed);
+        }
+
+
+
+
+
+
 
         UniformBuffer ub_data;
         ub_data.userInput[0] = g_draw_normals ? 1 : 0;
         ub_data.userInput[1] = g_draw_texcoords ? 1 : 0;
 
-        // View-projection matrix and camera's position stay the same for all rendered objects:
-        ub_data.viewProjMatrix = camera.getViewProjectionMatrix();
+
+
+
+
+
+        ub_data.viewProjMatrix = camera.getViewProjMatrix();
         ub_data.cameraPosition = glm::vec4{camera.getPosition(), 1.0f};
+
+
+
+
+
+
+
+
         ub_data.color = {1.f, 1.f, 1.f, 1.f};
         // Update cornell box:
         ub_data.color = {0.7f, 0.1f, 0.2f, 1.0f};
