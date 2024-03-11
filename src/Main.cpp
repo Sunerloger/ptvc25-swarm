@@ -206,21 +206,39 @@ static bool g_dragging = false;
 static bool g_strafing = false;
 static float g_zoom = 5.0f;
 
-/*!
- *	This callback function gets invoked by GLFW during glfwPollEvents() if there was
- *	mouse button input that can be processed by our application.
- */
-void mouseButtonCallbackFromGlfw(GLFWwindow* glfw_window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        g_dragging = true;
-    } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        g_dragging = false;
-    } else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-        g_strafing = true;
-    } else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
-        g_strafing = false;
+//FPV
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+    static double lastX = 800, lastY = 800;
+    static bool firstMouse = true;
+
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
     }
+
+    double xoffset = lastX -xpos;
+    double yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.05f; // Change this value to your liking
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+    camera->yaw += xoffset;
+    camera->pitch += yoffset;
+
+    // Make sure that when pitch is out of bounds, screen doesn't get flipped
+    if (camera->pitch > 89.0f)
+        camera->pitch = 89.0f;
+    if (camera->pitch < -89.0f)
+        camera->pitch = -89.0f;
+
+    camera->updateCameraVectors();
 }
+
 
 /*!
  *	This callback function gets invoked by GLFW during glfwPollEvents() if there was
@@ -904,8 +922,6 @@ int main(int argc, char** argv) {
 
     glfwSetWindowUserPointer(window, &camera);
 
-    // Establish a callback function for handling mouse button events:
-    glfwSetMouseButtonCallback(window, mouseButtonCallbackFromGlfw);
 
     // Establish a callback function for handling mouse scroll events:
     glfwSetScrollCallback(window, scrollCallbackFromGlfw);
@@ -949,6 +965,11 @@ int main(int argc, char** argv) {
     });
 
     double mouse_x, mouse_y;
+
+    // FPV
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouseCallback);
+
 
     vklEnablePipelineHotReloading(window, GLFW_KEY_F5);
     while (!glfwWindowShouldClose(window)) {

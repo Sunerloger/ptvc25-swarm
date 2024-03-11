@@ -26,7 +26,7 @@ public:
         position = glm::vec3(0.0f, 0.0f, 0.0f);
         yaw = -90.0f; // Initial yaw, looking along -Z axis
         pitch = 0.0f; // Initial pitch
-        up = glm::vec3(0.0f, -1.0f, 0.0f); // Up is +Y axis
+        up = glm::vec3(0.0f, -1.0f, 0.0f); // Up is -Y axis
         projMatrix = createPerspectiveProjectionMatrix(fov, aspectRatio, nearPlane, farPlane);
         updateCameraVectors();
     }
