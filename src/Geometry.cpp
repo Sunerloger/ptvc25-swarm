@@ -17,18 +17,28 @@
 GeometryData createCrosshairGeometry(float size, float thickness) {
     GeometryData data;
 
-    // Square vertices (CCW order)
+
     data.positions = {
-            glm::vec3(-size, -size, 0.0f), // Bottom Left
-            glm::vec3(size, -size, 0.0f),  // Bottom Right
-            glm::vec3(size, size, 0.0f),   // Top Right
-            glm::vec3(-size, size, 0.0f)   // Top Left
+            // Vertical line
+            glm::vec3(-thickness, -size, 0.0f), // Bottom Left
+            glm::vec3(thickness, -size, 0.0f),  // Bottom Right
+            glm::vec3(thickness, size, 0.0f),   // Top Right
+            glm::vec3(-thickness, size, 0.0f),   // Top Left
+            // Horizontal line
+            glm::vec3(-size, -thickness, 0.0f), // Bottom Left
+            glm::vec3(size, -thickness, 0.0f),  // Bottom Right
+            glm::vec3(size, thickness, 0.0f),   // Top Right
+            glm::vec3(-size, thickness, 0.0f)   // Top Left
+
+
     };
 
     // Indices for two triangles (CCW order)
     data.indices = {
             0, 1, 2, // First Triangle
-            2, 3, 0  // Second Triangle
+            2, 3, 0,  // Second Triangle
+            4, 5, 6, // First Triangle
+            6, 7, 4  // Second Triangle
     };
 
     return data;

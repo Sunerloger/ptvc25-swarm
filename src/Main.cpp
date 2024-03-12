@@ -689,8 +689,8 @@ int main(int argc, char** argv) {
             }
     );
 
-    float crosshairSize = 0.5f; // Adjust based on your needs
-    float crosshairThickness = 0.5f; // Adjust based on your needs
+    float crosshairSize = 0.03f; // Adjust based on your needs
+    float crosshairThickness = 0.005f; // Adjust based on your needs
     GeometryData crosshairData = createCrosshairGeometry(crosshairSize, crosshairThickness);
 
     // Assuming `crosshairData` contains your vertex and index data as per `createCrosshairGeometry`
