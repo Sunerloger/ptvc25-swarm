@@ -669,6 +669,46 @@ int main(int argc, char** argv) {
     /* --------------------------------------------- */
     // Subtask 2.1: Create a Custom Graphics Pipeline
     /* --------------------------------------------- */
+
+    //HUD
+    std::string vertexShaderPathHUD = gcgLoadShaderFilePath("assets/shaders_vk/crosshair/crosshair.vert");
+    std::string fragmentShaderPathHUD = gcgLoadShaderFilePath("assets/shaders_vk/crosshair/crosshair.frag");
+    VkPipeline HUD_pipeline = vklCreateGraphicsPipeline(
+            VklGraphicsPipelineConfig {
+                    vertexShaderPathHUD.c_str(),
+                    fragmentShaderPathHUD.c_str(),
+                    {
+                            VkVertexInputBindingDescription{0u, sizeof(float) * 2, VK_VERTEX_INPUT_RATE_VERTEX}, // Correct stride for 2D vertices
+                    },
+                    {
+                            VkVertexInputAttributeDescription{0u, 0u, VK_FORMAT_R32G32_SFLOAT, 0u}, // Correct format for 2D coordinates
+                    },
+                    VK_POLYGON_MODE_FILL,
+                    VK_CULL_MODE_NONE,
+                    {} // No dynamic data needed
+            }
+    );
+
+    float crosshairSize = 1.0f; // Adjust based on your needs
+    float crosshairThickness = 0.5f; // Adjust based on your needs
+    GeometryData crosshairData = createCrosshairGeometry(crosshairSize, crosshairThickness);
+
+    // Assuming `crosshairData` contains your vertex and index data as per `createCrosshairGeometry`
+    size_t vertexDataSize = sizeof(glm::vec3) * crosshairData.positions.size();
+    // Create vertex buffer
+    VkBuffer vertexBuffer = vklCreateHostCoherentBufferWithBackingMemory(vertexDataSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    // Copy vertex data into the buffer
+    vklCopyDataIntoHostCoherentBuffer(vertexBuffer, crosshairData.positions.data(), vertexDataSize);
+
+    size_t indexDataSize = sizeof(uint32_t) * crosshairData.indices.size();
+    // Create index buffer
+    VkBuffer indexBuffer = vklCreateHostCoherentBufferWithBackingMemory(indexDataSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    // Copy index data into the buffer
+    vklCopyDataIntoHostCoherentBuffer(indexBuffer, crosshairData.indices.data(), indexDataSize);
+
+
+
+
     // clang-format off
     std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings = {
         VkDescriptorSetLayoutBinding{0u, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
@@ -1067,6 +1107,20 @@ int main(int argc, char** argv) {
         drawGeometryWithMaterial(custom_pipelines[g_polygon_mode_index][g_culling_index][0], bezier_cylinder_geometry, ds_bezier_cylinder);
         drawGeometryWithMaterial(custom_pipelines[g_polygon_mode_index][g_culling_index][0], sphere_geometry, ds_sphere);
 
+        //HUD
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindPipeline(vklGetCurrentCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, HUD_pipeline); // Use your actual command buffer variable
+        // Bind the vertex buffer for the crosshair
+        vkCmdBindVertexBuffers(vklGetCurrentCommandBuffer(), 0, 1, &vertexBuffer, offsets);
+        // If you have an index buffer for the crosshair
+        vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        // With an index buffer
+        vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), 4, 1, 0, 0, 0);
+
+
+
+
+
         vklEndRecordingCommands();
         // Present rendered image to the screen:
         vklPresentCurrentSwapchainImage();
@@ -1100,6 +1154,12 @@ int main(int argc, char** argv) {
     destroyGeometryGpuMemory(cylinder_geometry);
     vklDestroyHostCoherentBufferAndItsBackingMemory(ub_box);
     destroyGeometryGpuMemory(box_geometry);
+
+    //HUD
+    vklDestroyHostCoherentBufferAndItsBackingMemory(vertexBuffer);
+    vklDestroyHostCoherentBufferAndItsBackingMemory(indexBuffer);
+    vkDestroyPipeline(vk_device, HUD_pipeline, nullptr);
+
     vkDestroySampler(vk_device, sampler, nullptr);
     vklDestroyHostCoherentBufferAndItsBackingMemory(ub_pointlight);
     vklDestroyHostCoherentBufferAndItsBackingMemory(ub_dirlight);

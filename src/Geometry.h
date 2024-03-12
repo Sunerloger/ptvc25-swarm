@@ -63,6 +63,14 @@ struct Geometry {
 };
 
 /*!
+ *	Creates a quad geometry
+ *	@param size		size of the quad
+ *	@param thickness	thickness of the quad
+ *	@return all quad data
+ */
+GeometryData createCrosshairGeometry(float size, float thickness);
+
+/*!
  *	Creates a box geometry
  *	@param width		width of the box
  *	@param height		height of the box
