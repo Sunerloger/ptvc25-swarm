@@ -17,20 +17,18 @@
 GeometryData createCrosshairGeometry(float size, float thickness) {
     GeometryData data;
 
-    // Horizontal line
-    data.positions.push_back(glm::vec3(-size, 0.0f, 0.0f)); // Left point
-    data.positions.push_back(glm::vec3(size, 0.0f, 0.0f));  // Right point
+    // Square vertices (CCW order)
+    data.positions = {
+            glm::vec3(-size, -size, 0.0f), // Bottom Left
+            glm::vec3(size, -size, 0.0f),  // Bottom Right
+            glm::vec3(size, size, 0.0f),   // Top Right
+            glm::vec3(-size, size, 0.0f)   // Top Left
+    };
 
-    // Vertical line
-    data.positions.push_back(glm::vec3(0.0f, -size, 0.0f)); // Bottom point
-    data.positions.push_back(glm::vec3(0.0f, size, 0.0f));  // Top point
-
-    // Since we're drawing lines and assuming line strip or lines as the primitive,
-    // we need to define the indices for the lines. For VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-    // every pair of indices represents a separate line.
+    // Indices for two triangles (CCW order)
     data.indices = {
-            0, 1, // Horizontal line
-            2, 3  // Vertical line
+            0, 1, 2, // First Triangle
+            2, 3, 0  // Second Triangle
     };
 
     return data;

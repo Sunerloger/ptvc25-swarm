@@ -678,10 +678,10 @@ int main(int argc, char** argv) {
                     vertexShaderPathHUD.c_str(),
                     fragmentShaderPathHUD.c_str(),
                     {
-                            VkVertexInputBindingDescription{0u, sizeof(float) * 2, VK_VERTEX_INPUT_RATE_VERTEX}, // Correct stride for 2D vertices
+                            VkVertexInputBindingDescription{0u, sizeof(float) * 3, VK_VERTEX_INPUT_RATE_VERTEX}, // Correct stride for 2D vertices
                     },
                     {
-                            VkVertexInputAttributeDescription{0u, 0u, VK_FORMAT_R32G32_SFLOAT, 0u}, // Correct format for 2D coordinates
+                            VkVertexInputAttributeDescription{0u, 0u, VK_FORMAT_R32G32B32_SFLOAT, 0u}, // Correct format for 2D coordinates
                     },
                     VK_POLYGON_MODE_FILL,
                     VK_CULL_MODE_NONE,
@@ -689,7 +689,7 @@ int main(int argc, char** argv) {
             }
     );
 
-    float crosshairSize = 1.0f; // Adjust based on your needs
+    float crosshairSize = 0.5f; // Adjust based on your needs
     float crosshairThickness = 0.5f; // Adjust based on your needs
     GeometryData crosshairData = createCrosshairGeometry(crosshairSize, crosshairThickness);
 
@@ -1115,7 +1115,7 @@ int main(int argc, char** argv) {
         // If you have an index buffer for the crosshair
         vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         // With an index buffer
-        vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), 4, 1, 0, 0, 0);
+        vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), crosshairData.indices.size(), 1, 0, 0, 0);
 
 
 
