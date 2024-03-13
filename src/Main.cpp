@@ -326,7 +326,7 @@ int main(int argc, char** argv) {
 
     int window_width = 1600;
     int window_height = 900;
-    bool fullscreen = false;
+    bool fullscreen = true;
     std::string window_title = "Swarm";
     INIReader window_reader("assets/settings/window.ini");
 
@@ -671,6 +671,29 @@ int main(int argc, char** argv) {
     // Subtask 2.1: Create a Custom Graphics Pipeline
     /* --------------------------------------------- */
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     //HUD
     std::string vertexShaderPathHudRed = gcgLoadShaderFilePath("assets/shaders_vk/hud/hud_red.vert");
     std::string fragmentShaderPathHudBRed = gcgLoadShaderFilePath("assets/shaders_vk/hud/hud_red.frag");
@@ -722,9 +745,11 @@ int main(int argc, char** argv) {
 
 
     float healthbarWidth = 0.5f;
-    float healthbarHeight = 0.01f;
+    float healthbarHeight = 0.1f;
+    float healthBarThickness = 0.02f;
 
-    GeometryData healthbarOutline = createHealthBarOutlineGeometry(healthbarWidth, healthbarHeight, 0.03, aspect_ratio);
+
+    GeometryData healthbarOutline = createHealthBarOutlineGeometry(healthbarWidth, healthbarHeight, aspect_ratio, glm::vec3 {- 0.65, - 0.85, 0.0f}, healthBarThickness);
     size_t vertexDataSizeHealthbar = sizeof(glm::vec3) * healthbarOutline.positions.size();
     VkBuffer vertexBufferHealthbar = vklCreateHostCoherentBufferWithBackingMemory(vertexDataSizeHealthbar, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
     vklCopyDataIntoHostCoherentBuffer(vertexBufferHealthbar, healthbarOutline.positions.data(), vertexDataSizeHealthbar);
@@ -739,7 +764,7 @@ int main(int argc, char** argv) {
     size_t indexDataSizeHealthbarSquares[10];
     VkBuffer indexBufferHealthbarSquares[10];
     for (int i = 0; i < 10; i++) {
-        healthBarSquares[i] = createHealthBarSquareGeometry(healthbarWidth, 0.03, aspect_ratio, glm::vec3 {-healthbarWidth/10 * i - healthbarHeight/1.1, -healthbarHeight, 0.0f});
+        healthBarSquares[i] = createHealthBarSquareGeometry(healthbarWidth, healthbarHeight, aspect_ratio, glm::vec3 {(i+0.5) * healthbarWidth / 10 - healthbarWidth/2 - 0.65, - 0.85, 0.0f});
         vertexDataSizeHealthbarSquares[i] = sizeof(glm::vec3) * healthBarSquares[i].positions.size();
         vertexBufferHealthbarSquares[i] = vklCreateHostCoherentBufferWithBackingMemory(vertexDataSizeHealthbarSquares[i], VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         vklCopyDataIntoHostCoherentBuffer(vertexBufferHealthbarSquares[i], healthBarSquares[i].positions.data(), vertexDataSizeHealthbarSquares[i]);
@@ -747,6 +772,30 @@ int main(int argc, char** argv) {
         indexBufferHealthbarSquares[i] = vklCreateHostCoherentBufferWithBackingMemory(indexDataSizeHealthbarSquares[i], VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         vklCopyDataIntoHostCoherentBuffer(indexBufferHealthbarSquares[i], healthBarSquares[i].indices.data(), indexDataSizeHealthbarSquares[i]);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // clang-format off
     std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings = {
@@ -1015,7 +1064,6 @@ int main(int argc, char** argv) {
         }
 
         Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
-        float* health = static_cast<float*>(glfwGetWindowUserPointer(window));
 
         if (key == GLFW_KEY_UP || key == GLFW_KEY_W) {
             isMovingForward = (action != GLFW_RELEASE);
@@ -1046,7 +1094,7 @@ int main(int argc, char** argv) {
 
     double mouse_x, mouse_y;
     const float cameraSpeed = 0.05f;
-    float health = 50.0f;
+    float health = 100.0f;
 
     //FPV
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

@@ -52,53 +52,48 @@ GeometryData createCrosshairGeometry(float size, float thickness, float aspectRa
 
 //HUD
 // clang-format off
-GeometryData createHealthBarOutlineGeometry(float width, float height, float health_height, float aspectRatio) {
+GeometryData createHealthBarOutlineGeometry(float width, float height, float aspectRatio, glm::vec3 translation, float thickness) {
     GeometryData data;
 
-    float edge = 1.0f;
+    width = 2*width / aspectRatio;
 
-    // Bottom left triangle from lower line
-    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge-width, edge, 0.0f)); // Bottom left
-    data.positions.push_back(glm::vec3(edge-width,edge-height, 0.0f)); // Top left
-    // Top right triangle from lower line
-    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge-width, edge-height, 0.0f)); // Top left
-    data.positions.push_back(glm::vec3(edge, edge-height, 0.0f)); // Top right
+    float leftOuterEdge = -width / 2 - thickness / 2;
+    float rightOuterEdge = width / 2 + thickness / 2;
+    float topOuterEdge = -height / 2 - thickness / 2;
 
+    // Top line bottom left triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, topOuterEdge, 0)); // Top left
+    data.positions.push_back(glm::vec3(leftOuterEdge, -height/2 + thickness/2, 0)); // Bottom left
+    data.positions.push_back(glm::vec3(rightOuterEdge, -height/2 + thickness/2, 0)); // Bottom right
 
-    // Bottom left triangle from upper line
-    data.positions.push_back(glm::vec3(edge, edge-health_height, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge-width, edge-health_height, 0.0f)); // Bottom left
-    data.positions.push_back(glm::vec3(edge-width, edge-height-health_height, 0.0f)); // Top left
-    // Top right triangle from upper line
-    data.positions.push_back(glm::vec3(edge, edge-health_height, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge-width, edge-height-health_height, 0.0f)); // Top left
-    data.positions.push_back(glm::vec3(edge, edge-height-health_height, 0.0f)); // Top right
+    // Top line top right triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, topOuterEdge, 0)); // Top left
+    data.positions.push_back(glm::vec3(rightOuterEdge, topOuterEdge, 0)); // Top right
+    data.positions.push_back(glm::vec3(rightOuterEdge, -height/2 + thickness/2, 0)); // Bottom right
 
+    // Bottom line
+    for (int i = 0; i < 6; i++) {
+        data.positions.push_back(data.positions[i] + glm::vec3 (0, height, 0));
+    }
 
-    // Top left triangle from right line
-    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge, edge-height, 0.0f)); // Bottom left
-    data.positions.push_back(glm::vec3(edge-height, edge-height-health_height, 0.0f)); // Top left
-    // Bottom right triangle from right line
-    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge-height, edge-height-health_height, 0.0f)); // Top left
-    data.positions.push_back(glm::vec3(edge, edge-height-health_height, 0.0f)); // Top right
+    // Left line bottom left triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, -height/2+thickness/2, 0)); // Top left
+    data.positions.push_back(glm::vec3(leftOuterEdge, height/2-thickness/2, 0)); // Bottom left
+    data.positions.push_back(glm::vec3(-width/2+thickness/2, height/2-thickness/2, 0)); // Bottom right
 
-    // Top left triangle from left line
-    data.positions.push_back(glm::vec3(edge-width, edge, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge-width+(height/aspectRatio), edge, 0.0f)); // Bottom left
-    data.positions.push_back(glm::vec3(edge-width+(height/aspectRatio), edge-height-health_height, 0.0f)); // Top left
-    // Bottom right triangle from left line
-    data.positions.push_back(glm::vec3(edge-width, edge, 0.0f)); // Bottom right
-    data.positions.push_back(glm::vec3(edge-width+(height/aspectRatio), edge-height-health_height, 0.0f)); // Top left
-    data.positions.push_back(glm::vec3(edge-width, edge-height-health_height, 0.0f)); // Top right
+    // Left line top right triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, -height/2+thickness/2, 0)); // Top left
+    data.positions.push_back(glm::vec3(-width/2+thickness/2, -height/2+thickness/2, 0)); // Top right
+    data.positions.push_back(glm::vec3(-width/2+thickness/2, height/2-thickness/2, 0)); // Bottom right
 
 
+    // Right line
+    for (int i = 12; i < 18; i++) {
+        data.positions.push_back(data.positions[i] + glm::vec3 (width, 0, 0));
+    }
 
     for (int i = 0; i < data.positions.size(); i++) {
-        data.positions[i] = data.positions[i] + glm::vec3(-2.0f+width+height/aspectRatio, -2.0f+height*2+health_height, 0.0f);
+        data.positions[i] = data.positions[i] + translation;
         data.indices.push_back(i);
     }
 
@@ -108,27 +103,26 @@ GeometryData createHealthBarOutlineGeometry(float width, float height, float hea
 //HUD
 GeometryData createHealthBarSquareGeometry(float width, float height, float aspectRatio, glm::vec3 translation) {
     GeometryData data;
-
-    float edge = 1.0f;
+    float calculatedWidth = width / 10;
 
     // Top right triangle
-    data.positions.push_back(glm::vec3(edge, edge, 0.0f) + translation); // Bottom right
-    data.positions.push_back(glm::vec3(edge, edge-height, 0.0f) + translation); // Top right
-    data.positions.push_back(glm::vec3(edge-width/10, edge-height, 0.0f) + translation); // Top left
+    data.positions.push_back(glm::vec3(calculatedWidth/2, height/2, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(-calculatedWidth/2, height/2, 0.0f)); // Top right
+    data.positions.push_back(glm::vec3(-calculatedWidth/2, -height/2, 0.0f)); // Top left
 
 
     // Bottom left triangle
-    data.positions.push_back(glm::vec3(edge, edge, 0.0f) + translation); // Bottom right
-    data.positions.push_back(glm::vec3(edge-width/10, edge, 0.0f) + translation); // Bottom left
-    data.positions.push_back(glm::vec3(edge-width/10, edge-height, 0.0f) + translation); // Top left
-
-
+    data.positions.push_back(glm::vec3(calculatedWidth/2, height/2, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(calculatedWidth/2, -height/2, 0.0f)); // Bottom left
+    data.positions.push_back(glm::vec3(-calculatedWidth/2, -height/2, 0.0f)); // Top left
 
 
 
     for (int i = 0; i < data.positions.size(); i++) {
         data.indices.push_back(i);
-        data.positions[i] = data.positions[i] + glm::vec3(-2.0f+width+height/aspectRatio, -2.0f+height*2, 0.0f);
+        data.positions[i].x = data.positions[i].x * 2;
+        data.positions[i] = data.positions[i] + translation;
+
     }
 
     return data;

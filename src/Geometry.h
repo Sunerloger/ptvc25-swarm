@@ -65,7 +65,7 @@ struct Geometry {
 //HUD
 GeometryData createCrosshairGeometry(float size, float thickness, float aspectRatio);
 //HUD
-GeometryData createHealthBarOutlineGeometry(float width, float height, float health_height, float aspectRatio);
+GeometryData createHealthBarOutlineGeometry(float width, float height, float aspectRatio, glm::vec3 translation, float thickness);
 
 GeometryData createHealthBarSquareGeometry(float width, float height, float aspectRatio, glm::vec3 translation);
 
