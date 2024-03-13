@@ -55,8 +55,6 @@ GeometryData createCrosshairGeometry(float size, float thickness, float aspectRa
 GeometryData createHealthBarOutlineGeometry(float width, float height, float aspectRatio, glm::vec3 translation, float thickness) {
     GeometryData data;
 
-    width = 2*width / aspectRatio;
-
     float leftOuterEdge = -width / 2 - thickness / 2;
     float rightOuterEdge = width / 2 + thickness / 2;
     float topOuterEdge = -height / 2 - thickness / 2;
@@ -120,7 +118,7 @@ GeometryData createHealthBarSquareGeometry(float width, float height, float aspe
 
     for (int i = 0; i < data.positions.size(); i++) {
         data.indices.push_back(i);
-        data.positions[i].x = data.positions[i].x * 2;
+        data.positions[i].x = data.positions[i].x;
         data.positions[i] = data.positions[i] + translation;
 
     }

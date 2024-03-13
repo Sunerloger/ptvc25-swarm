@@ -324,9 +324,9 @@ int main(int argc, char** argv) {
     // Subtask 1.1: Load Settings From File
     /* --------------------------------------------- */
 
-    int window_width = 1600;
+    int window_width = 900;
     int window_height = 900;
-    bool fullscreen = true;
+    bool fullscreen = false;
     std::string window_title = "Swarm";
     INIReader window_reader("assets/settings/window.ini");
 
