@@ -324,16 +324,12 @@ int main(int argc, char** argv) {
     // Subtask 1.1: Load Settings From File
     /* --------------------------------------------- */
 
-    int window_width = 800;
-    int window_height = 800;
-    bool fullscreen = false;
-    std::string window_title = "Task 0";
+    int window_width = 21;
+    int window_height = 9;
+    bool fullscreen = true;
+    std::string window_title = "Swarm";
     INIReader window_reader("assets/settings/window.ini");
 
-    window_width = window_reader.GetInteger("window", "width", 800);
-    window_height = window_reader.GetInteger("window", "height", 800);
-    fullscreen = window_reader.GetBoolean("window", "fullscreen", false);
-    window_title = window_reader.Get("window", "title", "GCG 2023");
     std::string init_camera_filepath = "assets/settings/camera_front.ini";
     if (cmdline_args.init_camera) {
         init_camera_filepath = cmdline_args.init_camera_filepath;
@@ -376,19 +372,24 @@ int main(int argc, char** argv) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // No need to create a graphics context for Vulkan
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    // Use a monitor if we'd like to open the window in fullscreen mode:
-    GLFWmonitor* monitor = nullptr;
+// Automatically set to fullscreen mode and use the monitor's resolution
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
     if (fullscreen) {
-        monitor = glfwGetPrimaryMonitor();
+        window_width = mode->width;
+        window_height = mode->height;
+        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+    } else {
+        monitor = nullptr; // Ensure it's windowed mode if fullscreen is not requested
     }
 
-    GLFWwindow* window = nullptr;
-    window = glfwCreateWindow(window_width, window_height, window_title.c_str(), monitor, nullptr);
+    GLFWwindow* window = glfwCreateWindow(window_width, window_height, window_title.c_str(), monitor, nullptr);
 
     if (!window) {
-        VKL_LOG("If your program reaches this point, that means two things:");
-        VKL_LOG("1) Project setup was successful. Everything is working fine.");
-        VKL_LOG("2) You haven't implemented Subtask 1.2, which is creating a window with GLFW.");
         VKL_EXIT_WITH_ERROR("No GLFW window created.");
     }
     VKL_LOG("Subtask 1.2 done.");
@@ -691,22 +692,28 @@ int main(int argc, char** argv) {
 
     float crosshairSize = 0.03f; // Adjust based on your needs
     float crosshairThickness = 0.005f; // Adjust based on your needs
-    GeometryData crosshairData = createCrosshairGeometry(crosshairSize, crosshairThickness);
+    GeometryData crosshairData = createCrosshairGeometry(crosshairSize, crosshairThickness, aspect_ratio);
 
-    // Assuming `crosshairData` contains your vertex and index data as per `createCrosshairGeometry`
     size_t vertexDataSize = sizeof(glm::vec3) * crosshairData.positions.size();
-    // Create vertex buffer
     VkBuffer vertexBuffer = vklCreateHostCoherentBufferWithBackingMemory(vertexDataSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    // Copy vertex data into the buffer
     vklCopyDataIntoHostCoherentBuffer(vertexBuffer, crosshairData.positions.data(), vertexDataSize);
 
     size_t indexDataSize = sizeof(uint32_t) * crosshairData.indices.size();
-    // Create index buffer
     VkBuffer indexBuffer = vklCreateHostCoherentBufferWithBackingMemory(indexDataSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    // Copy index data into the buffer
     vklCopyDataIntoHostCoherentBuffer(indexBuffer, crosshairData.indices.data(), indexDataSize);
 
 
+    float healthbarWidth = 0.5f;
+    float healthbarHeight = 0.01f;
+    float healthbarThickness = 100.0f;
+
+    GeometryData healthbarOutlineLower = createHealthBarOutlineGeometry(healthbarWidth, 0.01, 0.03, aspect_ratio);
+    size_t vertexDataSizeHealthbar = sizeof(glm::vec3) * healthbarOutlineLower.positions.size();
+    VkBuffer vertexBufferHealthbar = vklCreateHostCoherentBufferWithBackingMemory(vertexDataSizeHealthbar, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    vklCopyDataIntoHostCoherentBuffer(vertexBufferHealthbar, healthbarOutlineLower.positions.data(), vertexDataSizeHealthbar);
+    size_t indexDataSizeHealthbar = sizeof(uint32_t) * healthbarOutlineLower.indices.size();
+    VkBuffer indexBufferHealthbar = vklCreateHostCoherentBufferWithBackingMemory(indexDataSizeHealthbar, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    vklCopyDataIntoHostCoherentBuffer(indexBufferHealthbar, healthbarOutlineLower.indices.data(), indexDataSizeHealthbar);
 
 
     // clang-format off
@@ -951,7 +958,7 @@ int main(int argc, char** argv) {
     // Subtask 2.6: Orbit Camera
     /* --------------------------------------------- */
 
-    // Initialize Camera
+    //FPV
     Camera camera(field_of_view, aspect_ratio, near_plane_distance, far_plane_distance);
     camera.setYaw(camera_yaw);
     camera.setPitch(camera_pitch);
@@ -977,16 +984,16 @@ int main(int argc, char** argv) {
 
         Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
 
-        if (key == GLFW_KEY_UP) {
+        if (key == GLFW_KEY_UP || key == GLFW_KEY_W) {
             isMovingForward = (action != GLFW_RELEASE);
         }
-        if (key == GLFW_KEY_DOWN) {
+        if (key == GLFW_KEY_DOWN || key == GLFW_KEY_S) {
             isMovingBackward = (action != GLFW_RELEASE);
         }
-        if (key == GLFW_KEY_LEFT) {
+        if (key == GLFW_KEY_LEFT || key == GLFW_KEY_A) {
             isMovingLeft = (action != GLFW_RELEASE);
         }
-        if (key == GLFW_KEY_RIGHT) {
+        if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_D) {
             isMovingRight = (action != GLFW_RELEASE);
         }
 
@@ -1005,8 +1012,10 @@ int main(int argc, char** argv) {
     });
 
     double mouse_x, mouse_y;
+    const float cameraSpeed = 0.05f;
+    float health = 100.0f;
 
-    // FPV
+    //FPV
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouseCallback);
 
@@ -1019,12 +1028,7 @@ int main(int argc, char** argv) {
 
 
 
-
-
-
-
-        // Handle continuous movement
-        const float cameraSpeed = 0.05f; // Adjust as needed
+        //FPV
         if (isMovingForward) {
             camera.moveForward(cameraSpeed);
         }
@@ -1052,7 +1056,7 @@ int main(int argc, char** argv) {
 
 
 
-
+        //FPV
         ub_data.viewProjMatrix = camera.getViewProjMatrix();
         ub_data.cameraPosition = glm::vec4{camera.getPosition(), 1.0f};
 
@@ -1110,12 +1114,15 @@ int main(int argc, char** argv) {
         //HUD
         VkDeviceSize offsets[] = {0};
         vkCmdBindPipeline(vklGetCurrentCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, HUD_pipeline); // Use your actual command buffer variable
-        // Bind the vertex buffer for the crosshair
         vkCmdBindVertexBuffers(vklGetCurrentCommandBuffer(), 0, 1, &vertexBuffer, offsets);
-        // If you have an index buffer for the crosshair
         vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        // With an index buffer
         vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), crosshairData.indices.size(), 1, 0, 0, 0);
+
+        vkCmdBindVertexBuffers(vklGetCurrentCommandBuffer(), 0, 1, &vertexBufferHealthbar, offsets);
+        vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBufferHealthbar, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), healthbarOutlineLower.indices.size(), 1, 0, 0, 0);
+
+
 
 
 
@@ -1158,6 +1165,8 @@ int main(int argc, char** argv) {
     //HUD
     vklDestroyHostCoherentBufferAndItsBackingMemory(vertexBuffer);
     vklDestroyHostCoherentBufferAndItsBackingMemory(indexBuffer);
+    vklDestroyHostCoherentBufferAndItsBackingMemory(vertexBufferHealthbar);
+    vklDestroyHostCoherentBufferAndItsBackingMemory(indexBufferHealthbar);
     vkDestroyPipeline(vk_device, HUD_pipeline, nullptr);
 
     vkDestroySampler(vk_device, sampler, nullptr);

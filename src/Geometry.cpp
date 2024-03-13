@@ -14,35 +14,94 @@
 #undef max
 
 // clang-format off
-GeometryData createCrosshairGeometry(float size, float thickness) {
+GeometryData createCrosshairGeometry(float size, float thickness, float aspectRatio) {
     GeometryData data;
 
+    // Adjust the thickness and size of the lines based on the aspect ratio
+    // to ensure uniform appearance in terms of screen proportions
+    float horizontalLineLength = size;
+    float verticalLineLength = size * aspectRatio;
+    float horizontalLineThickness = thickness * aspectRatio;
+    float verticalLineThickness = thickness;
 
     data.positions = {
-            // Vertical line
-            glm::vec3(-thickness, -size, 0.0f), // Bottom Left
-            glm::vec3(thickness, -size, 0.0f),  // Bottom Right
-            glm::vec3(thickness, size, 0.0f),   // Top Right
-            glm::vec3(-thickness, size, 0.0f),   // Top Left
-            // Horizontal line
-            glm::vec3(-size, -thickness, 0.0f), // Bottom Left
-            glm::vec3(size, -thickness, 0.0f),  // Bottom Right
-            glm::vec3(size, thickness, 0.0f),   // Top Right
-            glm::vec3(-size, thickness, 0.0f)   // Top Left
+            // Vertical line (centered, uses original size)
+            glm::vec3(-verticalLineThickness, -verticalLineLength, 0.0f), // Bottom
+            glm::vec3(verticalLineThickness, -verticalLineLength, 0.0f),  // Bottom
+            glm::vec3(verticalLineThickness, verticalLineLength, 0.0f),   // Top
+            glm::vec3(-verticalLineThickness, verticalLineLength, 0.0f),  // Top
 
-
+            // Horizontal line (adjusted for aspect ratio)
+            glm::vec3(-horizontalLineLength, -horizontalLineThickness, 0.0f), // Left
+            glm::vec3(horizontalLineLength, -horizontalLineThickness, 0.0f),  // Left
+            glm::vec3(horizontalLineLength, horizontalLineThickness, 0.0f),   // Right
+            glm::vec3(-horizontalLineLength, horizontalLineThickness, 0.0f)   // Right
     };
 
-    // Indices for two triangles (CCW order)
+    // Indices for two triangles (CCW order) for each line
     data.indices = {
-            0, 1, 2, // First Triangle
-            2, 3, 0,  // Second Triangle
-            4, 5, 6, // First Triangle
-            6, 7, 4  // Second Triangle
+            0, 1, 2, // First Triangle (vertical)
+            2, 3, 0, // Second Triangle (vertical)
+            4, 5, 6, // First Triangle (horizontal)
+            6, 7, 4  // Second Triangle (horizontal)
     };
 
     return data;
 }
+
+
+//HUD
+// clang-format off
+GeometryData createHealthBarOutlineGeometry(float width, float height, float health_height, float aspectRatio) {
+    GeometryData data;
+
+    float edge = 1.0f;
+
+    // Bottom left triangle from lower line
+    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge-width, edge, 0.0f)); // Bottom left
+    data.positions.push_back(glm::vec3(edge-width,edge-height, 0.0f)); // Top left
+    // Top right triangle from lower line
+    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge-width, edge-height, 0.0f)); // Top left
+    data.positions.push_back(glm::vec3(edge, edge-height, 0.0f)); // Top right
+
+
+    // Bottom left triangle from upper line
+    data.positions.push_back(glm::vec3(edge, edge-health_height, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge-width, edge-health_height, 0.0f)); // Bottom left
+    data.positions.push_back(glm::vec3(edge-width, edge-height-health_height, 0.0f)); // Top left
+    // Top right triangle from upper line
+    data.positions.push_back(glm::vec3(edge, edge-health_height, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge-width, edge-height-health_height, 0.0f)); // Top left
+    data.positions.push_back(glm::vec3(edge, edge-height-health_height, 0.0f)); // Top right
+
+
+    // Top left triangle from right line
+    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge, edge-height, 0.0f)); // Bottom left
+    data.positions.push_back(glm::vec3(edge-height, edge-height-health_height, 0.0f)); // Top left
+    // Bottom right triangle from right line
+    data.positions.push_back(glm::vec3(edge, edge, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge-height, edge-height-health_height, 0.0f)); // Top left
+    data.positions.push_back(glm::vec3(edge, edge-height-health_height, 0.0f)); // Top right
+
+    // Top left triangle from left line
+    data.positions.push_back(glm::vec3(edge-width, edge, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge-width+(height/aspectRatio), edge, 0.0f)); // Bottom left
+    data.positions.push_back(glm::vec3(edge-width+(height/aspectRatio), edge-height-health_height, 0.0f)); // Top left
+    // Bottom right triangle from left line
+    data.positions.push_back(glm::vec3(edge-width, edge, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(edge-width+(height/aspectRatio), edge-height-health_height, 0.0f)); // Top left
+    data.positions.push_back(glm::vec3(edge-width, edge-height-health_height, 0.0f)); // Top right
+
+    for (int i = 0; i < data.positions.size(); i++) {
+        data.indices.push_back(i);
+    }
+
+    return data;
+}
+
 
 // clang-format off
 GeometryData createBoxGeometry(float width, float height, float depth)

@@ -62,13 +62,10 @@ struct Geometry {
     VkBuffer textureCoordinatesBuffer;
 };
 
-/*!
- *	Creates a quad geometry
- *	@param size		size of the quad
- *	@param thickness	thickness of the quad
- *	@return all quad data
- */
-GeometryData createCrosshairGeometry(float size, float thickness);
+//HUD
+GeometryData createCrosshairGeometry(float size, float thickness, float aspectRatio);
+//HUD
+GeometryData createHealthBarOutlineGeometry(float width, float height, float health_height, float aspectRatio);
 
 /*!
  *	Creates a box geometry
@@ -131,4 +128,3 @@ Geometry createAndUploadIntoGpuMemory(const GeometryData& geometry_data);
  *	Frees the GPU buffers that have been created via createAndUploadIntoGpuMemory.
  */
 void destroyGeometryGpuMemory(const Geometry& geometry);
-
