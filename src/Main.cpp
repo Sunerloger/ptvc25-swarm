@@ -324,9 +324,9 @@ int main(int argc, char** argv) {
     // Subtask 1.1: Load Settings From File
     /* --------------------------------------------- */
 
-    int window_width = 21;
-    int window_height = 9;
-    bool fullscreen = true;
+    int window_width = 1600;
+    int window_height = 900;
+    bool fullscreen = false;
     std::string window_title = "Swarm";
     INIReader window_reader("assets/settings/window.ini");
 
@@ -672,12 +672,12 @@ int main(int argc, char** argv) {
     /* --------------------------------------------- */
 
     //HUD
-    std::string vertexShaderPathHUD = gcgLoadShaderFilePath("assets/shaders_vk/crosshair/crosshair.vert");
-    std::string fragmentShaderPathHUD = gcgLoadShaderFilePath("assets/shaders_vk/crosshair/crosshair.frag");
-    VkPipeline HUD_pipeline = vklCreateGraphicsPipeline(
+    std::string vertexShaderPathHudRed = gcgLoadShaderFilePath("assets/shaders_vk/hud/hud_red.vert");
+    std::string fragmentShaderPathHudBRed = gcgLoadShaderFilePath("assets/shaders_vk/hud/hud_red.frag");
+    VkPipeline HUD_pipeline_red = vklCreateGraphicsPipeline(
             VklGraphicsPipelineConfig {
-                    vertexShaderPathHUD.c_str(),
-                    fragmentShaderPathHUD.c_str(),
+                    vertexShaderPathHudRed.c_str(),
+                    fragmentShaderPathHudBRed.c_str(),
                     {
                             VkVertexInputBindingDescription{0u, sizeof(float) * 3, VK_VERTEX_INPUT_RATE_VERTEX}, // Correct stride for 2D vertices
                     },
@@ -690,8 +690,26 @@ int main(int argc, char** argv) {
             }
     );
 
-    float crosshairSize = 0.03f; // Adjust based on your needs
-    float crosshairThickness = 0.005f; // Adjust based on your needs
+    std::string vertexShaderPathHudBlack = gcgLoadShaderFilePath("assets/shaders_vk/hud/hud_black.vert");
+    std::string fragmentShaderPathHudBlack = gcgLoadShaderFilePath("assets/shaders_vk/hud/hud_black.frag");
+    VkPipeline HUD_pipeline_black = vklCreateGraphicsPipeline(
+            VklGraphicsPipelineConfig {
+                    vertexShaderPathHudBlack.c_str(),
+                    fragmentShaderPathHudBlack.c_str(),
+                    {
+                            VkVertexInputBindingDescription{0u, sizeof(float) * 3, VK_VERTEX_INPUT_RATE_VERTEX}, // Correct stride for 2D vertices
+                    },
+                    {
+                            VkVertexInputAttributeDescription{0u, 0u, VK_FORMAT_R32G32B32_SFLOAT, 0u}, // Correct format for 2D coordinates
+                    },
+                    VK_POLYGON_MODE_FILL,
+                    VK_CULL_MODE_NONE,
+                    {} // No dynamic data needed
+            }
+    );
+
+    float crosshairSize = 0.03f;
+    float crosshairThickness = 0.005f;
     GeometryData crosshairData = createCrosshairGeometry(crosshairSize, crosshairThickness, aspect_ratio);
 
     size_t vertexDataSize = sizeof(glm::vec3) * crosshairData.positions.size();
@@ -705,16 +723,30 @@ int main(int argc, char** argv) {
 
     float healthbarWidth = 0.5f;
     float healthbarHeight = 0.01f;
-    float healthbarThickness = 100.0f;
 
-    GeometryData healthbarOutlineLower = createHealthBarOutlineGeometry(healthbarWidth, 0.01, 0.03, aspect_ratio);
-    size_t vertexDataSizeHealthbar = sizeof(glm::vec3) * healthbarOutlineLower.positions.size();
+    GeometryData healthbarOutline = createHealthBarOutlineGeometry(healthbarWidth, healthbarHeight, 0.03, aspect_ratio);
+    size_t vertexDataSizeHealthbar = sizeof(glm::vec3) * healthbarOutline.positions.size();
     VkBuffer vertexBufferHealthbar = vklCreateHostCoherentBufferWithBackingMemory(vertexDataSizeHealthbar, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    vklCopyDataIntoHostCoherentBuffer(vertexBufferHealthbar, healthbarOutlineLower.positions.data(), vertexDataSizeHealthbar);
-    size_t indexDataSizeHealthbar = sizeof(uint32_t) * healthbarOutlineLower.indices.size();
+    vklCopyDataIntoHostCoherentBuffer(vertexBufferHealthbar, healthbarOutline.positions.data(), vertexDataSizeHealthbar);
+    size_t indexDataSizeHealthbar = sizeof(uint32_t) * healthbarOutline.indices.size();
     VkBuffer indexBufferHealthbar = vklCreateHostCoherentBufferWithBackingMemory(indexDataSizeHealthbar, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    vklCopyDataIntoHostCoherentBuffer(indexBufferHealthbar, healthbarOutlineLower.indices.data(), indexDataSizeHealthbar);
+    vklCopyDataIntoHostCoherentBuffer(indexBufferHealthbar, healthbarOutline.indices.data(), indexDataSizeHealthbar);
 
+
+    GeometryData healthBarSquares[10];
+    size_t vertexDataSizeHealthbarSquares[10];
+    VkBuffer vertexBufferHealthbarSquares[10];
+    size_t indexDataSizeHealthbarSquares[10];
+    VkBuffer indexBufferHealthbarSquares[10];
+    for (int i = 0; i < 10; i++) {
+        healthBarSquares[i] = createHealthBarSquareGeometry(healthbarWidth, 0.03, aspect_ratio, glm::vec3 {-healthbarWidth/10 * i - healthbarHeight/1.1, -healthbarHeight, 0.0f});
+        vertexDataSizeHealthbarSquares[i] = sizeof(glm::vec3) * healthBarSquares[i].positions.size();
+        vertexBufferHealthbarSquares[i] = vklCreateHostCoherentBufferWithBackingMemory(vertexDataSizeHealthbarSquares[i], VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        vklCopyDataIntoHostCoherentBuffer(vertexBufferHealthbarSquares[i], healthBarSquares[i].positions.data(), vertexDataSizeHealthbarSquares[i]);
+        indexDataSizeHealthbarSquares[i] = sizeof(uint32_t) * healthBarSquares[i].indices.size();
+        indexBufferHealthbarSquares[i] = vklCreateHostCoherentBufferWithBackingMemory(indexDataSizeHealthbarSquares[i], VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        vklCopyDataIntoHostCoherentBuffer(indexBufferHealthbarSquares[i], healthBarSquares[i].indices.data(), indexDataSizeHealthbarSquares[i]);
+    }
 
     // clang-format off
     std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings = {
@@ -983,6 +1015,7 @@ int main(int argc, char** argv) {
         }
 
         Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+        float* health = static_cast<float*>(glfwGetWindowUserPointer(window));
 
         if (key == GLFW_KEY_UP || key == GLFW_KEY_W) {
             isMovingForward = (action != GLFW_RELEASE);
@@ -1013,7 +1046,7 @@ int main(int argc, char** argv) {
 
     double mouse_x, mouse_y;
     const float cameraSpeed = 0.05f;
-    float health = 100.0f;
+    float health = 50.0f;
 
     //FPV
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -1113,15 +1146,27 @@ int main(int argc, char** argv) {
 
         //HUD
         VkDeviceSize offsets[] = {0};
-        vkCmdBindPipeline(vklGetCurrentCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, HUD_pipeline); // Use your actual command buffer variable
+        vkCmdBindPipeline(vklGetCurrentCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, HUD_pipeline_black);
         vkCmdBindVertexBuffers(vklGetCurrentCommandBuffer(), 0, 1, &vertexBuffer, offsets);
         vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), crosshairData.indices.size(), 1, 0, 0, 0);
 
         vkCmdBindVertexBuffers(vklGetCurrentCommandBuffer(), 0, 1, &vertexBufferHealthbar, offsets);
         vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBufferHealthbar, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), healthbarOutlineLower.indices.size(), 1, 0, 0, 0);
+        vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), healthbarOutline.indices.size(), 1, 0, 0, 0);
 
+//        vkCmdBindPipeline(vklGetCurrentCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, HUD_pipeline_red);
+//        vkCmdBindVertexBuffers(vklGetCurrentCommandBuffer(), 0, 1, &vertexBufferHealthbarFill, offsets);
+//        vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBufferHealthbarFill, 0, VK_INDEX_TYPE_UINT32);
+//        vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), healthbarFill.indices.size(), 1, 0, 0, 0);
+
+        vkCmdBindPipeline(vklGetCurrentCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, HUD_pipeline_red);
+        // Draw only the healthbar squares that are needed
+        for (int i = 0; i < health/10; i++) {
+            vkCmdBindVertexBuffers(vklGetCurrentCommandBuffer(), 0, 1, &vertexBufferHealthbarSquares[i], offsets);
+            vkCmdBindIndexBuffer(vklGetCurrentCommandBuffer(), indexBufferHealthbarSquares[i], 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(vklGetCurrentCommandBuffer(), healthBarSquares[i].indices.size(), 1, 0, 0, 0);
+        }
 
 
 
@@ -1167,7 +1212,14 @@ int main(int argc, char** argv) {
     vklDestroyHostCoherentBufferAndItsBackingMemory(indexBuffer);
     vklDestroyHostCoherentBufferAndItsBackingMemory(vertexBufferHealthbar);
     vklDestroyHostCoherentBufferAndItsBackingMemory(indexBufferHealthbar);
-    vkDestroyPipeline(vk_device, HUD_pipeline, nullptr);
+
+    for (int i = 0; i < 10; i++) {
+        vklDestroyHostCoherentBufferAndItsBackingMemory(vertexBufferHealthbarSquares[i]);
+        vklDestroyHostCoherentBufferAndItsBackingMemory(indexBufferHealthbarSquares[i]);
+    }
+
+    vkDestroyPipeline(vk_device, HUD_pipeline_red, nullptr);
+    vkDestroyPipeline(vk_device, HUD_pipeline_black, nullptr);
 
     vkDestroySampler(vk_device, sampler, nullptr);
     vklDestroyHostCoherentBufferAndItsBackingMemory(ub_pointlight);

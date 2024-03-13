@@ -67,6 +67,8 @@ GeometryData createCrosshairGeometry(float size, float thickness, float aspectRa
 //HUD
 GeometryData createHealthBarOutlineGeometry(float width, float height, float health_height, float aspectRatio);
 
+GeometryData createHealthBarSquareGeometry(float width, float height, float aspectRatio, glm::vec3 translation);
+
 /*!
  *	Creates a box geometry
  *	@param width		width of the box

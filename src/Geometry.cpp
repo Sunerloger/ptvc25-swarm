@@ -95,8 +95,40 @@ GeometryData createHealthBarOutlineGeometry(float width, float height, float hea
     data.positions.push_back(glm::vec3(edge-width+(height/aspectRatio), edge-height-health_height, 0.0f)); // Top left
     data.positions.push_back(glm::vec3(edge-width, edge-height-health_height, 0.0f)); // Top right
 
+
+
+    for (int i = 0; i < data.positions.size(); i++) {
+        data.positions[i] = data.positions[i] + glm::vec3(-2.0f+width+height/aspectRatio, -2.0f+height*2+health_height, 0.0f);
+        data.indices.push_back(i);
+    }
+
+    return data;
+}
+
+//HUD
+GeometryData createHealthBarSquareGeometry(float width, float height, float aspectRatio, glm::vec3 translation) {
+    GeometryData data;
+
+    float edge = 1.0f;
+
+    // Top right triangle
+    data.positions.push_back(glm::vec3(edge, edge, 0.0f) + translation); // Bottom right
+    data.positions.push_back(glm::vec3(edge, edge-height, 0.0f) + translation); // Top right
+    data.positions.push_back(glm::vec3(edge-width/10, edge-height, 0.0f) + translation); // Top left
+
+
+    // Bottom left triangle
+    data.positions.push_back(glm::vec3(edge, edge, 0.0f) + translation); // Bottom right
+    data.positions.push_back(glm::vec3(edge-width/10, edge, 0.0f) + translation); // Bottom left
+    data.positions.push_back(glm::vec3(edge-width/10, edge-height, 0.0f) + translation); // Top left
+
+
+
+
+
     for (int i = 0; i < data.positions.size(); i++) {
         data.indices.push_back(i);
+        data.positions[i] = data.positions[i] + glm::vec3(-2.0f+width+height/aspectRatio, -2.0f+height*2, 0.0f);
     }
 
     return data;
