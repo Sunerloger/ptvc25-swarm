@@ -326,7 +326,7 @@ int main(int argc, char** argv) {
 
     int window_width = 900;
     int window_height = 900;
-    bool fullscreen = false;
+    bool fullscreen = fullscreen;
     std::string window_title = "Swarm";
     INIReader window_reader("assets/settings/window.ini");
 
