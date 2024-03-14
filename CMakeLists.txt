@@ -19,7 +19,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB SOURCES "src/*.cpp" "src/*.h")
-set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include/physx")
 if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/linux" ".")
 elseif(UNIX AND APPLE)
@@ -40,6 +40,11 @@ set(LINK_LIBRARIES
     debug glfw3d optimized glfw3
     debug OGLCompilerd optimized OGLCompiler
     debug GCG_VK_Lib_Debug optimized GCG_VK_Lib_Release
+    debug PhysXCommon_64_debug optimized PhysXCommon_64
+    debug PhysX_64_debug optimized PhysX_64
+    debug PhysXFoundation_64_debug optimized PhysXFoundation_64
+    debug PhysXExtensions_static_64_debug optimized PhysXExtensions_static_64
+    debug PhysXPvdSDK_static_64_debug optimized PhysXPvdSDK_static_64
     Vulkan::Vulkan Vulkan::Headers
     $<$<BOOL:${APPLE}>:
         "-framework CoreFoundation"
@@ -48,6 +53,7 @@ set(LINK_LIBRARIES
         "-framework AppKit"
     >
 )
+message(LINK_LIBRARIES=${LINK_LIBRARIES})
 
 add_executable(${PROJECT_NAME} ${SOURCES}
         src/camera/Camera.cpp

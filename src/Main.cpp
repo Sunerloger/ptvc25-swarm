@@ -17,8 +17,54 @@
 #include "camera/Camera.h"
 #include "Geometry.h"
 
+#include "PxPhysicsAPI.h"
+
 #undef min
 #undef max
+
+using namespace physx;
+
+PxDefaultAllocator		gAllocator;
+PxDefaultErrorCallback	gErrorCallback;
+
+PxFoundation* gFoundation = nullptr;
+PxPhysics* gPhysics = nullptr;
+
+PxDefaultCpuDispatcher* gDispatcher = nullptr;
+PxScene* gScene = nullptr;
+
+PxMaterial* gMaterial = nullptr;
+PxPvd* gPvd = nullptr;
+
+void initPhysics()
+{
+    gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
+
+    gPvd = PxCreatePvd(*gFoundation);
+    PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+    gPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
+
+    gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
+
+    PxSceneDesc sceneDesc(gPhysics->getTolerancesScale());
+    sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
+    gDispatcher = PxDefaultCpuDispatcherCreate(2);
+    sceneDesc.cpuDispatcher = gDispatcher;
+    sceneDesc.filterShader = PxDefaultSimulationFilterShader;
+    gScene = gPhysics->createScene(sceneDesc);
+
+    PxPvdSceneClient* pvdClient = gScene->getScenePvdClient();
+    if (pvdClient)
+    {
+        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+    }
+    gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
+
+    PxRigidStatic* groundPlane = PxCreatePlane(*gPhysics, PxPlane(0, 1, 0, 0), *gMaterial);
+    gScene->addActor(*groundPlane);
+}
 
 /* --------------------------------------------- */
 // Helper Function Declarations
@@ -906,6 +952,8 @@ int main(int argc, char** argv) {
     );
     VkDescriptorSet ds_sphere = allocDescriptorSet(vk_device, vk_descriptor_pool, vk_descriptor_set_layout);
     writeDescriptorSet(vk_device, ds_sphere, ub_sphere, ub_dirlight, ub_pointlight, tiles_diffuse.view, sampler);
+
+    initPhysics();
 
     /* --------------------------------------------- */
     // Subtask 2.6: Orbit Camera
