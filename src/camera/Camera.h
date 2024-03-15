@@ -66,20 +66,20 @@ public:
     void moveForward(float delta) {
         glm::vec3 front;
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(0.0f)); // Assuming pitch does not affect forward movement
-        front.z = sin(glm::radians(yaw)) * cos(glm::radians(0.0f));
+        front.y = sin(glm::radians(yaw)) * cos(glm::radians(0.0f));
         front = glm::normalize(front);
 
-        position += front * delta;
+        position -= glm::vec3(front) * delta;
         updateCameraVectors();
     }
 
     void moveBackward(float delta) {
         glm::vec3 front;
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(0.0f)); // Assuming pitch does not affect forward movement
-        front.z = sin(glm::radians(yaw)) * cos(glm::radians(0.0f));
+        front.y = sin(glm::radians(yaw)) * cos(glm::radians(0.0f));
         front = glm::normalize(front);
 
-        position -= front * delta;
+        position += front * delta;
         updateCameraVectors();
     }
 

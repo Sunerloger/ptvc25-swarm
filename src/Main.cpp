@@ -17,7 +17,8 @@
 #include "camera/Camera.h"
 #include "Geometry.h"
 
-#include "PxPhysicsAPI.h"
+#include <PxPhysicsAPI.h>
+#include "characterkinematic/PxControllerManager.h"
 
 #undef min
 #undef max
@@ -28,7 +29,7 @@ PxDefaultAllocator		gAllocator;
 PxDefaultErrorCallback	gErrorCallback;
 
 PxFoundation* gFoundation = nullptr;
-PxPhysics* gPhysics = nullptr;
+PxPhysics* gPhysicsSDK = nullptr;
 
 PxDefaultCpuDispatcher* gDispatcher = nullptr;
 PxScene* gScene = nullptr;
@@ -36,22 +37,32 @@ PxScene* gScene = nullptr;
 PxMaterial* gMaterial = nullptr;
 PxPvd* gPvd = nullptr;
 
+/*!
+ *	Initialize the foundation, pvd, sdk, dispatcher, material, allocator, error callback and scene of the physics system.
+ */
 void initPhysics()
 {
     gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
+
+    if (gFoundation == nullptr) {
+        VKL_EXIT_WITH_ERROR("PxCreateFoundation failed");
+    }
 
     gPvd = PxCreatePvd(*gFoundation);
     PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
     gPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
 
-    gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
+    gPhysicsSDK = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
+    if (gPhysicsSDK == nullptr) {
+        VKL_EXIT_WITH_ERROR("PxCreatePhysics failed");
+    }
 
-    PxSceneDesc sceneDesc(gPhysics->getTolerancesScale());
+    PxSceneDesc sceneDesc(gPhysicsSDK->getTolerancesScale());
     sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
     gDispatcher = PxDefaultCpuDispatcherCreate(2);
     sceneDesc.cpuDispatcher = gDispatcher;
     sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-    gScene = gPhysics->createScene(sceneDesc);
+    gScene = gPhysicsSDK->createScene(sceneDesc);
 
     PxPvdSceneClient* pvdClient = gScene->getScenePvdClient();
     if (pvdClient)
@@ -60,9 +71,10 @@ void initPhysics()
         pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
         pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
     }
-    gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
 
-    PxRigidStatic* groundPlane = PxCreatePlane(*gPhysics, PxPlane(0, 1, 0, 0), *gMaterial);
+    // create static plane
+    gMaterial = gPhysicsSDK->createMaterial(0.5f, 0.5f, 0.6f);
+    PxRigidStatic* groundPlane = PxCreatePlane(*gPhysicsSDK, PxPlane(0, 1, 0, 0), *gMaterial);
     gScene->addActor(*groundPlane);
 }
 
@@ -955,6 +967,17 @@ int main(int argc, char** argv) {
 
     initPhysics();
 
+    // create manager to keep track of controllers
+    PxControllerManager* controller_manager = PxCreateControllerManager(*gScene);
+    if (controller_manager == nullptr) {
+        VKL_EXIT_WITH_ERROR("Could not create controller manager");
+    }
+
+    // create player controller
+    PxCapsuleControllerDesc player_controller_desc = {};
+    // TODO player_controller_desc.;
+    PxController* player_controller = controller_manager->createController(player_controller_desc);
+
     /* --------------------------------------------- */
     // Subtask 2.6: Orbit Camera
     /* --------------------------------------------- */
@@ -985,16 +1008,16 @@ int main(int argc, char** argv) {
 
         Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
 
-        if (key == GLFW_KEY_UP) {
+        if (key == GLFW_KEY_W) {
             isMovingForward = (action != GLFW_RELEASE);
         }
-        if (key == GLFW_KEY_DOWN) {
+        if (key == GLFW_KEY_S) {
             isMovingBackward = (action != GLFW_RELEASE);
         }
-        if (key == GLFW_KEY_LEFT) {
+        if (key == GLFW_KEY_A) {
             isMovingLeft = (action != GLFW_RELEASE);
         }
-        if (key == GLFW_KEY_RIGHT) {
+        if (key == GLFW_KEY_D) {
             isMovingRight = (action != GLFW_RELEASE);
         }
 
@@ -1026,7 +1049,8 @@ int main(int argc, char** argv) {
         glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
 
-
+        gScene->simulate(1.0f / 60.0f);
+        gScene->fetchResults(true);
 
 
 
