@@ -17,15 +17,15 @@
 /*!
  * Arc ball camera, modified by mouse input
  */
-class Camera {
+class FPVCamera {
   public:
     /*!
      * Camera constructor
      * @param	projection_matrix		The projection matrix to be used for this camera
      */
-    Camera(glm::mat4 projection_matrix);
+    FPVCamera(glm::mat4 projection_matrix);
 
-    virtual ~Camera();
+    virtual ~FPVCamera();
 
     /*!
      * @param yaw the new value for _yaw

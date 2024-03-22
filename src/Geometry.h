@@ -62,6 +62,13 @@ struct Geometry {
     VkBuffer textureCoordinatesBuffer;
 };
 
+//HUD
+GeometryData createCrosshairGeometry(float size, float thickness, float aspectRatio);
+//HUD
+GeometryData createHealthBarOutlineGeometry(float width, float height, float aspectRatio, glm::vec3 translation, float thickness);
+
+GeometryData createHealthBarSquareGeometry(float width, float height, float aspectRatio, glm::vec3 translation);
+
 /*!
  *	Creates a box geometry
  *	@param width		width of the box
@@ -123,4 +130,3 @@ Geometry createAndUploadIntoGpuMemory(const GeometryData& geometry_data);
  *	Frees the GPU buffers that have been created via createAndUploadIntoGpuMemory.
  */
 void destroyGeometryGpuMemory(const Geometry& geometry);
-

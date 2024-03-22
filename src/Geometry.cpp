@@ -14,6 +14,120 @@
 #undef max
 
 // clang-format off
+GeometryData createCrosshairGeometry(float size, float thickness, float aspectRatio) {
+    GeometryData data;
+
+    // Adjust the thickness and size of the lines based on the aspect ratio
+    // to ensure uniform appearance in terms of screen proportions
+    float horizontalLineLength = size;
+    float verticalLineLength = size * aspectRatio;
+    float horizontalLineThickness = thickness * aspectRatio;
+    float verticalLineThickness = thickness;
+
+    data.positions = {
+            // Vertical line (centered, uses original size)
+            glm::vec3(-verticalLineThickness, -verticalLineLength, 0.0f), // Bottom
+            glm::vec3(verticalLineThickness, -verticalLineLength, 0.0f),  // Bottom
+            glm::vec3(verticalLineThickness, verticalLineLength, 0.0f),   // Top
+            glm::vec3(-verticalLineThickness, verticalLineLength, 0.0f),  // Top
+
+            // Horizontal line (adjusted for aspect ratio)
+            glm::vec3(-horizontalLineLength, -horizontalLineThickness, 0.0f), // Left
+            glm::vec3(horizontalLineLength, -horizontalLineThickness, 0.0f),  // Left
+            glm::vec3(horizontalLineLength, horizontalLineThickness, 0.0f),   // Right
+            glm::vec3(-horizontalLineLength, horizontalLineThickness, 0.0f)   // Right
+    };
+
+    // Indices for two triangles (CCW order) for each line
+    data.indices = {
+            0, 1, 2, // First Triangle (vertical)
+            2, 3, 0, // Second Triangle (vertical)
+            4, 5, 6, // First Triangle (horizontal)
+            6, 7, 4  // Second Triangle (horizontal)
+    };
+
+    return data;
+}
+
+
+//HUD
+// clang-format off
+GeometryData createHealthBarOutlineGeometry(float width, float height, float aspectRatio, glm::vec3 translation, float thickness) {
+    GeometryData data;
+
+    float leftOuterEdge = -width / 2 - thickness / 2;
+    float rightOuterEdge = width / 2 + thickness / 2;
+    float topOuterEdge = -height / 2 - thickness / 2;
+
+    // Top line bottom left triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, topOuterEdge, 0)); // Top left
+    data.positions.push_back(glm::vec3(leftOuterEdge, -height/2 + thickness/2, 0)); // Bottom left
+    data.positions.push_back(glm::vec3(rightOuterEdge, -height/2 + thickness/2, 0)); // Bottom right
+
+    // Top line top right triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, topOuterEdge, 0)); // Top left
+    data.positions.push_back(glm::vec3(rightOuterEdge, topOuterEdge, 0)); // Top right
+    data.positions.push_back(glm::vec3(rightOuterEdge, -height/2 + thickness/2, 0)); // Bottom right
+
+    // Bottom line
+    for (int i = 0; i < 6; i++) {
+        data.positions.push_back(data.positions[i] + glm::vec3 (0, height, 0));
+    }
+
+    // Left line bottom left triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, -height/2+thickness/2, 0)); // Top left
+    data.positions.push_back(glm::vec3(leftOuterEdge, height/2-thickness/2, 0)); // Bottom left
+    data.positions.push_back(glm::vec3(-width/2+thickness/2, height/2-thickness/2, 0)); // Bottom right
+
+    // Left line top right triangle
+    data.positions.push_back(glm::vec3(leftOuterEdge, -height/2+thickness/2, 0)); // Top left
+    data.positions.push_back(glm::vec3(-width/2+thickness/2, -height/2+thickness/2, 0)); // Top right
+    data.positions.push_back(glm::vec3(-width/2+thickness/2, height/2-thickness/2, 0)); // Bottom right
+
+
+    // Right line
+    for (int i = 12; i < 18; i++) {
+        data.positions.push_back(data.positions[i] + glm::vec3 (width, 0, 0));
+    }
+
+    for (int i = 0; i < data.positions.size(); i++) {
+        data.positions[i] = data.positions[i] + translation;
+        data.indices.push_back(i);
+    }
+
+    return data;
+}
+
+//HUD
+GeometryData createHealthBarSquareGeometry(float width, float height, float aspectRatio, glm::vec3 translation) {
+    GeometryData data;
+    float calculatedWidth = width / 10;
+
+    // Top right triangle
+    data.positions.push_back(glm::vec3(calculatedWidth/2, height/2, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(-calculatedWidth/2, height/2, 0.0f)); // Top right
+    data.positions.push_back(glm::vec3(-calculatedWidth/2, -height/2, 0.0f)); // Top left
+
+
+    // Bottom left triangle
+    data.positions.push_back(glm::vec3(calculatedWidth/2, height/2, 0.0f)); // Bottom right
+    data.positions.push_back(glm::vec3(calculatedWidth/2, -height/2, 0.0f)); // Bottom left
+    data.positions.push_back(glm::vec3(-calculatedWidth/2, -height/2, 0.0f)); // Top left
+
+
+
+    for (int i = 0; i < data.positions.size(); i++) {
+        data.indices.push_back(i);
+        data.positions[i].x = data.positions[i].x;
+        data.positions[i] = data.positions[i] + translation;
+
+    }
+
+    return data;
+}
+
+
+// clang-format off
 GeometryData createBoxGeometry(float width, float height, float depth)
 {
 	GeometryData data;
