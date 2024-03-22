@@ -7,6 +7,8 @@ endif()
 
 project(GCGProject_VK)
 
+include(FetchContent)
+
 if(MSVC)
     # https://docs.microsoft.com/en-us/previous-versions/958x11bc(v=vs.140)
     add_compile_options("$<$<CONFIG:Debug>:/MTd>$<$<CONFIG:Release>:/MT>")
@@ -19,7 +21,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB SOURCES "src/*.cpp" "src/*.h")
-set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include/physx")
+set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/linux" ".")
 elseif(UNIX AND APPLE)
@@ -40,11 +42,6 @@ set(LINK_LIBRARIES
     debug glfw3d optimized glfw3
     debug OGLCompilerd optimized OGLCompiler
     debug GCG_VK_Lib_Debug optimized GCG_VK_Lib_Release
-    debug PhysXCommon_64_debug optimized PhysXCommon_64
-    debug PhysX_64_debug optimized PhysX_64
-    debug PhysXFoundation_64_debug optimized PhysXFoundation_64
-    debug PhysXExtensions_static_64_debug optimized PhysXExtensions_static_64
-    debug PhysXPvdSDK_static_64_debug optimized PhysXPvdSDK_static_64
     Vulkan::Vulkan Vulkan::Headers
     $<$<BOOL:${APPLE}>:
         "-framework CoreFoundation"
@@ -55,10 +52,41 @@ set(LINK_LIBRARIES
 )
 message(LINK_LIBRARIES=${LINK_LIBRARIES})
 
+
+
+# When turning this option on, the library will be compiled using doubles for positions. This allows for much bigger worlds.
+set(DOUBLE_PRECISION OFF)
+
+# When turning this option on, the library will be compiled with debug symbols
+set(GENERATE_DEBUG_SYMBOLS ON)
+
+# When turning this option on, the library will be compiled in such a way to attempt to keep the simulation deterministic across platforms
+set(CROSS_PLATFORM_DETERMINISTIC ON)
+
+# Number of bits to use in ObjectLayer. Can be 16 or 32.
+set(OBJECT_LAYER_BITS 16)
+
+# Include Jolt
+FetchContent_Declare(
+        JoltPhysics
+        GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
+        GIT_TAG "v4.0.2"
+		SOURCE_SUBDIR "Build"
+)
+FetchContent_MakeAvailable(JoltPhysics)
+
+
+
+
+
+
+
 add_executable(${PROJECT_NAME} ${SOURCES}
         "src/camera/FPVCamera.cpp"
         "src/camera/FPVCamera.h")
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
+target_link_libraries(${PROJECT_NAME} Jolt)
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
 # IDE specific settings
