@@ -86,9 +86,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         "src/camera/FPVCamera.h")
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
-target_link_libraries(${PROJECT_NAME} Jolt)
-target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
+target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
 # IDE specific settings
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
