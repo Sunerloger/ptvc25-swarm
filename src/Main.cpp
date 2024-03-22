@@ -14,7 +14,7 @@
 #include <array>
 
 #include <sstream>
-#include "camera/Camera.h"
+#include "camera/FPVCamera.h"
 #include "Geometry.h"
 
 #undef min
@@ -211,13 +211,18 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     static double lastX = 800, lastY = 800;
     static bool firstMouse = true;
 
+    // TODO always true
+
     if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
     }
 
-    double xoffset = lastX -xpos;
+    // right = negative
+    double xoffset = lastX - xpos;
+
+    // down = negative
     double yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
@@ -226,7 +231,7 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
-    Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+    FPVCamera* camera = static_cast<FPVCamera*>(glfwGetWindowUserPointer(window));
     camera->yaw += xoffset;
     camera->pitch += yoffset;
 
@@ -235,8 +240,6 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
         camera->pitch = 89.0f;
     if (camera->pitch < -89.0f)
         camera->pitch = -89.0f;
-
-    camera->updateCameraVectors();
 }
 
 
@@ -1040,7 +1043,7 @@ int main(int argc, char** argv) {
     /* --------------------------------------------- */
 
     //FPV
-    Camera camera(field_of_view, aspect_ratio, near_plane_distance, far_plane_distance);
+    FPVCamera camera(field_of_view, aspect_ratio, near_plane_distance, far_plane_distance);
     camera.setYaw(camera_yaw);
     camera.setPitch(camera_pitch);
     static bool isMovingForward = false;
@@ -1063,7 +1066,7 @@ int main(int argc, char** argv) {
             glfwSetWindowShouldClose(window, true);
         }
 
-        Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+        FPVCamera* camera = static_cast<FPVCamera*>(glfwGetWindowUserPointer(window));
 
         if (key == GLFW_KEY_UP || key == GLFW_KEY_W) {
             isMovingForward = (action != GLFW_RELEASE);
