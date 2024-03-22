@@ -17,66 +17,8 @@
 #include "camera/Camera.h"
 #include "Geometry.h"
 
-#include <PxPhysicsAPI.h>
-#include "characterkinematic/PxControllerManager.h"
-
 #undef min
 #undef max
-
-using namespace physx;
-
-PxDefaultAllocator		gAllocator;
-PxDefaultErrorCallback	gErrorCallback;
-
-PxFoundation* gFoundation = nullptr;
-PxPhysics* gPhysicsSDK = nullptr;
-
-PxDefaultCpuDispatcher* gDispatcher = nullptr;
-PxScene* gScene = nullptr;
-
-PxMaterial* gMaterial = nullptr;
-PxPvd* gPvd = nullptr;
-
-/*!
- *	Initialize the foundation, pvd, sdk, dispatcher, material, allocator, error callback and scene of the physics system.
- */
-void initPhysics()
-{
-    gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
-
-    if (gFoundation == nullptr) {
-        VKL_EXIT_WITH_ERROR("PxCreateFoundation failed");
-    }
-
-    gPvd = PxCreatePvd(*gFoundation);
-    PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-    gPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
-
-    gPhysicsSDK = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
-    if (gPhysicsSDK == nullptr) {
-        VKL_EXIT_WITH_ERROR("PxCreatePhysics failed");
-    }
-
-    PxSceneDesc sceneDesc(gPhysicsSDK->getTolerancesScale());
-    sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
-    gDispatcher = PxDefaultCpuDispatcherCreate(2);
-    sceneDesc.cpuDispatcher = gDispatcher;
-    sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-    gScene = gPhysicsSDK->createScene(sceneDesc);
-
-    PxPvdSceneClient* pvdClient = gScene->getScenePvdClient();
-    if (pvdClient)
-    {
-        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
-        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
-        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
-    }
-
-    // create static plane
-    gMaterial = gPhysicsSDK->createMaterial(0.5f, 0.5f, 0.6f);
-    PxRigidStatic* groundPlane = PxCreatePlane(*gPhysicsSDK, PxPlane(0, 1, 0, 0), *gMaterial);
-    gScene->addActor(*groundPlane);
-}
 
 /* --------------------------------------------- */
 // Helper Function Declarations
@@ -965,19 +907,6 @@ int main(int argc, char** argv) {
     VkDescriptorSet ds_sphere = allocDescriptorSet(vk_device, vk_descriptor_pool, vk_descriptor_set_layout);
     writeDescriptorSet(vk_device, ds_sphere, ub_sphere, ub_dirlight, ub_pointlight, tiles_diffuse.view, sampler);
 
-    initPhysics();
-
-    // create manager to keep track of controllers
-    PxControllerManager* controller_manager = PxCreateControllerManager(*gScene);
-    if (controller_manager == nullptr) {
-        VKL_EXIT_WITH_ERROR("Could not create controller manager");
-    }
-
-    // create player controller
-    PxCapsuleControllerDesc player_controller_desc = {};
-    // TODO player_controller_desc.;
-    PxController* player_controller = controller_manager->createController(player_controller_desc);
-
     /* --------------------------------------------- */
     // Subtask 2.6: Orbit Camera
     /* --------------------------------------------- */
@@ -1048,9 +977,6 @@ int main(int argc, char** argv) {
         glfwPollEvents();
         glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
-
-        gScene->simulate(1.0f / 60.0f);
-        gScene->fetchResults(true);
 
 
 
