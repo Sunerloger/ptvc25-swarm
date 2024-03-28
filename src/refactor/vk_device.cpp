@@ -150,7 +150,8 @@ Device::~Device() {
         // And add them all to our vector:
         std::cout << "framework extensions: " << framework_instance_extensions_count << std::endl;
         #ifdef __APPLE__
-                addInstanceExtensionToVectorIfSupported(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, instance_extensions);
+            addInstanceExtensionToVectorIfSupported(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, instance_extensions);
+            addInstanceExtensionToVectorIfSupported(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, instance_extensions);
         #endif
 
 
@@ -229,6 +230,10 @@ void Device::createLogicalDevice() {
   createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
   createInfo.pEnabledFeatures = &deviceFeatures;
+#ifdef __APPLE__
+// Assuming you've checked it's supported
+    deviceExtensions = {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME, VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+#endif // else
   createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
