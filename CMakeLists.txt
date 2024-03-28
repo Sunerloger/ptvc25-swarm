@@ -18,7 +18,8 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB SOURCES "src/*.cpp" "src/*.h")
+#file(GLOB SOURCES "src/*.cpp" "src/*.h")
+file(GLOB SOURCES "src/refactor/*.cpp" "src/refactor/*.h")
 set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/linux" ".")
@@ -51,7 +52,16 @@ set(LINK_LIBRARIES
 
 add_executable(${PROJECT_NAME} ${SOURCES}
         "src/camera/FPVCamera.cpp"
-        "src/camera/FPVCamera.h")
+        "src/camera/FPVCamera.h"
+        src/refactor/main.cpp
+        src/refactor/vk_window.h
+        src/refactor/vk_window.cpp
+        src/refactor/first_app.h
+        src/refactor/first_app.cpp
+        src/refactor/vk_pipeline.h
+        src/refactor/vk_pipeline.cpp
+        src/refactor/vk_pipeline.cpp
+)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
