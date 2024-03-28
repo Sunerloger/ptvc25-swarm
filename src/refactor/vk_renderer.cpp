@@ -3,6 +3,7 @@
 //
 
 #include "vk_renderer.h"
+#include <stdexcept>
 
 
 #include <array>

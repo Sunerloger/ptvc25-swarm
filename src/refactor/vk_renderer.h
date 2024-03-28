@@ -2,10 +2,8 @@
 // Created by Vlad Dancea on 28.03.24.
 //
 
-#ifndef GCGPROJECT_VK_FIRST_APP_H
-#define GCGPROJECT_VK_FIRST_APP_H
-
 #pragma once
+
 #include "vk_swap_chain.h"
 
 #include <memory>
@@ -16,7 +14,7 @@ namespace vk {
     class Renderer {
     public:
 
-        Renderer(Window &window, Device &device);
+        Renderer(Window& window, Device& device);
         ~Renderer();
 
         Renderer(const Renderer&) = delete;
@@ -48,7 +46,5 @@ namespace vk {
 
         uint32_t currentImageIndex;
         bool isFrameStarted = false;
-    }
-    ;}
-
-#endif //GCGPROJECT_VK_FIRST_APP_H
+    };
+}

@@ -53,21 +53,21 @@ set(LINK_LIBRARIES
 add_executable(${PROJECT_NAME} ${SOURCES}
         "src/camera/FPVCamera.cpp"
         "src/camera/FPVCamera.h"
-        src/refactor/main.cpp
-        src/refactor/vk_window.h
-        src/refactor/vk_window.cpp
-        src/refactor/first_app.h
-        src/refactor/first_app.cpp
-        src/refactor/vk_pipeline.h
-        src/refactor/vk_pipeline.cpp
-        src/refactor/vk_pipeline.cpp
-        src/refactor/vk_swap_chain.cpp
-        src/refactor/vk_swap_chain.h
-        src/refactor/vk_model.h
-        src/refactor/vk_model.cpp
-        src/refactor/vk_game_object.h
-        src/refactor/vk_renderer.h
-        src/refactor/vk_renderer.cpp
+        "src/refactor/main.cpp"
+        "src/refactor/vk_window.h"
+        "src/refactor/vk_window.cpp"
+        "src/refactor/first_app.h"
+        "src/refactor/first_app.cpp"
+        "src/refactor/vk_pipeline.h"
+        "src/refactor/vk_pipeline.cpp"
+        "src/refactor/vk_pipeline.cpp"
+        "src/refactor/vk_swap_chain.cpp"
+        "src/refactor/vk_swap_chain.h"
+        "src/refactor/vk_model.h"
+        "src/refactor/vk_model.cpp"
+        "src/refactor/vk_game_object.h"
+        "src/refactor/vk_renderer.h"
+        "src/refactor/vk_renderer.cpp"
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
