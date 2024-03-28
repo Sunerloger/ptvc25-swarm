@@ -8,8 +8,11 @@
 #pragma once
 #include "vk_window.h"
 #include "vk_pipeline.h"
-#include "filesystem"
-#include "iostream"
+#include "vk_swap_chain.h"
+#include "vk_window.h"
+
+#include <memory>
+#include <vector>
 
 namespace vk {
     class FirstApp {
@@ -17,15 +20,27 @@ namespace vk {
         static constexpr int WIDTH = 800;
         static constexpr int HEIGHT = 600;
 
+        FirstApp();
+        ~FirstApp();
+
+        FirstApp(const FirstApp&) = delete;
+        FirstApp& operator=(const FirstApp&) = delete;
+
         void run();
 
     private:
+        void createPipelineLayout();
+        void createPipeline();
+        void createCommandBuffers();
+        void drawFrame();
+
         Window window{WIDTH, HEIGHT, "Hello Vulkan!"};
         Device device{window};
-        Pipeline pipeline{device,
-                          "../src/refactor/shaders/simple_shader.vert.spv",
-                          "../src/refactor/shaders/simple_shader.frag.spv",
-                          Pipeline::defaultPipelineConfigInfo(WIDTH, HEIGHT)};
+        SwapChain swapChain{device, window.getExtent()};
+        std::unique_ptr<Pipeline> pipeline;
+        VkPipelineLayout pipelineLayout;
+        std::vector<VkCommandBuffer> commandBuffers;
+
     }
 ;}
 

@@ -61,6 +61,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         src/refactor/vk_pipeline.h
         src/refactor/vk_pipeline.cpp
         src/refactor/vk_pipeline.cpp
+        src/refactor/vk_swap_chain.cpp
+        src/refactor/vk_swap_chain.h
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
