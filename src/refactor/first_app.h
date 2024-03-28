@@ -6,11 +6,13 @@
 #define GCGPROJECT_VK_FIRST_APP_H
 
 #pragma once
-#include "vk_window.h"
-#include "vk_pipeline.h"
-#include "vk_swap_chain.h"
-#include "vk_window.h"
+
+#include "vk_device.h"
 #include "vk_game_object.h"
+#include "vk_pipeline.h"
+#include "vk_window.h"
+#include "vk_renderer.h"
+
 
 #include <memory>
 #include <vector>
@@ -32,21 +34,15 @@ namespace vk {
     private:
         void createPipelineLayout();
         void createPipeline();
-        void createCommandBuffers();
-        void freeCommandBuffers();
-        void drawFrame();
-        void loadGameObjects();
-        void recreateSwapChain();
-        void recordCommandBuffer(int imageIndex);
         void renderGameObjects(VkCommandBuffer commandBuffer);
+        void loadGameObjects();
 
 
         Window window{WIDTH, HEIGHT, "Hello Vulkan!"};
         Device device{window};
-        std::unique_ptr<SwapChain> swapChain;
+        Renderer renderer{window, device};
         std::unique_ptr<Pipeline> pipeline;
         VkPipelineLayout pipelineLayout;
-        std::vector<VkCommandBuffer> commandBuffers;
         std::vector<GameObject> gameObjects;
 
     }

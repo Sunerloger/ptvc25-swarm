@@ -66,6 +66,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         src/refactor/vk_model.h
         src/refactor/vk_model.cpp
         src/refactor/vk_game_object.h
+        src/refactor/vk_renderer.h
+        src/refactor/vk_renderer.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
