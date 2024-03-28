@@ -229,9 +229,17 @@ void writeDescriptorSet(VkDevice device, VkDescriptorSet descriptor_set, VkBuffe
  */
 void errorCallbackFromGlfw(int error, const char* description) { std::cout << "GLFW error " << error << ": " << description << std::endl; }
 
+// static = limited to this .c file
 static bool g_dragging = false;
 static bool g_strafing = false;
 static float g_zoom = 5.0f;
+
+// Adjust as needed (update per second)
+static const double movementSpeed = 10;
+static const double cameraSpeed = 20;
+
+// factor deltaTime does nothing if not set (default=1)
+static double deltaTime = 1;
 
 //FPV
 void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
@@ -254,9 +262,8 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     lastX = xpos;
     lastY = ypos;
 
-    float sensitivity = 0.05f; // Change this value to your liking
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
+    xoffset *= cameraSpeed * deltaTime;
+    yoffset *= cameraSpeed * deltaTime;
 
     FPVCamera* camera = static_cast<FPVCamera*>(glfwGetWindowUserPointer(window));
     camera->yaw += xoffset;
@@ -1123,8 +1130,10 @@ int main(int argc, char** argv) {
     });
 
     double mouse_x, mouse_y;
-    const float cameraSpeed = 0.05f;
+
     float health = 100.0f;
+
+    double lastTime = glfwGetTime();
 
     //FPV
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -1133,24 +1142,30 @@ int main(int argc, char** argv) {
 
     vklEnablePipelineHotReloading(window, GLFW_KEY_F5);
     while (!glfwWindowShouldClose(window)) {
+
         // Handle user input:
         glfwPollEvents();
-        glfwGetCursorPos(window, &mouse_x, &mouse_y);
+        // glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
-        // Handle continuous movement
-        const float cameraSpeed = 0.05f; // Adjust as needed
+        double currentTime = glfwGetTime();
+        deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
 
+
+        double movementDelta = movementSpeed * deltaTime;
+
+        // TODO test different speeds for different directions
         if (isMovingForward) {
-            camera.moveForward(cameraSpeed);
+            camera.moveForward(movementDelta);
         }
         if (isMovingBackward) {
-            camera.moveBackward(cameraSpeed);
+            camera.moveBackward(movementDelta);
         }
         if (isMovingLeft) {
-            camera.moveLeft(cameraSpeed);
+            camera.moveLeft(movementDelta);
         }
         if (isMovingRight) {
-            camera.moveRight(cameraSpeed);
+            camera.moveRight(movementDelta);
         }
 
 
