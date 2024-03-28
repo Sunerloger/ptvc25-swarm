@@ -10,7 +10,7 @@
 #include "vk_pipeline.h"
 #include "vk_swap_chain.h"
 #include "vk_window.h"
-#include "vk_model.h"
+#include "vk_game_object.h"
 
 #include <memory>
 #include <vector>
@@ -35,9 +35,10 @@ namespace vk {
         void createCommandBuffers();
         void freeCommandBuffers();
         void drawFrame();
-        void loadModels();
+        void loadGameObjects();
         void recreateSwapChain();
         void recordCommandBuffer(int imageIndex);
+        void renderGameObjects(VkCommandBuffer commandBuffer);
 
 
         Window window{WIDTH, HEIGHT, "Hello Vulkan!"};
@@ -46,7 +47,7 @@ namespace vk {
         std::unique_ptr<Pipeline> pipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
-        std::unique_ptr<Model> model;
+        std::vector<GameObject> gameObjects;
 
     }
 ;}
