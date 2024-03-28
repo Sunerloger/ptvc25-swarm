@@ -24,6 +24,10 @@ public:
 
     void setPitch(float newPitch);
 
+    void addYaw(float deltaYaw);
+
+    void addPitch(float deltaPitch);
+
     glm::mat4 getViewProjMatrix();
 
     glm::vec3 getPosition();

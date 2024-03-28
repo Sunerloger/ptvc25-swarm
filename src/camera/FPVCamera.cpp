@@ -1,5 +1,6 @@
 #include "FPVCamera.h"
 #include "VulkanLaunchpad.h"
+#include <cmath>
 
 FPVCamera::FPVCamera(float fov, float aspectRatio, float nearPlane, float farPlane) {
 	position = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -13,11 +14,22 @@ FPVCamera::FPVCamera(float fov, float aspectRatio, float nearPlane, float farPla
 FPVCamera::~FPVCamera() {}
 
 void FPVCamera::setYaw(float newYaw) {
-	yaw = newYaw;
+	yaw = fmod(newYaw, 360.0f);
+	if (yaw < 0.0f) {
+		yaw += 360.0f; // ensure yaw is always positive
+	}
 }
 
 void FPVCamera::setPitch(float newPitch) {
 	pitch = glm::clamp(newPitch, -89.0f, 89.0f); // Limit pitch to avoid gimbal lock
+}
+
+void FPVCamera::addYaw(float deltaYaw) {
+	setYaw(this->yaw + deltaYaw);
+}
+
+void FPVCamera::addPitch(float deltaPitch) {
+	setPitch(this->pitch + deltaPitch);
 }
 
 glm::mat4 FPVCamera::getViewProjMatrix() {

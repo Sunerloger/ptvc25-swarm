@@ -266,14 +266,8 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     yoffset *= cameraSpeed * deltaTime;
 
     FPVCamera* camera = static_cast<FPVCamera*>(glfwGetWindowUserPointer(window));
-    camera->yaw += xoffset;
-    camera->pitch += yoffset;
-
-    // Make sure that when pitch is out of bounds, screen doesn't get flipped
-    if (camera->pitch > 89.0f)
-        camera->pitch = 89.0f;
-    if (camera->pitch < -89.0f)
-        camera->pitch = -89.0f;
+    camera->addYaw(xoffset);
+    camera->addPitch(yoffset);
 }
 
 
