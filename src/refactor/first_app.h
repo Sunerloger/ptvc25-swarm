@@ -10,6 +10,7 @@
 #include "vk_pipeline.h"
 #include "vk_swap_chain.h"
 #include "vk_window.h"
+#include "vk_model.h"
 
 #include <memory>
 #include <vector>
@@ -33,6 +34,7 @@ namespace vk {
         void createPipeline();
         void createCommandBuffers();
         void drawFrame();
+        void loadModels();
 
         Window window{WIDTH, HEIGHT, "Hello Vulkan!"};
         Device device{window};
@@ -40,6 +42,7 @@ namespace vk {
         std::unique_ptr<Pipeline> pipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
+        std::unique_ptr<Model> model;
 
     }
 ;}
