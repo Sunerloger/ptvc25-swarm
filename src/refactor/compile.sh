@@ -1,2 +1,2 @@
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc shaders/simple_shader.vert -o shaders/simple_shader.vert.spv
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc shaders/simple_shader.frag -o shaders/simple_shader.frag.spv
+/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/refactor/simple_shader.vert -o ../../assets/shaders_vk/refactor/simple_shader.vert.spv
+/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/refactor/simple_shader.frag -o ../../assets/shaders_vk/refactor/simple_shader.frag.spv
