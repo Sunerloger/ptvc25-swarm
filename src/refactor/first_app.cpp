@@ -3,6 +3,8 @@
 //
 
 #include "first_app.h"
+
+#include "vk_camera.h"
 #include "simple_render_system.h"
 #include "vk_device.h"
 
@@ -25,14 +27,19 @@ namespace vk {
 
     void FirstApp::run() {
         SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass()};
-
+        Camera camera{};
 
         while (!window.shouldClose()) {
             glfwPollEvents();
 
+            float aspect = renderer.getAspectRatio();
+            // switch between orthographic and perspective projection
+            //camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
+            camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f);
+
             if (auto commandBuffer = renderer.beginFrame()) {
                 renderer.beginSwapChainRenderPass(commandBuffer);
-                simpleRenderSystem.renderGameObjects(commandBuffer, gameObjects);
+                simpleRenderSystem.renderGameObjects(commandBuffer, gameObjects, camera);
                 renderer.endSwapChainRenderPass(commandBuffer);
                 renderer.endFrame();
             }
@@ -103,7 +110,7 @@ namespace vk {
         std::shared_ptr<Model> model = createCubeModel(device, {0.0f, 0.0f, 0.0f});
         auto cube1 = GameObject::createGameObject();
         cube1.model = model;
-        cube1.transform.translation = {0.0f, 0.0f, 0.5f};
+        cube1.transform.translation = {0.0f, 0.0f, 2.5f};
         cube1.transform.scale = {0.5f, 0.5f, 0.5f};
         gameObjects.push_back(std::move(cube1));
     }

@@ -68,7 +68,9 @@ namespace vk {
     }
 
     // here are the push constants (for rotation or translation of the object)
-    void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects) {
+    void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer,
+                                               std::vector<GameObject>& gameObjects,
+                                               const Camera& camera) {
         pipeline->bind(commandBuffer);
 
         for (auto& obj : gameObjects) {
@@ -78,7 +80,7 @@ namespace vk {
 
             SimplePushConstantData push{};
             push.color = obj.color;
-            push.transform = obj.transform.mat4();
+            push.transform = camera.getProjectionMatrix() * obj.transform.mat4();
 
             vkCmdPushConstants(
                     commandBuffer,
