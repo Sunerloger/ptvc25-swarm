@@ -33,10 +33,11 @@ namespace vk {
         if(swapChain == nullptr) {
             swapChain = std::make_unique<SwapChain>(device, extent);
         } else {
-            swapChain = std::make_unique<SwapChain>(device, extent, std::move(swapChain));
-            if(swapChain->imageCount() != commandBuffers.size()) {
-                freeCommandBuffers();
-                createCommandBuffers();
+            std::shared_ptr<SwapChain> oldSwapChain = std::move(swapChain);
+            swapChain = std::make_unique<SwapChain>(device, extent, oldSwapChain);
+
+            if(!oldSwapChain->compareSwapFormats(*swapChain.get())) {
+                throw std::runtime_error("Swap chain image(or depth) format has changed!");
             }
         }
 
@@ -52,7 +53,7 @@ namespace vk {
     }
 
     void Renderer::createCommandBuffers() {
-        commandBuffers.resize(swapChain->imageCount());
+        commandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -110,6 +111,7 @@ namespace vk {
         }
 
         isFrameStarted = false;
+        currentFrameIndex = (currentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
     }
     void Renderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer) {
         assert(isFrameStarted && "Can't begin render pass when frame not in progress.");
