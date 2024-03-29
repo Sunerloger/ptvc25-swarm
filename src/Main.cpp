@@ -406,8 +406,6 @@ void writeDescriptorSet(VkDevice device, VkDescriptorSet descriptor_set, VkBuffe
 void errorCallbackFromGlfw(int error, const char* description) { std::cout << "GLFW error " << error << ": " << description << std::endl; }
 
 // static = limited to this .c file
-static bool g_dragging = false;
-static bool g_strafing = false;
 static float g_zoom = 5.0f;
 
 // Adjust as needed (update per second)
@@ -1434,8 +1432,6 @@ int main(int argc, char** argv) {
         }
     });
 
-    double mouse_x, mouse_y;
-
     float health = 100.0f;
 
     double lastTime = glfwGetTime();
@@ -1450,7 +1446,6 @@ int main(int argc, char** argv) {
 
         // Handle user input:
         glfwPollEvents();
-        // glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
         double currentTime = glfwGetTime();
         deltaTime = currentTime - lastTime;
