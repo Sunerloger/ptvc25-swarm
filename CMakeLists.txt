@@ -11,14 +11,6 @@ include(FetchContent)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")
 
-if(MSVC)
-    # https://docs.microsoft.com/en-us/previous-versions/958x11bc(v=vs.140)
-    add_compile_options("$<$<CONFIG:Debug>:/MTd>$<$<CONFIG:Release>:/MT>")
-    add_compile_options("$<$<CONFIG:Debug>:/ZI>$<$<CONFIG:Release>:/Zi>")
-    add_compile_options(/FS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
-endif()
-
 
 
 # on allows for much bigger worlds
@@ -75,7 +67,9 @@ if (MSVC)
 	endif()
 
 	# Set general compiler flags
-	# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus /Gm- /Wall /WX /MP /nologo /diagnostics:classic /FC /fp:except- /Zc:inline")
+	add_compile_options(/FS)
+	add_compile_options("$<$<CONFIG:Debug>:/MTd>$<$<CONFIG:Release>:/MT>")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
 	
 	# Optionally generate debug symbols
 	if (GENERATE_DEBUG_SYMBOLS)
