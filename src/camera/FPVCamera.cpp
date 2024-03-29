@@ -1,5 +1,4 @@
 #include "FPVCamera.h"
-#include "VulkanLaunchpad.h"
 
 FPVCamera::FPVCamera(float fov, float aspectRatio, float nearPlane, float farPlane) {
 	position = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -7,7 +6,6 @@ FPVCamera::FPVCamera(float fov, float aspectRatio, float nearPlane, float farPla
 	pitch = 0.0f; // Initial pitch
 
 	// vklCreatePerspectiveProjectionMatrix already flips y axis
-	projMatrix = vklCreatePerspectiveProjectionMatrix(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 }
 
 FPVCamera::~FPVCamera() {}

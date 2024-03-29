@@ -18,6 +18,8 @@
 #include <cassert>
 #include <stdexcept>
 #include <chrono>
+#include <iostream>
+#include <filesystem>
 
 namespace vk {
 
@@ -181,11 +183,13 @@ namespace vk {
     }
 
     void FirstApp::loadGameObjects() {
-        std::shared_ptr<Model> model = createCubeModelWithIndices(device, {0.0f, 0.0f, 0.0f});
-        auto cube1 = GameObject::createGameObject();
-        cube1.model = model;
-        cube1.transform.translation = {0.0f, 0.0f, 2.5f};
-        cube1.transform.scale = {0.5f, 0.5f, 0.5f};
-        gameObjects.push_back(std::move(cube1));
+        // output current file directory
+        std::shared_ptr<Model> model = Model::createModelFromFile(device, "../src/refactor/models/smooth_vase.obj");
+        auto gameObject1 = GameObject::createGameObject();
+        gameObject1.model = model;
+        gameObject1.transform.translation = {0.0f, 0.0f, 2.5f};
+        //gameObject1.transform.scale = {0.5f, 0.5f, 0.5f};
+        gameObject1.transform.scale = glm::vec3(3.0f);
+        gameObjects.push_back(std::move(gameObject1));
     }
 }
