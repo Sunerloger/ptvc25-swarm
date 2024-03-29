@@ -5,9 +5,8 @@
 
 #include "vk_device.h"
 #include "vk_game_object.h"
-#include "vk_window.h"
 #include "vk_renderer.h"
-
+#include "vk_window.h"
 
 #include <memory>
 #include <vector>
@@ -29,11 +28,9 @@ namespace vk {
     private:
         void loadGameObjects();
 
-
         Window window{WIDTH, HEIGHT, "Hello Vulkan!"};
         Device device{window};
         Renderer renderer{window, device};
         std::vector<GameObject> gameObjects;
-
     }
 ;}

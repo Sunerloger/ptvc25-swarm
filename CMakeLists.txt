@@ -68,8 +68,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         "src/refactor/vk_game_object.h"
         "src/refactor/vk_renderer.h"
         "src/refactor/vk_renderer.cpp"
-        src/refactor/simple_render_system.h
-        src/refactor/simple_render_system.cpp
+        "src/refactor/simple_render_system.h"
+        "src/refactor/simple_render_system.cpp"
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})

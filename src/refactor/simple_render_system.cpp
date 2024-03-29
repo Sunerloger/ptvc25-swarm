@@ -13,6 +13,8 @@
 #include <array>
 #include <cassert>
 #include <stdexcept>
+#include <iostream>
+#include <filesystem>
 
 namespace vk {
 
@@ -39,8 +41,6 @@ namespace vk {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(SimplePushConstantData);
 
-
-
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 0;
@@ -62,6 +62,7 @@ namespace vk {
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
         // output the current directoy;
+        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
         pipeline = std::make_unique<Pipeline>(device, "../src/refactor/shaders/simple_shader.vert.spv",
                                               "../src/refactor/shaders/simple_shader.frag.spv",
                                               pipelineConfig);
