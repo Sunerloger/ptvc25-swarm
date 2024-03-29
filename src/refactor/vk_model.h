@@ -23,7 +23,10 @@ namespace vk {
         public:
 
             struct Vertex {
-                glm::vec2 position;
+
+                // Changes here need to be reflected in the
+                // getAttributeDescriptions method
+                glm::vec3 position;
                 glm::vec3 color;
 
                 static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
