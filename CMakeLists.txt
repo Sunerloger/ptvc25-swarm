@@ -50,6 +50,8 @@ set(LINK_LIBRARIES
     >
 )
 
+add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
 add_executable(${PROJECT_NAME} ${SOURCES}
         "src/camera/FPVCamera.cpp"
         "src/camera/FPVCamera.h"
