@@ -72,6 +72,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         "src/refactor/simple_render_system.cpp"
         src/refactor/vk_camera.h
         src/refactor/vk_camera.cpp
+        src/refactor/keyboard_movement_controller.h
+        src/refactor/keyboard_movement_controller.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})

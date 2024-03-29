@@ -7,6 +7,7 @@
 #include "vk_camera.h"
 #include "simple_render_system.h"
 #include "vk_device.h"
+#include "keyboard_movement_controller.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -16,6 +17,7 @@
 #include <array>
 #include <cassert>
 #include <stdexcept>
+#include <chrono>
 
 namespace vk {
 
@@ -28,11 +30,27 @@ namespace vk {
     void FirstApp::run() {
         SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass()};
         Camera camera{};
+
+        // switch between looking at a position and looking in a direction
         //camera.setViewDirection(glm::vec3{0.0f}, glm::vec3{0.5f, 0.0f, 1.0f});
-        camera.setViewTarget(glm::vec3(-1.0f, -2.0f,2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
+        camera.setViewTarget(glm::vec3(-1.0f, -2.0f,-2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
+
+        auto viewerObject = GameObject::createGameObject();
+        KeyboardMovementController cameraController{};
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
 
         while (!window.shouldClose()) {
             glfwPollEvents();
+
+            auto newTime = std::chrono::high_resolution_clock::now();
+            float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            currentTime = newTime;
+
+            frameTime = std::min(frameTime, MAX_FRANE_TIME);
+
+            cameraController.moveInPlaneXZ(window.getGLFWWindow(), frameTime, viewerObject);
+            camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
             float aspect = renderer.getAspectRatio();
             // switch between orthographic and perspective projection
