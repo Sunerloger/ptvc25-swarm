@@ -73,6 +73,8 @@ namespace vk {
                                                const Camera& camera) {
         pipeline->bind(commandBuffer);
 
+        auto projectionView = camera.getProjectionMatrix() * camera.getView();
+
         for (auto& obj : gameObjects) {
             obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
             obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());
@@ -80,7 +82,7 @@ namespace vk {
 
             SimplePushConstantData push{};
             push.color = obj.color;
-            push.transform = camera.getProjectionMatrix() * obj.transform.mat4();
+            push.transform = projectionView * obj.transform.mat4();
 
             vkCmdPushConstants(
                     commandBuffer,
