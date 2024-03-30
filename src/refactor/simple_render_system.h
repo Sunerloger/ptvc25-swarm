@@ -8,6 +8,7 @@
 #include "vk_device.h"
 #include "vk_game_object.h"
 #include "vk_pipeline.h"
+#include "vk_frame_info.h"
 
 
 #include <memory>
@@ -23,7 +24,7 @@ namespace vk {
         SimpleRenderSystem(const SimpleRenderSystem&) = delete;
         SimpleRenderSystem& operator=(const SimpleRenderSystem&) = delete;
 
-        void renderGameObjects(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
+        void renderGameObjects(FrameInfo& frameInfo, std::vector<GameObject>& gameObjects);
 
 
     private:

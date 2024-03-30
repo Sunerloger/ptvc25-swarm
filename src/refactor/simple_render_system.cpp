@@ -68,12 +68,11 @@ namespace vk {
     }
 
     // here are the push constants (for rotation or translation of the object)
-    void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer,
-                                               std::vector<GameObject>& gameObjects,
-                                               const Camera& camera) {
-        pipeline->bind(commandBuffer);
+    void SimpleRenderSystem::renderGameObjects(FrameInfo& frameInfo,
+                                               std::vector<GameObject>& gameObjects) {
+        pipeline->bind(frameInfo.commandBuffer);
 
-        auto projectionView = camera.getProjectionMatrix() * camera.getView();
+        auto projectionView =frameInfo.camera.getProjection() * frameInfo.camera.getView();
 
         for (auto& obj : gameObjects) {
             //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
@@ -86,15 +85,15 @@ namespace vk {
             push.normalMatrix = obj.transform.normalMatrix();
 
             vkCmdPushConstants(
-                    commandBuffer,
+                    frameInfo.commandBuffer,
                     pipelineLayout,
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                     0,
                     sizeof(SimplePushConstantData),
                     &push
             );
-            obj.model->bind(commandBuffer);
-            obj.model->draw(commandBuffer);
+            obj.model->bind(frameInfo.commandBuffer);
+            obj.model->draw(frameInfo.commandBuffer);
         }
     }
 }

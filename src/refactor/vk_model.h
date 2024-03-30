@@ -10,6 +10,7 @@
 #pragma once
 
 #include "vk_device.h"
+#include "vk_buffer.h"
 
 #include <vector>
 #include <memory>
@@ -64,13 +65,11 @@ namespace vk {
 
             Device& device;
 
-            VkBuffer vertexBuffer;
-            VkDeviceMemory vertexBufferMemory;
+            std::unique_ptr<Buffer> vertexBuffer;
             uint32_t vertexCount;
 
             bool hasIndexBuffer =  false;
-            VkBuffer indexBuffer;
-            VkDeviceMemory indexBufferMemory;
+            std::unique_ptr<Buffer> indexBuffer;
             uint32_t indexCount;
     };
 }

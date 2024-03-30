@@ -4,6 +4,7 @@
 
 #include "first_app.h"
 
+#include "vk_buffer.h"
 #include "vk_camera.h"
 #include "simple_render_system.h"
 #include "vk_device.h"
@@ -12,16 +13,16 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
-#include "glm/gtc/constants.hpp"
 
 #include <array>
-#include <cassert>
-#include <stdexcept>
-#include <chrono>
 #include <iostream>
-#include <filesystem>
 
 namespace vk {
+
+    struct GlobalUbo {
+        glm::mat4 projectionView{1.0f};
+        glm::vec3 lightDirection = glm::normalize(glm::vec3{1.0f, -3.0f, -1.0f});
+    };
 
     FirstApp::FirstApp() {
         loadGameObjects();
@@ -30,6 +31,15 @@ namespace vk {
     FirstApp::~FirstApp() {}
 
     void FirstApp::run() {
+        Buffer globalUboBuffer{device,
+                               sizeof(GlobalUbo),
+                               SwapChain::MAX_FRAMES_IN_FLIGHT,
+                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                               device.properties.limits.minUniformBufferOffsetAlignment};
+        globalUboBuffer.map();
+
+
         SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass()};
         Camera camera{};
 
@@ -60,8 +70,21 @@ namespace vk {
             camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f); // objects further away than 10 are clipped
 
             if (auto commandBuffer = renderer.beginFrame()) {
+                int frameIndex = renderer.getFrameIndex();
+                FrameInfo frameInfo{frameIndex,
+                                     frameTime,
+                                     commandBuffer,
+                                     camera};
+                //update
+                GlobalUbo ubo{};
+                ubo.projectionView = camera.getProjection() * camera.getView();
+                globalUboBuffer.writeToIndex(&ubo, frameIndex);
+                globalUboBuffer.flushIndex(frameIndex);
+
+
+                //render
                 renderer.beginSwapChainRenderPass(commandBuffer);
-                simpleRenderSystem.renderGameObjects(commandBuffer, gameObjects, camera);
+                simpleRenderSystem.renderGameObjects(frameInfo, gameObjects);
                 renderer.endSwapChainRenderPass(commandBuffer);
                 renderer.endFrame();
             }

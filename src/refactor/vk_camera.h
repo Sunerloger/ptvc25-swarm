@@ -23,7 +23,7 @@ namespace vk{
 
         void setViewYXZ(glm::vec3 position, glm::vec3 rotation);
 
-        const glm::mat4& getProjectionMatrix() const { return projectionMatrix; }
+        const glm::mat4& getProjection() const { return projectionMatrix; }
 
         const glm::mat4& getView() const { return viewMatrix; }
 
