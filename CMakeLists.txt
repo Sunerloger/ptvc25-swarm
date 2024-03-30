@@ -70,8 +70,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         "src/refactor/vk_game_object.h"
         "src/refactor/vk_renderer.h"
         "src/refactor/vk_renderer.cpp"
-        "src/refactor/simple_render_system.h"
-        "src/refactor/simple_render_system.cpp"
+        "src/refactor/systems/simple_render_system.h"
+        "src/refactor/systems/simple_render_system.cpp"
         src/refactor/vk_camera.h
         src/refactor/vk_camera.cpp
         src/refactor/keyboard_movement_controller.h
@@ -83,6 +83,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         src/refactor/vk_frame_info.h
         src/refactor/vk_descriptors.h
         src/refactor/vk_descriptors.cpp
+        src/refactor/systems/point_light_system.h
+        src/refactor/systems/point_light_system.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})

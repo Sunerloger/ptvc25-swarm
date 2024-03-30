@@ -3,7 +3,7 @@
 //
 
 #include "simple_render_system.h"
-#include "vk_renderer.h"
+#include "../vk_renderer.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

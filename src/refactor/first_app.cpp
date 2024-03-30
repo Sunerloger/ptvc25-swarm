@@ -6,7 +6,8 @@
 
 #include "vk_buffer.h"
 #include "vk_camera.h"
-#include "simple_render_system.h"
+#include "systems/simple_render_system.h"
+#include "systems/point_light_system.h"
 #include "vk_device.h"
 #include "keyboard_movement_controller.h"
 
@@ -23,7 +24,8 @@
 namespace vk {
 
     struct GlobalUbo {
-        glm::mat4 projectionView{1.0f};
+        glm::mat4 projection{1.0f};
+        glm::mat4 view{1.0f};
         glm::vec4 amientLighColor{1.0f, 1.0f, 1.0f, 0.02f};
         glm::vec4 lightPosition{-1.f};
         alignas(16) glm::vec4 lightColor{1.0f};
@@ -63,7 +65,13 @@ namespace vk {
             .build(globalDescriptorSets[i]);
         }
 
-        SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
+        SimpleRenderSystem simpleRenderSystem{device,
+                                              renderer.getSwapChainRenderPass(),
+                                              globalSetLayout->getDescriptorSetLayout()};
+
+        PointLightSystem pointLightSystem{device,
+                                            renderer.getSwapChainRenderPass(),
+                                            globalSetLayout->getDescriptorSetLayout()};
         Camera camera{};
 
         // switch between looking at a position and looking in a direction
@@ -104,13 +112,15 @@ namespace vk {
                                      gameObjects};
                 //update
                 GlobalUbo ubo{};
-                ubo.projectionView = camera.getProjection() * camera.getView();
+                ubo.projection = camera.getProjection();
+                ubo.view = camera.getView();
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
                 //render
                 renderer.beginSwapChainRenderPass(commandBuffer);
                 simpleRenderSystem.renderGameObjects(frameInfo);
+                pointLightSystem.render(frameInfo);
                 renderer.endSwapChainRenderPass(commandBuffer);
                 renderer.endFrame();
             }
