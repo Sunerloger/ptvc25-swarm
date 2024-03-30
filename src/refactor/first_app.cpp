@@ -28,6 +28,10 @@ namespace vk {
     };
 
     FirstApp::FirstApp() {
+        globalPool = DescriptorPool::Builder(device)
+                .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .build();
         loadGameObjects();
     }
 
@@ -45,8 +49,19 @@ namespace vk {
             uboBuffers[i]->map();
         }
 
+        auto globalSetLayout = DescriptorSetLayout::Builder(device)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                .build();
 
-        SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass()};
+        std::vector<VkDescriptorSet> globalDescriptorSets(SwapChain::MAX_FRAMES_IN_FLIGHT) ;
+        for (int i = 0; i < globalDescriptorSets.size(); i++) {
+            auto bufferInfo = uboBuffers[i]->descriptorInfo();
+            DescriptorWriter(*globalSetLayout, *globalPool)
+            .writeBuffer(0, &bufferInfo)
+            .build(globalDescriptorSets[i]);
+        }
+
+        SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
         Camera camera{};
 
         // switch between looking at a position and looking in a direction
@@ -80,7 +95,8 @@ namespace vk {
                 FrameInfo frameInfo{frameIndex,
                                      frameTime,
                                      commandBuffer,
-                                     camera};
+                                     camera,
+                                     globalDescriptorSets[frameIndex]};
                 //update
                 GlobalUbo ubo{};
                 ubo.projectionView = camera.getProjection() * camera.getView();
@@ -217,7 +233,6 @@ namespace vk {
         auto gameObject1 = GameObject::createGameObject();
         gameObject1.model = flatVaseModel;
         gameObject1.transform.translation = {-0.5f, 0.5f, 2.5f};
-        //gameObject1.transform.scale = {0.5f, 0.5f, 0.5f};
         gameObject1.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.push_back(std::move(gameObject1));
 

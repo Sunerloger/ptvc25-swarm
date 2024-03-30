@@ -125,6 +125,7 @@ namespace vk{
         return bindingDescriptions;
     }
 
+    //change in the vertex struct needs to be reflected here
     std::vector<VkVertexInputAttributeDescription> Model::Vertex::getAttributeDescriptions() {
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
 
@@ -133,16 +134,13 @@ namespace vk{
         attributeDescriptions.push_back({2,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex, normal)});
         attributeDescriptions.push_back({3,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex, uv)});
 
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        //change in the vertex struct needs to be reflected here
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, position);
+        //alternative way of doing the same thing
 
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
+        //attributeDescriptions[0].binding = 0;
+        //attributeDescriptions[0].location = 0;
+        //attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        //attributeDescriptions[0].offset = offsetof(Vertex, position);
+        //...
         return attributeDescriptions;
     }
 
