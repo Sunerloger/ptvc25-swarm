@@ -24,7 +24,9 @@ namespace vk {
 
     struct GlobalUbo {
         glm::mat4 projectionView{1.0f};
-        glm::vec3 lightDirection = glm::normalize(glm::vec3{1.0f, -3.0f, -1.0f});
+        glm::vec4 amientLighColor{1.0f, 1.0f, 1.0f, 0.02f};
+        glm::vec4 lightPosition{-1.f};
+        alignas(16) glm::vec4 lightColor{1.0f};
     };
 
     FirstApp::FirstApp() {
@@ -69,6 +71,8 @@ namespace vk {
         camera.setViewTarget(glm::vec3(-1.0f, -2.0f,-2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
 
         auto viewerObject = GameObject::createGameObject();
+        // move camera
+        viewerObject.transform.translation.z = -2.5f;
         KeyboardMovementController cameraController{};
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -88,7 +92,7 @@ namespace vk {
             float aspect = renderer.getAspectRatio();
             // switch between orthographic and perspective projection
             //camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
-            camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f); // objects further away than 10 are clipped
+            camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 100.0f); // objects further away than 100 are clipped
 
             if (auto commandBuffer = renderer.beginFrame()) {
                 int frameIndex = renderer.getFrameIndex();
@@ -229,17 +233,26 @@ namespace vk {
     void FirstApp::loadGameObjects() {
         std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
         std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
+        std::shared_ptr<Model> floorModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
+
 
         auto gameObject1 = GameObject::createGameObject();
         gameObject1.model = flatVaseModel;
-        gameObject1.transform.translation = {-0.5f, 0.5f, 2.5f};
+        gameObject1.transform.translation = {-0.5f, 0.5f, 0.0f};
         gameObject1.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.push_back(std::move(gameObject1));
 
         auto gameObject2 = GameObject::createGameObject();
         gameObject2.model = smoothVaseModel;
-        gameObject2.transform.translation = {0.5f, 0.5f, 2.5f};
+        gameObject2.transform.translation = {0.5f, 0.5f, 0.0f};
         gameObject2.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.push_back(std::move(gameObject2));
+
+        auto gameObject3 = GameObject::createGameObject();
+        gameObject3.model = floorModel;
+        gameObject3.transform.translation = {0.0f, 0.5f, 0.0f};
+        gameObject3.transform.scale = {3.0f, 1.0f, 3.0f};
+        gameObjects.push_back(std::move(gameObject3));
+
     }
 }
