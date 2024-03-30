@@ -60,4 +60,13 @@ namespace vk {
                 },
         };
     }
+
+    GameObject GameObject::makePointLight(float intensity, float radius, glm::vec3 color) {
+        GameObject gameObject = GameObject::createGameObject();
+        gameObject.color = color;
+        gameObject.transform.scale.x = radius;
+        gameObject.pointLight = std::make_unique<PointLightComponent>();
+        gameObject.pointLight->lightIntensity = intensity;
+        return gameObject;
+    }
 }

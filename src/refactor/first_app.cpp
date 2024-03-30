@@ -23,14 +23,6 @@
 
 namespace vk {
 
-    struct GlobalUbo {
-        glm::mat4 projection{1.0f};
-        glm::mat4 view{1.0f};
-        glm::vec4 amientLighColor{1.0f, 1.0f, 1.0f, 0.02f};
-        glm::vec4 lightPosition{-1.f};
-        alignas(16) glm::vec4 lightColor{1.0f};
-    };
-
     FirstApp::FirstApp() {
         globalPool = DescriptorPool::Builder(device)
                 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -114,6 +106,7 @@ namespace vk {
                 GlobalUbo ubo{};
                 ubo.projection = camera.getProjection();
                 ubo.view = camera.getView();
+                pointLightSystem.update(frameInfo, ubo);
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
@@ -265,5 +258,29 @@ namespace vk {
         gameObject3.transform.scale = {3.0f, 1.0f, 3.0f};
         gameObjects.emplace(gameObject3.getId(), std::move(gameObject3));
 
+//        {
+//            auto pointLight1 = GameObject::makePointLight(0.2f);
+//            gameObjects.emplace(pointLight1.getId(), std::move(pointLight1));
+//        }
+
+        std::vector<glm::vec3> lightColors{
+                {1.f, .1f, .1f},
+                {.1f, .1f, 1.f},
+                {.1f, 1.f, .1f},
+                {1.f, 1.f, .1f},
+                {.1f, 1.f, 1.f},
+                {1.f, 1.f, 1.f}  //
+        };
+
+        for (int i = 0; i < lightColors.size(); i++) {
+            auto pointLight = GameObject::makePointLight(0.2f, 0.1f, lightColors[i]);
+            pointLight.color = lightColors[i];
+            auto rotateLight = glm::rotate(
+                    glm::mat4(1.0f),
+                    (i * glm::two_pi<float>() / lightColors.size()),
+                    {0.0f, -1.f, 0.f});
+            pointLight.transform.translation = glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f));
+            gameObjects.emplace(pointLight.getId(), std::move(pointLight));
+        }
     }
 }
