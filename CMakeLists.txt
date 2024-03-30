@@ -77,6 +77,7 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         src/refactor/keyboard_movement_controller.h
         src/refactor/keyboard_movement_controller.cpp
         src/refactor/vk_utils.hpp
+        src/refactor/vk_game_object.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})

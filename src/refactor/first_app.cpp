@@ -183,14 +183,20 @@ namespace vk {
     }
 
     void FirstApp::loadGameObjects() {
-        // output current file directory
-        std::cout << "Current path is " << std::filesystem::current_path() << '\n';
-        std::shared_ptr<Model> model = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
+        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
+        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
+
         auto gameObject1 = GameObject::createGameObject();
-        gameObject1.model = model;
-        gameObject1.transform.translation = {0.0f, 0.0f, 2.5f};
+        gameObject1.model = flatVaseModel;
+        gameObject1.transform.translation = {-0.5f, 0.5f, 2.5f};
         //gameObject1.transform.scale = {0.5f, 0.5f, 0.5f};
-        gameObject1.transform.scale = glm::vec3(3.0f);
+        gameObject1.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.push_back(std::move(gameObject1));
+
+        auto gameObject2 = GameObject::createGameObject();
+        gameObject2.model = smoothVaseModel;
+        gameObject2.transform.translation = {0.5f, 0.5f, 2.5f};
+        gameObject2.transform.scale = {3.0f, 1.5f, 3.0f};
+        gameObjects.push_back(std::move(gameObject2));
     }
 }

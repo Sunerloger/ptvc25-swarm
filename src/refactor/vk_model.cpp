@@ -145,7 +145,13 @@ namespace vk{
     }
 
     std::vector<VkVertexInputAttributeDescription> Model::Vertex::getAttributeDescriptions() {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+
+        attributeDescriptions.push_back({0,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex, position)});
+        attributeDescriptions.push_back({1,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex, color)});
+        attributeDescriptions.push_back({2,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex, normal)});
+        attributeDescriptions.push_back({3,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex, uv)});
+
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         //change in the vertex struct needs to be reflected here
@@ -185,16 +191,11 @@ namespace vk{
                             attrib.vertices[3 * index.vertex_index + 2]
                     };
 
-                    auto colorIndex = 3 * index.vertex_index + 2;
-                    if (colorIndex < attrib.colors.size()) {
-                        vertex.color = {
-                            attrib.colors[colorIndex - 2],
-                            attrib.colors[colorIndex - 1],
-                            attrib.colors[colorIndex - 0]
-                        };
-                    } else {
-                        vertex.color = {1.0f, 1.0f, 1.0f}; // default color
-                    }
+                    vertex.color = {
+                            attrib.colors[3 * index.vertex_index + 0],
+                            attrib.colors[3 * index.vertex_index + 1],
+                            attrib.colors[3 * index.vertex_index + 2]
+                    };
                 }
 
                 if(index.normal_index >= 0) {
