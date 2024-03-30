@@ -16,6 +16,9 @@
 
 #include <array>
 #include <iostream>
+#include <chrono>
+#include <memory>
+#include <numeric>
 
 namespace vk {
 
@@ -31,13 +34,16 @@ namespace vk {
     FirstApp::~FirstApp() {}
 
     void FirstApp::run() {
-        Buffer globalUboBuffer{device,
-                               sizeof(GlobalUbo),
-                               SwapChain::MAX_FRAMES_IN_FLIGHT,
-                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                               device.properties.limits.minUniformBufferOffsetAlignment};
-        globalUboBuffer.map();
+
+        std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
+        for (int i = 0; i < uboBuffers.size(); i++) {
+            uboBuffers[i] = std::make_unique<Buffer>(device,
+                                                     sizeof(GlobalUbo),
+                                                     1,
+                                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+            uboBuffers[i]->map();
+        }
 
 
         SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass()};
@@ -78,9 +84,8 @@ namespace vk {
                 //update
                 GlobalUbo ubo{};
                 ubo.projectionView = camera.getProjection() * camera.getView();
-                globalUboBuffer.writeToIndex(&ubo, frameIndex);
-                globalUboBuffer.flushIndex(frameIndex);
-
+                uboBuffers[frameIndex]->writeToBuffer(&ubo);
+                uboBuffers[frameIndex]->flush();
 
                 //render
                 renderer.beginSwapChainRenderPass(commandBuffer);
