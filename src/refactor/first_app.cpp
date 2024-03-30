@@ -185,7 +185,7 @@ namespace vk {
     void FirstApp::loadGameObjects() {
         // output current file directory
         std::cout << "Current path is " << std::filesystem::current_path() << '\n';
-        std::shared_ptr<Model> model = Model::createModelFromFile(device, "../assets/models/smooth_vase.obj");
+        std::shared_ptr<Model> model = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
         auto gameObject1 = GameObject::createGameObject();
         gameObject1.model = model;
         gameObject1.transform.translation = {0.0f, 0.0f, 2.5f};
