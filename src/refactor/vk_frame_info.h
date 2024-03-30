@@ -5,6 +5,7 @@
 #pragma once
 
 #include "vk_camera.h"
+#include "vk_game_object.h"
 
 #include "vulkan/vulkan.h"
 
@@ -15,6 +16,7 @@ namespace vk {
         VkCommandBuffer commandBuffer;
         Camera &camera;
         VkDescriptorSet globalDescriptorSet;
+        GameObject::Map &gameObjects;
     };
 }
 

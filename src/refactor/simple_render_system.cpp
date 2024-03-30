@@ -70,8 +70,7 @@ namespace vk {
     }
 
     // here are the push constants (for rotation or translation of the object)
-    void SimpleRenderSystem::renderGameObjects(FrameInfo& frameInfo,
-                                               std::vector<GameObject>& gameObjects) {
+    void SimpleRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer,
@@ -83,7 +82,10 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& obj : gameObjects) {
+        for (auto& kv : frameInfo.gameObjects) {
+            auto& obj = kv.second;
+            if(obj.model == nullptr) continue;
+
             //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
             //obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());
 

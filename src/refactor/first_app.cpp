@@ -52,7 +52,7 @@ namespace vk {
         }
 
         auto globalSetLayout = DescriptorSetLayout::Builder(device)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
                 .build();
 
         std::vector<VkDescriptorSet> globalDescriptorSets(SwapChain::MAX_FRAMES_IN_FLIGHT) ;
@@ -100,7 +100,8 @@ namespace vk {
                                      frameTime,
                                      commandBuffer,
                                      camera,
-                                     globalDescriptorSets[frameIndex]};
+                                     globalDescriptorSets[frameIndex],
+                                     gameObjects};
                 //update
                 GlobalUbo ubo{};
                 ubo.projectionView = camera.getProjection() * camera.getView();
@@ -109,7 +110,7 @@ namespace vk {
 
                 //render
                 renderer.beginSwapChainRenderPass(commandBuffer);
-                simpleRenderSystem.renderGameObjects(frameInfo, gameObjects);
+                simpleRenderSystem.renderGameObjects(frameInfo);
                 renderer.endSwapChainRenderPass(commandBuffer);
                 renderer.endFrame();
             }
@@ -240,19 +241,19 @@ namespace vk {
         gameObject1.model = flatVaseModel;
         gameObject1.transform.translation = {-0.5f, 0.5f, 0.0f};
         gameObject1.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObjects.push_back(std::move(gameObject1));
+        gameObjects.emplace(gameObject1.getId(), std::move(gameObject1));
 
         auto gameObject2 = GameObject::createGameObject();
         gameObject2.model = smoothVaseModel;
         gameObject2.transform.translation = {0.5f, 0.5f, 0.0f};
         gameObject2.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObjects.push_back(std::move(gameObject2));
+        gameObjects.emplace(gameObject2.getId(), std::move(gameObject2));
 
         auto gameObject3 = GameObject::createGameObject();
         gameObject3.model = floorModel;
         gameObject3.transform.translation = {0.0f, 0.5f, 0.0f};
         gameObject3.transform.scale = {3.0f, 1.0f, 3.0f};
-        gameObjects.push_back(std::move(gameObject3));
+        gameObjects.emplace(gameObject3.getId(), std::move(gameObject3));
 
     }
 }
