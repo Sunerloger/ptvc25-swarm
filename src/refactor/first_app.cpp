@@ -248,6 +248,7 @@ namespace vk {
         std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
         std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
         std::shared_ptr<Model> floorModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
+        std::shared_ptr<Model> humanModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
 
 
         auto gameObject1 = GameObject::createGameObject();
@@ -267,6 +268,12 @@ namespace vk {
         gameObject3.transform.translation = {0.0f, 0.5f, 0.0f};
         gameObject3.transform.scale = {3.0f, 1.0f, 3.0f};
         gameObjects.emplace(gameObject3.getId(), std::move(gameObject3));
+
+        auto gameObject4 = GameObject::createGameObject();
+        gameObject4.model = humanModel;
+        gameObject4.transform.translation = {0.0f, 0.0f, 0.0f};
+        gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};
+        gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
 
 //        {
 //            auto pointLight1 = GameObject::makePointLight(0.2f);
