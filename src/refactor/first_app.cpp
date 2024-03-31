@@ -76,13 +76,22 @@ namespace vk {
         KeyboardMovementController cameraController{};
 
         auto currentTime = std::chrono::high_resolution_clock::now();
+        int currentSecond = 0;
 
+        auto startTime = currentTime;
         while (!window.shouldClose()) {
             glfwPollEvents();
 
             auto newTime = std::chrono::high_resolution_clock::now();
             float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
             currentTime = newTime;
+
+            auto timeSinceStart = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+            auto timeSinceStartInt = static_cast<int>(timeSinceStart);
+            if(timeSinceStartInt > currentSecond) {
+                currentSecond = timeSinceStartInt;
+                std::cout << "Time since start: " << currentSecond << "s" << std::endl;
+            }
 
             frameTime = std::min(frameTime, MAX_FRANE_TIME);
 
@@ -273,7 +282,7 @@ namespace vk {
         };
 
         for (int i = 0; i < lightColors.size(); i++) {
-            auto pointLight = GameObject::makePointLight(0.2f, 0.1f, lightColors[i]);
+            auto pointLight = GameObject::makePointLight(1.0f, 0.1f, lightColors[i]);
             pointLight.color = lightColors[i];
             auto rotateLight = glm::rotate(
                     glm::mat4(1.0f),
