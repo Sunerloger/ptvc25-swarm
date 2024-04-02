@@ -34,34 +34,6 @@ namespace vk {
 
     FirstApp::~FirstApp() {}
 
-    void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
-        static int lastX = 0;
-        static int lastY = 0;
-        static bool firstMouse = true;
-
-        if (firstMouse) {
-            lastX = xpos;
-            lastY = ypos;
-            firstMouse = false;
-        }
-
-        float xOffset = xpos - lastX;
-        float yOffset = lastY - ypos; // Reversed since y-coordinates go from bottom to top
-
-        lastX = xpos;
-        lastY = ypos;
-
-        float sensitivity = 0.001f;
-        xOffset *= sensitivity;
-        yOffset *= sensitivity;
-
-        // Here, you need access to your camera object to update its yaw and pitch
-        // This is a simplified example. You will need to structure your code to have access to the camera object here
-        GameObject* cameraObject = static_cast<GameObject*>(glfwGetWindowUserPointer(window));
-        cameraObject->transform.rotation.y += xOffset;
-        cameraObject->transform.rotation.x += yOffset;
-    }
-
     void FirstApp::run() {
 
 
@@ -105,8 +77,6 @@ namespace vk {
 
         Camera camera{};
 
-        glfwSetCursorPosCallback(window.getGLFWWindow(), mouseCallback);
-
         // switch between looking at a position and looking in a direction
         //camera.setViewDirection(glm::vec3{0.0f}, glm::vec3{0.5f, 0.0f, 1.0f});
         camera.setViewTarget(glm::vec3(-1.0f, -2.0f,-2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
@@ -115,13 +85,13 @@ namespace vk {
         // move camera
         viewerObject.transform.translation.z = -2.5f;
         glfwSetWindowUserPointer(window.getGLFWWindow(), &viewerObject);
-        KeyboardMovementController cameraController{};
+        glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        KeyboardMovementController cameraController{WIDTH, HEIGHT};
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         int currentSecond = 0;
 
         auto startTime = currentTime;
-        glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Optionally hide the cursor
         while (!window.shouldClose()) {
             glfwPollEvents();
 
@@ -139,6 +109,8 @@ namespace vk {
             frameTime = std::min(frameTime, MAX_FRANE_TIME);
 
             cameraController.moveInPlaneXZ(window.getGLFWWindow(), frameTime, viewerObject);
+            cameraController.lookInPlaneXY(window.getGLFWWindow(), frameTime, viewerObject);
+            cameraController.controlGame(window.getGLFWWindow(), frameTime);
             camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
             float aspect = renderer.getAspectRatio();

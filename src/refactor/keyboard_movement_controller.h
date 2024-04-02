@@ -10,6 +10,13 @@
 namespace vk {
     class KeyboardMovementController {
     public:
+
+        KeyboardMovementController(int WIDTH,
+                                   int HEIGHT) {
+            lastMouseX = WIDTH / 2;
+            lastMouseY = HEIGHT / 2;
+        }
+
         struct KeyMappings {
             int moveLeft = GLFW_KEY_A;
             int moveRight = GLFW_KEY_D;
@@ -23,10 +30,27 @@ namespace vk {
             int lookDown = GLFW_KEY_DOWN;
         };
 
-        void moveInPlaneXZ(GLFWwindow* window, float dt, GameObject& gameObject);
+        void moveInPlaneXZ(GLFWwindow *window,
+                           float dt,
+                           GameObject &gameObject);
 
+        void lookInPlaneXY(GLFWwindow *window,
+                           float dt,
+                           GameObject &gameObject);
+
+        void controlGame(GLFWwindow *window,
+                         float dt);
+    private:
         KeyMappings keys{};
         float moveSpeed{3.0f};
-        float lookSpeed{1.5f};
+        float lookSpeed{3.0f};
+
+        int lastMouseX = 0;
+        int lastMouseY = {0};
+        bool firstMouse = true;
+
+        bool escapeMenuOpen = false;
+        bool escKeyPressedLastFrame = false;
     };
+
 }
