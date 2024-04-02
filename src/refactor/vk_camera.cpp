@@ -4,10 +4,28 @@
 
 #include "vk_camera.h"
 
+#include "glm/gtc/matrix_transform.hpp"
+
 #include <cassert>
 #include <limits>
 
 namespace vk {
+
+    void Camera::updateCameraVectors() {
+        // Calculate the new front vector
+        glm::vec3 front;
+        front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front.y = sin(glm::radians(pitch));
+        front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front = glm::normalize(front);
+
+        glm::vec3 worldUp = glm::vec3(0.0f, -1.0f, 0.0f);
+        glm::vec3 right = glm::normalize(glm::cross(front, worldUp));
+        glm::vec3 up = glm::normalize(glm::cross(right, front));
+
+        // Update view matrix
+
+    }
 
     void Camera::setOrthographicProjection(
             float left, float right, float top, float bottom, float near, float far) {

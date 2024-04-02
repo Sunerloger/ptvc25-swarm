@@ -13,6 +13,8 @@ namespace vk{
     class Camera {
 
     public:
+        void updateCameraVectors();
+
         void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far);
 
         void setPerspectiveProjection(float fovy, float aspect, float near, float far);
@@ -29,8 +31,17 @@ namespace vk{
 
         const glm::mat4& getInverseView() const { return inverseViewMatrix; }
 
-    private:
+        void setYaw(float yaw) { this->yaw = yaw; }
 
+        void setPitch(float pitch) { this->pitch = pitch; }
+
+        float getYaw() const { return yaw; }
+
+        float getPitch() const { return pitch; }
+
+    private:
+        float yaw = 0.0f;
+        float pitch = 0.0f;
         glm::mat4 projectionMatrix{1.0f};
         glm::mat4 viewMatrix{1.0f};
         glm::mat4 inverseViewMatrix{1.0f};

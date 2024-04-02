@@ -8,6 +8,7 @@
 #include "vk_renderer.h"
 #include "vk_window.h"
 #include "vk_descriptors.h"
+#include "vk_camera.h"
 
 #include <memory>
 #include <vector>
