@@ -252,13 +252,11 @@ namespace physics {
 
         // TODO register bodies
 
-        // TODO hand off bodies to scene (with their id)
+        // TODO hand off bodies to scene with body_interface, which registers bodies
 
-        // TODO destruction of scene shouldn't destroy bodies
+        // TODO at destruction of scene, bodies get destroyed
 
-        // TODO at destruction of simulation: get ids of bodies from all scenes and destroy bodies (set to prevent duplicate destruction?)
-
-        // TODO scenes have names
+        // TODO scenes should destroy bodies: different scenes cause the bodies to be different
 
 
 
