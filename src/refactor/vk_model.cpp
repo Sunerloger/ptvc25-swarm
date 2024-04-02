@@ -15,6 +15,12 @@
 #include <cassert>
 #include <unordered_map>
 #include <memory>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+
 
 namespace std {
     template<>
@@ -35,9 +41,13 @@ namespace vk{
 
     Model::~Model(){}
 
-    std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename) {
+    std::unique_ptr<Model> Model::createModelFromFile(bool useTinyObjLoader, Device& device, const std::string& filename) {
         Builder builder{};
-        builder.loadModel(filename);
+        if(useTinyObjLoader){
+            builder.loadModel(filename);
+        } else {
+            builder.loadModelWithoutTinyObjLoader(filename);
+        }
         return std::make_unique<Model>(device, builder);
     }
 
@@ -144,6 +154,44 @@ namespace vk{
         return attributeDescriptions;
     }
 
+    void Model::Builder::loadModelWithoutTinyObjLoader(const std::string &filename) {
+        vertices.clear();
+        indices.clear();
+
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open file: " + filename);
+        }
+
+        std::string line;
+        while (getline(file, line)) {
+            std::istringstream iss(line);
+            std::string prefix;
+            iss >> prefix;
+
+            if (prefix == "v") { // Vertex position and color
+                glm::vec3 vertex;
+                glm::vec3 color;
+                iss >> vertex.x >> vertex.y >> vertex.z;
+                iss >> color.r >> color.g >> color.b; // Assuming color values are provided after vertex positions
+                vertices.push_back({vertex, color, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)});
+            } else if (prefix == "l") { // Line index
+                uint32_t index1, index2;
+                iss >> index1 >> index2;
+
+                // OBJ file indices start from 1, but we need them to start from 0
+                index1 -= 1;
+                index2 -= 1;
+
+                indices.push_back(index1);
+                indices.push_back(index2);
+            }
+        }
+
+        std::cout << "Loaded model with " << vertices.size() << " vertices and " << indices.size() << " indices (from lines)" << std::endl;
+    }
+
+
     void Model::Builder::loadModel(const std::string &filename) {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -199,5 +247,6 @@ namespace vk{
                 indices.push_back(uniqueVertices[vertex]);
             }
         }
+        std::cout << "Loaded model with " << vertices.size() << " vertices and " << indices.size() << " indices" << std::endl;
     }
 }

@@ -25,6 +25,7 @@ namespace vk {
         glm::vec4 ambientLightColor{1.0f, 1.0f, 1.0f, 0.02f};
         PointLight pointLights[MAX_LIGHTS];
         int numLights;
+        float aspectRatio;
     };
 
     struct FrameInfo {

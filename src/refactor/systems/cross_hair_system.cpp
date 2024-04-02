@@ -2,7 +2,7 @@
 // Created by Vlad Dancea on 29.03.24.
 //
 
-#include "simple_render_system.h"
+#include "cross_hair_system.h"
 #include "../vk_renderer.h"
 
 #define GLM_FORCE_RADIANS
@@ -23,23 +23,24 @@ namespace vk {
         glm::mat4 normalMatrix{1.0f};
     };
 
-    SimpleRenderSystem::SimpleRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
+    CrossHairSystem::CrossHairSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
         createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
 
-    SimpleRenderSystem::~SimpleRenderSystem() {
+    CrossHairSystem::~CrossHairSystem() {
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
 
-    void SimpleRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+    void CrossHairSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
 
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(SimplePushConstantData);
 
+        VkDescriptorSetLayout layout = globalSetLayout;
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {globalSetLayout};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -55,22 +56,25 @@ namespace vk {
         }
     }
 
-    void SimpleRenderSystem::createPipeline(VkRenderPass renderPass) {
+    void CrossHairSystem::createPipeline(VkRenderPass renderPass) {
         assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        // output the current directoy;
-        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/simple_shader.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/simple_shader.frag.spv",
+        pipelineConfig.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        pipelineConfig.attributeDescriptions = std::vector<VkVertexInputAttributeDescription>(2);
+        pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
+        pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
+
+        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.vert.spv",
+                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.frag.spv",
                                               pipelineConfig);
     }
 
     // here are the push constants (for rotation or translation of the object)
-    void SimpleRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+    void CrossHairSystem::renderGameObjects(FrameInfo& frameInfo) {
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer,
@@ -84,12 +88,9 @@ namespace vk {
 
         for (auto& kv : frameInfo.gameObjects) {
             auto& obj = kv.second;
-            if(obj.model == nullptr) continue;
-            if(obj.isCrossHair != nullptr && *obj.isCrossHair) continue;
-
-            //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
-            //obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());
-
+            if(obj.isCrossHair == nullptr || !*obj.isCrossHair) {
+                continue;
+            }
 
             SimplePushConstantData push{};
             push.modelMatrix = obj.transform.mat4();

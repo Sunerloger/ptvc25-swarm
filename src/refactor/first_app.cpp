@@ -8,6 +8,7 @@
 #include "vk_camera.h"
 #include "systems/simple_render_system.h"
 #include "systems/point_light_system.h"
+#include "systems/cross_hair_system.h"
 #include "vk_device.h"
 #include "keyboard_movement_controller.h"
 
@@ -64,6 +65,11 @@ namespace vk {
         PointLightSystem pointLightSystem{device,
                                             renderer.getSwapChainRenderPass(),
                                             globalSetLayout->getDescriptorSetLayout()};
+
+        CrossHairSystem crossHairSystem{device,
+                                        renderer.getSwapChainRenderPass(),
+                                        globalSetLayout->getDescriptorSetLayout()};
+
         Camera camera{};
 
         // switch between looking at a position and looking in a direction
@@ -116,6 +122,7 @@ namespace vk {
                 ubo.projection = camera.getProjection();
                 ubo.view = camera.getView();
                 ubo.inverseView = camera.getInverseView();
+                ubo.aspectRatio = aspect;
                 pointLightSystem.update(frameInfo, ubo);
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
@@ -124,6 +131,7 @@ namespace vk {
                 renderer.beginSwapChainRenderPass(commandBuffer);
                 simpleRenderSystem.renderGameObjects(frameInfo);
                 pointLightSystem.render(frameInfo);
+                crossHairSystem.renderGameObjects(frameInfo);
                 renderer.endSwapChainRenderPass(commandBuffer);
                 renderer.endFrame();
             }
@@ -131,124 +139,13 @@ namespace vk {
         vkDeviceWaitIdle(device.device());
     }
 
-    // temporary helper function, creates a 1x1x1 cube centered at offset
-    std::unique_ptr<Model> createCubeModelWithoutIndices(Device& device, glm::vec3 offset) {
-        Model::Builder modelBuilder{};
-        modelBuilder.vertices =
-        {
-
-                // left face (white)
-                {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
-                {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
-                {{-.5f, -.5f, .5f}, {.9f, .9f, .9f}},
-                {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
-                {{-.5f, .5f, -.5f}, {.9f, .9f, .9f}},
-                {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
-
-                // right face (yellow)
-                {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
-                {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
-                {{.5f, -.5f, .5f}, {.8f, .8f, .1f}},
-                {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
-                {{.5f, .5f, -.5f}, {.8f, .8f, .1f}},
-                {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
-
-                // top face (orange, remember y axis points down)
-                {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-                {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-                {{-.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-                {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-                {{.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-                {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-
-                // bottom face (red)
-                {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-                {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
-                {{-.5f, .5f, .5f}, {.8f, .1f, .1f}},
-                {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-                {{.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-                {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
-
-                // nose face (blue)
-                {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-                {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-                {{-.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-                {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-                {{.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-                {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-
-                // tail face (green)
-                {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-                {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-                {{-.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-                {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-                {{.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-                {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-
-        };
-        for (auto& v : modelBuilder.vertices) {
-            v.position += offset;
-        }
-        return std::make_unique<Model>(device, modelBuilder);
-    }
-
-    // temporary helper function, creates a 1x1x1 cube centered at offset with an index buffer
-    std::unique_ptr<Model> createCubeModelWithIndices(Device& device, glm::vec3 offset) {
-        Model::Builder modelBuilder{};
-        modelBuilder.vertices =
-            {
-
-                // left face (white)
-                {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
-                {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
-                {{-.5f, -.5f, .5f}, {.9f, .9f, .9f}},
-                {{-.5f, .5f, -.5f}, {.9f, .9f, .9f}},
-
-                // right face (yellow)
-                {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
-                {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
-                {{.5f, -.5f, .5f}, {.8f, .8f, .1f}},
-                {{.5f, .5f, -.5f}, {.8f, .8f, .1f}},
-
-                // top face (orange, remember y axis points down)
-                {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-                {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-                {{-.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-                {{.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-
-                // bottom face (red)
-                {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-                {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
-                {{-.5f, .5f, .5f}, {.8f, .1f, .1f}},
-                {{.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-
-                // nose face (blue)
-                {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-                {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-                {{-.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-                {{.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-
-                // tail face (green)
-                {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-                {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-                {{-.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-                {{.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-            };
-        for (auto& v : modelBuilder.vertices) {
-            v.position += offset;
-        }
-
-        modelBuilder.indices = {0,  1,  2,  0,  3,  1,  4,  5,  6,  4,  7,  5,  8,  9,  10, 8,  11, 9,
-                                12, 13, 14, 12, 15, 13, 16, 17, 18, 16, 19, 17, 20, 21, 22, 20, 23, 21};
-
-        return std::make_unique<Model>(device, modelBuilder);
-    }
-
     void FirstApp::loadGameObjects() {
-        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
-        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
-        std::shared_ptr<Model> floorModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
-        std::shared_ptr<Model> humanModel = Model::createModelFromFile(device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
+        bool usingTriangles = true;
+        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
+        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
+        std::shared_ptr<Model> floorModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
+        std::shared_ptr<Model> humanModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
+        std::shared_ptr<Model> crossHairModel = Model::createModelFromFile(!usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/crosshair.obj");
 
 
         auto gameObject1 = GameObject::createGameObject();
@@ -274,6 +171,12 @@ namespace vk {
         gameObject4.transform.translation = {0.0f, 0.0f, 0.0f};
         gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};
         gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
+
+        auto gameObject5 = GameObject::createGameObject();
+        gameObject5.model = crossHairModel;
+        gameObject5.transform.translation = {0.0f, 0.0f, 0.0f};
+        gameObject5.isCrossHair = std::make_shared<bool>(true);
+        gameObjects.emplace(gameObject5.getId(), std::move(gameObject5));
 
 //        {
 //            auto pointLight1 = GameObject::makePointLight(0.2f);

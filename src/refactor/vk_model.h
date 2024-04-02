@@ -46,12 +46,14 @@ namespace vk {
                 std::vector<uint32_t> indices;
 
                 void loadModel(const std::string& filename);
+
+                void loadModelWithoutTinyObjLoader(const std::string& filename);
             };
 
             Model(Device& device, const Model::Builder& builder);
             ~Model();
 
-            static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename);
+            static std::unique_ptr<Model> createModelFromFile(bool useTinyObjLoader, Device& device, const std::string& filename);
 
             Model(const Model&) = delete;
             void operator=(const Model&) = delete;

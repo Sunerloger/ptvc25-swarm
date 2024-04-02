@@ -85,6 +85,8 @@ add_executable(${PROJECT_NAME} ${SOURCES}
         src/refactor/vk_descriptors.cpp
         src/refactor/systems/point_light_system.h
         src/refactor/systems/point_light_system.cpp
+        src/refactor/systems/cross_hair_system.h
+        src/refactor/systems/cross_hair_system.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
