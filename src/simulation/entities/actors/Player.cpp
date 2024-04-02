@@ -1,0 +1,1 @@
+static const float cCollisionTolerance = 0.05f;

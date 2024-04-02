@@ -137,7 +137,7 @@ else()
 	endif()
 endif()
 
-file(GLOB SOURCES "src/*.cpp" "src/*.h")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
 set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/linux" ".")
@@ -175,9 +175,7 @@ message(LINK_LIBRARIES=${LINK_LIBRARIES})
 # Enable link time optimization in Release and Distribution mode if requested and available
 SET_INTERPROCEDURAL_OPTIMIZATION()
 
-add_executable(${PROJECT_NAME} ${SOURCES}
-        "src/camera/FPVCamera.cpp"
-        "src/camera/FPVCamera.h")
+add_executable(${PROJECT_NAME} ${SOURCES} "src/physics/Scene.cpp")
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES} Jolt)

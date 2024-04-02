@@ -7,7 +7,7 @@
  */
 
 #include "Geometry.h"
-#include "Utils.h"
+#include "../Utils.h"
 #include <glm/gtc/constants.hpp>
 
 #undef min
