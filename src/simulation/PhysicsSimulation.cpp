@@ -257,7 +257,7 @@ namespace physics {
 
         // TODO scene is provided to physics simulation
 
-        // TODO here scene is provided with body_interface and activated (= registers bodies with physics engine)
+        // TODO here scene is provided with body_interface and activated (= creates bodies if not created and adds bodies to physics engine)
 
         // TODO physics simulation only holds one scene -> is updated via method updateScene() (= deregisters objects in previous scene and registers objects of new scene)
 
@@ -268,7 +268,9 @@ namespace physics {
 
 
 
-        // TODO put this in scene (terrain and player), scene.getIdEnemies(), ...
+        // TODO physics entities manage their BodyCreationSettings, initial activation state and the body itself (if already created in physics engine)
+
+        // TODO put next 2 sections in Terrain and Player
 
         // Next we can create a rigid body to serve as the floor, we make a large box
         // Create the settings for the collision volume (the shape).
@@ -323,7 +325,7 @@ namespace physics {
         // Destroy the sphere. After this the sphere ID is no longer valid.
         body_interface.DestroyBody(scene.getIdPlayer());
 
-        // Remove and destroy the floor
+        // Remove and destroy all objects in scene
         body_interface.RemoveBody(scene.getIdTerrain());
         body_interface.DestroyBody(scene.getIdTerrain());
 
@@ -353,4 +355,4 @@ namespace physics {
     }
 }
 
-// TODO remove / restructure helper methods and classes in this file
+// TODO remove / restructure helper methods and classes in this file -> put in physics utils file (e.g. layers)
