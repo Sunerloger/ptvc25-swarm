@@ -84,8 +84,9 @@ namespace vk {
 
         for (auto& kv : frameInfo.gameObjects) {
             auto& obj = kv.second;
-            if(obj.model == nullptr) continue;
-            if(obj.isCrossHair != nullptr && *obj.isCrossHair) continue;
+           if(obj.isEntity == nullptr) {
+                continue;
+           }
 
             //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
             //obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());

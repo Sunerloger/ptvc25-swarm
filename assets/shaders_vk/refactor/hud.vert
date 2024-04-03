@@ -20,11 +20,19 @@ layout (set = 0, binding = 0) uniform GlobalUbo {
     float aspectRatio;
 } ubo;
 
+layout (push_constant) uniform Push {
+    float scale;
+    vec3 translation;
+} push;
 
 void main() {
-    gl_Position.x = position.x / ubo.aspectRatio;
-    gl_Position.y = position.y;
-    gl_Position.z = position.z;
+
+    gl_Position.x = push.translation.x + push.scale * position.x / ubo.aspectRatio;
+    gl_Position.y = push.translation.y + push.scale * position.y;
+    gl_Position.z = push.translation.z + push.scale * position.z;
+//    gl_Position.x = push.scale * position.x / ubo.aspectRatio;
+//    gl_Position.y = push.scale * position.y;
+//    gl_Position.z = push.scale * position.z;
     gl_Position.w = 1.0;
     fragColor = color;
 }

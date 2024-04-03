@@ -19,8 +19,13 @@ layout (set = 0, binding = 0) uniform GlobalUbo {
     float aspectRatio;
 } ubo;
 
+layout (push_constant) uniform Push {
+    float scale;
+    vec3 translation;
+} push;
+
 
 void main() {
 
-    outColor = vec4(fragColor, 1.0);
+    outColor = vec4(fragColor, 0.8);
 }

@@ -18,7 +18,7 @@ namespace vk {
     public:
         static constexpr int WIDTH = 800;
         static constexpr int HEIGHT = 600;
-        static constexpr float MAX_FRANE_TIME = 1.0f;
+        static constexpr float MAX_FRANE_TIME = 0.01f;
 
         FirstApp();
         ~FirstApp();

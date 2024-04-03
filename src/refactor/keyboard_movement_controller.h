@@ -40,17 +40,22 @@ namespace vk {
 
         void controlGame(GLFWwindow *window,
                          float dt);
+
+        bool escapeMenuOpen = false;
     private:
         KeyMappings keys{};
         float moveSpeed{3.0f};
-        float lookSpeed{3.0f};
+        float lookSpeed{0.1f};
 
-        int lastMouseX = 0;
-        int lastMouseY = {0};
+        double lastMouseX = 0;
+        double lastMouseY = {0};
         bool firstMouse = true;
 
-        bool escapeMenuOpen = false;
         bool escKeyPressedLastFrame = false;
+        bool f2KeyPressedLastFrame = false;
+        bool fullScreen = false;
+        int xPos, yPos, width, height, refreshRate;
+        double lastCursorPosX, lastCursorPosY;
     };
 
 }

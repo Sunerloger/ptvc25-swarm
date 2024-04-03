@@ -1,8 +1,8 @@
 //
-// Created by Vlad Dancea on 29.03.24.
+// Created by Vlad Dancea on 03.04.24.
 //
 
-#include "cross_hair_system.h"
+#include "hud_system.h"
 #include "../vk_renderer.h"
 
 #define GLM_FORCE_RADIANS
@@ -23,17 +23,17 @@ namespace vk {
         alignas(16) glm::vec3 translation{0.0f};
     };
 
-    CrossHairSystem::CrossHairSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
+    HudSystem::HudSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
         createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
 
-    CrossHairSystem::~CrossHairSystem() {
+    HudSystem::~HudSystem() {
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
 
-    void CrossHairSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+    void HudSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
 
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -56,17 +56,24 @@ namespace vk {
         }
     }
 
-    void CrossHairSystem::createPipeline(VkRenderPass renderPass) {
+    void HudSystem::createPipeline(VkRenderPass renderPass) {
         assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        pipelineConfig.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
         pipelineConfig.attributeDescriptions = std::vector<VkVertexInputAttributeDescription>(2);
         pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
         pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
+        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Use the source alpha value...
+        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // ...combined with the inverse of the source alpha value
+        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Add the two values together...
+        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        pipelineConfig.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // Apply blending to all color channels
 
         pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.vert.spv",
                                               std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.frag.spv",
@@ -74,7 +81,7 @@ namespace vk {
     }
 
     // here are the push constants (for rotation or translation of the object)
-    void CrossHairSystem::renderGameObjects(FrameInfo& frameInfo) {
+    void HudSystem::renderGameObjects(FrameInfo& frameInfo, bool escapeMenuOpen) {
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer,
@@ -88,7 +95,7 @@ namespace vk {
 
         for (auto& kv : frameInfo.gameObjects) {
             auto& obj = kv.second;
-            if(obj.isCrossHair == nullptr || !*obj.isCrossHair) {
+            if(obj.isHud == nullptr || !*obj.isHud || !escapeMenuOpen) {
                 continue;
             }
 
