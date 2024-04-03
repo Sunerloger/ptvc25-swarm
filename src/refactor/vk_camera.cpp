@@ -109,4 +109,14 @@ namespace vk {
         inverseViewMatrix[3][1] = position.y;
         inverseViewMatrix[3][2] = position.z;
     }
+
+    glm::vec3 Camera::getPosition() const {
+        // Inverse view matrix's last column represents the camera's position in world space
+        return glm::vec3(inverseViewMatrix[3]);
+    }
+
+    glm::vec3 Camera::getDirection() const {
+        return -glm::vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]);
+    }
+
 }

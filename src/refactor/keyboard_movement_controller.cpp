@@ -92,8 +92,7 @@ namespace vk {
         }
     }
 
-    void KeyboardMovementController::controlGame(GLFWwindow *window,
-                                                 float dt) {
+    void KeyboardMovementController::handleEscMenu(GLFWwindow *window) {
         bool escKeyPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
         bool f2KeyPressed = glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS;
 
@@ -146,6 +145,43 @@ namespace vk {
         // Update the last frame key states
         escKeyPressedLastFrame = escKeyPressed;
         f2KeyPressedLastFrame = f2KeyPressed;
+    }
+
+    void KeyboardMovementController::handleClicking(GLFWwindow *window, float dt, Camera &camera, FrameInfo &frameInfo) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            glm::vec3 cameraForward = camera.getDirection();
+            glm::vec3 cameraPosition = camera.getPosition();
+            // Go through each game object in the scene
+            for (auto it = frameInfo.gameObjects.begin(); it != frameInfo.gameObjects.end(); ) {
+                auto& obj = it->second;
+                if(obj.isEnemy == nullptr || !(*obj.isEnemy)) {
+                    ++it;
+                    continue;
+                }
+
+                // Calculate vector from camera to object
+                glm::vec3 toObject = obj.transform.translation - cameraPosition;
+                float distanceToObject = glm::length(toObject);
+                glm::vec3 dirToObject = glm::normalize(toObject);
+
+                std::cout << "Distance to object: " << distanceToObject << std::endl;
+
+                // Check if object is in front of the camera using dot product
+                // and within a "reasonable" distance (for this example, say 100 units)
+                if (glm::dot(cameraForward, dirToObject) > 0.95f && distanceToObject < 100.0f) {
+                    // Assume the object is "hit" and remove it
+                    // Realistically, you'd want to call some sort of "destroy" or "onHit" method
+                    it = frameInfo.gameObjects.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+            // Right mouse button is pressed
+            // Handle the click event
+        }
     }
 
 }

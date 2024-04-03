@@ -61,6 +61,7 @@ struct PointLightComponent {
         std::unique_ptr<bool> isCrossHair = nullptr;
         std::unique_ptr<bool> isHud = nullptr;
         std::unique_ptr<bool> isEntity = nullptr;
+        std::unique_ptr<bool> isEnemy = nullptr;
 
     private:
         GameObject(id_t objId) : id{objId} {}

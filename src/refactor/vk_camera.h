@@ -30,6 +30,10 @@ namespace vk{
 
         const glm::mat4& getInverseView() const { return inverseViewMatrix; }
 
+        glm::vec3 getPosition() const;
+
+        glm::vec3 getDirection() const;
+
     private:
         float yaw = 0.0f;
         float pitch = 0.0f;

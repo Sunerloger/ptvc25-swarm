@@ -113,7 +113,7 @@ namespace vk {
             frameTime = std::min(frameTime, MAX_FRANE_TIME);
 
 
-            cameraController.controlGame(window.getGLFWWindow(), frameTime);
+            cameraController.handleEscMenu(window.getGLFWWindow());
 
 
             if (!cameraController.escapeMenuOpen) {
@@ -134,6 +134,7 @@ namespace vk {
                                         camera,
                                         globalDescriptorSets[frameIndex],
                                         gameObjects};
+                    cameraController.handleClicking(window.getGLFWWindow(), frameTime, camera, frameInfo);
                     //update
                     GlobalUbo ubo{};
                     ubo.projection = camera.getProjection();
@@ -141,6 +142,7 @@ namespace vk {
                     ubo.inverseView = camera.getInverseView();
                     ubo.aspectRatio = aspect;
                     pointLightSystem.update(frameInfo, ubo);
+                    simpleRenderSystem.update(frameInfo, ubo, camera);
                     uboBuffers[frameIndex]->writeToBuffer(&ubo);
                     uboBuffers[frameIndex]->flush();
 
@@ -162,7 +164,6 @@ namespace vk {
                                         camera,
                                         globalDescriptorSets[frameIndex],
                                         gameObjects};
-                    //update
 
                     //render
                     renderer.beginSwapChainRenderPass(commandBuffer);
@@ -216,6 +217,7 @@ namespace vk {
         gameObject4.transform.translation = {0.0f, 0.0f, 0.0f};
         gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};
         gameObject4.isEntity = std::make_unique<bool>(true);
+        gameObject4.isEnemy = std::make_unique<bool>(true);
         gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
 
         auto crossHair = GameObject::createGameObject();
@@ -247,16 +249,16 @@ namespace vk {
 
 
 
-        auto pointLight1 = GameObject::makePointLight(0.2f);
+        auto pointLight1 = GameObject::makePointLight(1.2f);
         pointLight1.color = {1.0f, 0.0f, 0.0f};
         gameObjects.emplace(pointLight1.getId(), std::move(pointLight1));
 
-        auto pointLight2 = GameObject::makePointLight(0.2f);
+        auto pointLight2 = GameObject::makePointLight(1.2f);
         pointLight2.color = {0.0f, 1.0f, 0.0f};
         pointLight2.transform.translation = {1.0f, 0.0f, 0.0f};
         gameObjects.emplace(pointLight2.getId(), std::move(pointLight2));
 
-        auto pointLight3 = GameObject::makePointLight(0.2f);
+        auto pointLight3 = GameObject::makePointLight(1.2f);
         pointLight3.color = {0.0f, 0.0f, 1.0f};
         pointLight3.transform.translation = {2.0f, 0.0f, 0.0f};
         gameObjects.emplace(pointLight3.getId(), std::move(pointLight3));

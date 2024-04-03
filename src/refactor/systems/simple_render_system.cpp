@@ -4,6 +4,7 @@
 
 #include "simple_render_system.h"
 #include "../vk_renderer.h"
+#include "../vk_camera.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -69,6 +70,7 @@ namespace vk {
                                               pipelineConfig);
     }
 
+
     // here are the push constants (for rotation or translation of the object)
     void SimpleRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
         pipeline->bind(frameInfo.commandBuffer);
@@ -106,6 +108,19 @@ namespace vk {
             );
             obj.model->bind(frameInfo.commandBuffer);
             obj.model->draw(frameInfo.commandBuffer);
+        }
+    }
+
+    void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo, Camera& camera) {
+        //move objects towards camera position
+        for (auto& kv : frameInfo.gameObjects) {
+            auto& obj = kv.second;
+            if(obj.isEnemy == nullptr) {
+                continue;
+            }
+            auto cameraPosition = camera.getPosition();
+            auto direction = glm::normalize(cameraPosition - obj.transform.translation);
+            obj.transform.translation += direction * 0.01f;
         }
     }
 }

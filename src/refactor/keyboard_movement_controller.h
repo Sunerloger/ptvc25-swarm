@@ -6,6 +6,8 @@
 
 #include "vk_game_object.h"
 #include "vk_window.h"
+#include "vk_camera.h"
+#include "vk_frame_info.h"
 
 namespace vk {
     class KeyboardMovementController {
@@ -38,8 +40,9 @@ namespace vk {
                            float dt,
                            GameObject &gameObject);
 
-        void controlGame(GLFWwindow *window,
-                         float dt);
+        void handleEscMenu(GLFWwindow *window);
+
+        void handleClicking(GLFWwindow *window, float dt, Camera &camera, FrameInfo &frameInfo);
 
         bool escapeMenuOpen = false;
     private:
