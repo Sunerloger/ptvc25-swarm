@@ -57,7 +57,6 @@ namespace physics {
 		PhysicsSystem physics_system;
 		uint step = 0;
 
-		// scenes are referenced by name
-		std::map<std::string, Scene&> scenes;
+		Scene& scene;
 	};
 }

@@ -248,15 +248,18 @@ namespace physics {
 
 
 
-        // TODO create bodies
+        // TODO bodies are created in main / renderer
 
-        // TODO register bodies
+        // TODO scene is created in main / renderer (scenes are referenced by name; stored in main / renderer with name)
+        // std::map<std::string, Scene&> scenes;
 
-        // TODO hand off bodies to scene with body_interface, which registers bodies
+        // TODO bodies are handed off to scene
 
-        // TODO at destruction of scene, bodies get destroyed
+        // TODO scene is provided to physics simulation
 
-        // TODO scenes should destroy bodies: different scenes cause the bodies to be different
+        // TODO here scene is provided with body_interface and activated (= registers bodies with physics engine)
+
+        // TODO physics simulation only holds one scene -> is updated via method updateScene() (= deregisters objects in previous scene and registers objects of new scene)
 
 
 
