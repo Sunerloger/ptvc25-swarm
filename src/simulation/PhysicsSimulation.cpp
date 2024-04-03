@@ -257,10 +257,15 @@ namespace physics {
 
         // TODO scene is provided to physics simulation
 
-        // TODO here scene is provided with body_interface (= doubly linked to delete objects if scene is deleted) 
-        // TODO and activated (= creates bodies if not created and adds bodies to physics engine (= updateScene()))
+        // TODO here the scene is activated (= creates bodies if not created and adds bodies to physics system if not active (= addScene()))
 
-        // TODO physics simulation only holds one scene -> is updated via method updateScene() (= deregisters objects in previous scene and registers objects of new scene)
+        // TODO deleteScene() removes bodies from physics system but doesn't delete them (needs a check for other scenes containing body - if other scenes contain body => don't remove)
+        // TODO solution: each game object counts in how many scenes it is present
+
+        // TODO physics simulation holds map of scenes -> is updated via methods addScene() and deleteScene()
+
+        // TODO multiple scenes can be active: e.g. one scene for enemies, one scene for drops, one scene for bullets, one scene for terrain -> referenced by name;
+        // TODO maybe even some constellations of enemies around the player with their drops (= multiple types of game objects)
 
 
 
@@ -270,6 +275,7 @@ namespace physics {
 
 
         // TODO physics entities manage their BodyCreationSettings, initial activation state and the body itself (if already created in physics engine)
+        // TODO physics entities are provided with body_interface (to delete body if entity is deleted)
 
         // TODO put next 2 sections in Terrain and Player
 

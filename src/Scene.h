@@ -1,22 +1,20 @@
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include "GameObject.h"
+#include "simulation/objects/PhysicsEntity.h"
 
 // provides scene information to the renderer and the physics engine
-class Scene {
+struct Scene {
 
-public:
-	
-	Scene();
-	virtual ~Scene();
+	Player& player;
 
-	void activate();
-	void deactivate();
+	// physics engine doesn't influence position (e.g. terrain)
+	std::vector<PhysicsEntity> staticObjects = {};
 
-private:
+	// physics engine has an influence on position (with behaviour e.g. enemies, whithout behaviour e.g. drops)
+	std::vector<PhysicsEntity> dynamicObjects = {};
 
-	// Player player;
-	// TODO store game objects in vectors: staticObjects (e.g. terrain), dynamicObjects (with behaviour e.g. enemies, whithout behaviour e.g. drops), player, 
-	// TODO ui objects (not influenced by physics = no PhysicsEntities)
+	// not influenced by physics engine (= no collisions), but translated according to viewpoint
+	std::vector<GameObject> spectralObjects = {};
 
-	// TODO at destruction of scene, bodies get destroyed
+	// not influenced by physics engine (= no collisions) and not translated according to viewpoint (= fixed on screen)
+	std::vector<GameObject> uiObjects = {};
 };
