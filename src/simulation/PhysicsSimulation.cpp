@@ -257,7 +257,8 @@ namespace physics {
 
         // TODO scene is provided to physics simulation
 
-        // TODO here scene is provided with body_interface and activated (= creates bodies if not created and adds bodies to physics engine)
+        // TODO here scene is provided with body_interface (= doubly linked to delete objects if scene is deleted) 
+        // TODO and activated (= creates bodies if not created and adds bodies to physics engine (= updateScene()))
 
         // TODO physics simulation only holds one scene -> is updated via method updateScene() (= deregisters objects in previous scene and registers objects of new scene)
 
@@ -307,6 +308,8 @@ namespace physics {
 
 
         
+
+        // TODO call this in updateScene() after objects of scene are created and added
 
         // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
         // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
