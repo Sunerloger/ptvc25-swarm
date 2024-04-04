@@ -1021,6 +1021,9 @@ int main(int argc, char** argv) {
     // add scenes to physics system
     physicsSimulation->addScene(terrainScene.get());
 
+    // manually keep track of active scenes and active player -> hand only active GameObjects to renderer ! (active = added to physics system)
+    // TODO improve this by keeping track of active game objects automatically
+
 
     /* --------------------------------------------- */
     // Subtask 2.6: Orbit Camera
