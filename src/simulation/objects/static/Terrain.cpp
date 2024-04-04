@@ -1,0 +1,30 @@
+#include "Terrain.h"
+
+namespace physics {
+
+	static const float cCollisionTolerance = 0.05f;
+
+	Terrain::Terrain(BodyInterface& body_interface) : PhysicsEntity(body_interface) {
+
+		// We can create a rigid body to serve as the floor, we make a large box
+		// Create the settings for the collision volume (the shape).
+		// Note that for simple shapes (like boxes) you can also directly construct a BoxShape.
+		BoxShapeSettings floor_shape_settings(Vec3(100.0f, 1.0f, 100.0f));
+
+		// Create the shape
+		ShapeSettings::ShapeResult floor_shape_result = floor_shape_settings.Create();
+		ShapeRefC floor_shape = floor_shape_result.Get(); // We don't expect an error here, but you can check floor_shape_result for HasError() / GetError()
+
+		// Create the settings for the body itself. Note that here you can also set other properties like the restitution / friction.
+		body_settings = new BodyCreationSettings(floor_shape, RVec3(0.0_r, -1.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+	}
+
+	Terrain::~Terrain() {
+		delete body_settings;
+		body_settings = nullptr;
+	}
+
+	void Terrain::addPhysicsBody() {
+		body_interface.CreateAndAddBody(*body_settings, EActivation::DontActivate);
+	}
+}

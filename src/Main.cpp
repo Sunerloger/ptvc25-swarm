@@ -18,6 +18,8 @@
 #include "geometry/Geometry.h"
 
 #include "simulation/PhysicsSimulation.h"
+#include "simulation/objects/actors/Player.h"
+#include "simulation/objects/static/Terrain.h"
 
 #undef min
 #undef max
@@ -1000,7 +1002,24 @@ int main(int argc, char** argv) {
 
 
     // set up physics system
-    std::unique_ptr<physics::PhysicsSimulation> physicsSystem(new physics::PhysicsSimulation());
+    std::unique_ptr<physics::PhysicsSimulation> physicsSimulation(new physics::PhysicsSimulation());
+
+    // add player
+    BodyInterface* body_interface = physicsSimulation->getBodyInterface();
+    std::shared_ptr<Player> player(new Player{*body_interface});
+    physicsSimulation->setPlayer(player.get());
+
+    // create terrain
+    std::shared_ptr<Terrain> terrain(new Terrain{ *body_interface });
+
+    // create scenes
+    std::shared_ptr<Scene> terrainScene(new Scene());
+    // name is used to identify a scene and to remove it afterwards
+    terrainScene->name = "terrainScene";
+    terrainScene->staticObjects.push_back(terrain);
+
+    // add scenes to physics system
+    physicsSimulation->addScene(terrainScene.get());
 
 
     /* --------------------------------------------- */
@@ -1080,7 +1099,7 @@ int main(int argc, char** argv) {
         lastTime = currentTime;
 
 
-        physicsSystem->simulate();
+        physicsSimulation->simulate();
 
 
         double movementDelta = movementSpeed * deltaTime;
