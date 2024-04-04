@@ -30,6 +30,7 @@ namespace vk {
 
     private:
         void loadGameObjects();
+        glm::mat2x3 loadBoundingBoxFromFile(const std::string& filename);
 
         Window window{WIDTH, HEIGHT, "Hello Vulkan!"};
         Device device{window};

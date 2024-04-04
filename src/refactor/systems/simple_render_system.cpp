@@ -113,6 +113,7 @@ namespace vk {
 
     void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo, Camera& camera) {
         //move objects towards camera position
+        //also rotate objects to look towards camera
         for (auto& kv : frameInfo.gameObjects) {
             auto& obj = kv.second;
             if(obj.isEnemy == nullptr) {
@@ -121,6 +122,12 @@ namespace vk {
             auto cameraPosition = camera.getPosition();
             auto direction = glm::normalize(cameraPosition - obj.transform.translation);
             obj.transform.translation += direction * 0.01f;
+            obj.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
+            obj.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
+            obj.transform.rotation.y = glm::pi<float>() + glm::atan(direction.x, direction.z);
+            obj.transform.rotation.x = glm::atan(direction.y, glm::length(glm::vec2(direction.x, direction.z)));
+            //rotate bounding box by the same amount
+
         }
     }
 }

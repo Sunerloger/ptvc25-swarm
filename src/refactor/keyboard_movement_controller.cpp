@@ -3,6 +3,7 @@
 //
 
 #include "keyboard_movement_controller.h"
+#include "vk_model.h"
 
 #include <iostream>
 
@@ -151,36 +152,61 @@ namespace vk {
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
             glm::vec3 cameraForward = camera.getDirection();
             glm::vec3 cameraPosition = camera.getPosition();
-            // Go through each game object in the scene
+
             for (auto it = frameInfo.gameObjects.begin(); it != frameInfo.gameObjects.end(); ) {
                 auto& obj = it->second;
-                if(obj.isEnemy == nullptr || !(*obj.isEnemy)) {
+                if(obj.isEnemy == nullptr) {
                     ++it;
                     continue;
                 }
 
-                // Calculate vector from camera to object
-                glm::vec3 toObject = obj.transform.translation - cameraPosition;
-                float distanceToObject = glm::length(toObject);
-                glm::vec3 dirToObject = glm::normalize(toObject);
+                glm::mat2x3 boundingBox = obj.boundingBox;
+                glm::vec3 min = boundingBox[0];
+                glm::vec3 max = boundingBox[1];
 
-                std::cout << "Distance to object: " << distanceToObject << std::endl;
+                // Simple AABB ray intersection check
+                // Note: This is a very basic form of intersection testing and might not be accurate for all cases.
+                float tMin = (min.x - cameraPosition.x) / cameraForward.x;
+                float tMax = (max.x - cameraPosition.x) / cameraForward.x;
 
-                // Check if object is in front of the camera using dot product
-                // and within a "reasonable" distance (for this example, say 100 units)
-                if (glm::dot(cameraForward, dirToObject) > 0.95f && distanceToObject < 100.0f) {
-                    // Assume the object is "hit" and remove it
-                    // Realistically, you'd want to call some sort of "destroy" or "onHit" method
-                    it = frameInfo.gameObjects.erase(it);
-                } else {
-                    ++it;
+                if (tMin > tMax) std::swap(tMin, tMax);
+
+                float tyMin = (min.y - cameraPosition.y) / cameraForward.y;
+                float tyMax = (max.y - cameraPosition.y) / cameraForward.y;
+
+                if (tyMin > tyMax) std::swap(tyMin, tyMax);
+
+                if ((tMin > tyMax) || (tyMin > tMax)) {
+                    it++;
+                    continue;
                 }
-            }
-        }
 
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-            // Right mouse button is pressed
-            // Handle the click event
+
+                if (tyMin > tMin)
+                    tMin = tyMin;
+
+                if (tyMax < tMax)
+                    tMax = tyMax;
+
+                float tzMin = (min.z - cameraPosition.z) / cameraForward.z;
+                float tzMax = (max.z - cameraPosition.z) / cameraForward.z;
+
+                if (tzMin > tzMax) std::swap(tzMin, tzMax);
+
+                if ((tMin > tzMax) || (tzMin > tMax)) {
+                    it++;
+                    continue;
+                }
+                if (tzMin > tMin)
+                    tMin = tzMin;
+
+                if (tzMax < tMax)
+                    tMax = tzMax;
+
+                // If we reach here, there was an intersection
+                std::cout << "Hit detected with enemy object" << std::endl;
+                it = frameInfo.gameObjects.erase(it);
+            }
         }
     }
 

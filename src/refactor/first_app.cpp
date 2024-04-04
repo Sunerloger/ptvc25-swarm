@@ -16,6 +16,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
+#include "tiny_obj_loader.h"
 
 #include <array>
 #include <iostream>
@@ -24,6 +25,69 @@
 #include <numeric>
 
 namespace vk {
+
+    glm::mat2x3 FirstApp::loadBoundingBoxFromFile(const std::string &filename) {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
+
+        if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str())){
+            throw std::runtime_error(warn + err);
+        }
+
+        std::vector<Model::Vertex> vertices;
+        std::vector<uint32_t> indices;
+
+        for(const auto& shape : shapes){
+            for(const auto& index : shape.mesh.indices){
+                Model::Vertex vertex{};
+
+                if(index.vertex_index >= 0) {
+                    vertex.position = {
+                            attrib.vertices[3 * index.vertex_index + 0],
+                            attrib.vertices[3 * index.vertex_index + 1],
+                            attrib.vertices[3 * index.vertex_index + 2]
+                    };
+
+                    vertex.color = {
+                            attrib.colors[3 * index.vertex_index + 0],
+                            attrib.colors[3 * index.vertex_index + 1],
+                            attrib.colors[3 * index.vertex_index + 2]
+                    };
+                }
+
+                if(index.normal_index >= 0) {
+                    vertex.normal = {
+                            attrib.normals[3 * index.normal_index + 0],
+                            attrib.normals[3 * index.normal_index + 1],
+                            attrib.normals[3 * index.normal_index + 2]
+                    };
+                }
+
+                if(index.texcoord_index >= 0) {
+                    vertex.uv = {
+                            attrib.texcoords[2 * index.normal_index + 0],
+                            attrib.texcoords[2 * index.normal_index + 1],
+                    };
+                }
+
+                vertices.push_back(vertex);
+                indices.push_back(vertices.size() - 1);
+
+            }
+        }
+
+        //calculate bounding box
+        glm::vec3 currentMin = glm::vec3(std::numeric_limits<float>::max());
+        glm::vec3 currentMax = glm::vec3(std::numeric_limits<float>::min());
+        for (auto& vertex : vertices) {
+            currentMin = glm::min(currentMin, vertex.position);
+            currentMax = glm::max(currentMax, vertex.position);
+        }
+
+        return glm::mat2x3(currentMin, currentMax);
+    }
 
     FirstApp::FirstApp() {
         globalPool = DescriptorPool::Builder(device)
@@ -189,7 +253,7 @@ namespace vk {
         std::shared_ptr<Model> closeTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/CloseText.obj");
         std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/ToggleFullScreenText.obj");
         std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/BlackScreen.obj");
-
+        glm::mat2x3 boundingBox = loadBoundingBoxFromFile(std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
 
         auto gameObject1 = GameObject::createGameObject();
         gameObject1.model = flatVaseModel;
@@ -212,13 +276,20 @@ namespace vk {
         gameObject3.isEntity = std::make_unique<bool>(true);
         gameObjects.emplace(gameObject3.getId(), std::move(gameObject3));
 
-        auto gameObject4 = GameObject::createGameObject();
-        gameObject4.model = humanModel;
-        gameObject4.transform.translation = {0.0f, 0.0f, 0.0f};
-        gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};
-        gameObject4.isEntity = std::make_unique<bool>(true);
-        gameObject4.isEnemy = std::make_unique<bool>(true);
-        gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
+        for (int i = 0; i < 5; ++i) {
+            auto gameObject4 = GameObject::createGameObject();
+            gameObject4.model = humanModel;
+            gameObject4.transform.translation = {3.0f * i, 0.0f, 0.0f};
+            gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};
+            gameObject4.isEntity = std::make_unique<bool>(true);
+            gameObject4.isEnemy = std::make_unique<bool>(true);
+            // set bounding box with regard to translation
+            gameObject4.boundingBox = boundingBox;
+            gameObject4.boundingBox[0] += gameObject4.transform.translation;
+            gameObject4.boundingBox[1] += gameObject4.transform.translation;
+            gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
+        }
+
 
         auto crossHair = GameObject::createGameObject();
         crossHair.model = crossHairModel;
@@ -263,6 +334,7 @@ namespace vk {
         pointLight3.transform.translation = {2.0f, 0.0f, 0.0f};
         gameObjects.emplace(pointLight3.getId(), std::move(pointLight3));
     }
+
 
 
 }

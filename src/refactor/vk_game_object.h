@@ -57,6 +57,7 @@ struct PointLightComponent {
         TransformComponent transform{};
 
         std::shared_ptr<Model> model{};
+        glm::mat2x3 boundingBox{};
         std::unique_ptr<PointLightComponent> pointLight = nullptr;
         std::unique_ptr<bool> isCrossHair = nullptr;
         std::unique_ptr<bool> isHud = nullptr;
