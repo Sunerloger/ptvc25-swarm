@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "../PhysicsEntity.h"
+#include "../ManagedPhysicsEntity.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -16,15 +16,14 @@ using namespace JPH;
 using namespace JPH::literals;
 
 namespace physics {
-	class Terrain : public PhysicsEntity {
+	class Terrain : public ManagedPhysicsEntity {
 
 	public:
-		// JPH_DECLARE_RTTI_VIRTUAL(JPH_NO_EXPORT, Player)
 
-		Terrain(BodyInterface& body_interface);
+		Terrain(PhysicsSystem& physics_system);
 		virtual ~Terrain();
 
-		virtual void addPhysicsBody();
+		void addPhysicsBody() override;
 
 	private:
 

@@ -16,7 +16,7 @@
 #include <map>
 
 #include "../Scene.h"
-#include "objects/PhysicsEntity.h"
+#include "objects/ManagedPhysicsEntity.h"
 #include "objects/actors/Player.h"
 
 #include "PhysicsUtils.h"
@@ -39,7 +39,7 @@ namespace physics {
 		PhysicsSimulation();
 		virtual ~PhysicsSimulation();
 
-		BodyInterface* getBodyInterface();
+		PhysicsSystem* getPhysicsSystem();
 
 		void setPlayer(Player* newPlayer);
 
@@ -103,7 +103,7 @@ namespace physics {
 
 		// A contact listener gets notified when bodies (are about to) collide, and when they separate again.
 		// Note that this is called from a job so whatever you do here needs to be thread safe.
-		// Registering one is entirely optional.
+		// Registering one is entirely optional. KEEP THIS ALIVE
 		MyContactListener* contact_listener = nullptr;
 
 

@@ -4,30 +4,28 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 
+#include "IPhysicsEntity.h"
 #include "../../GameObject.h"
 
 using namespace vk;
 using namespace JPH;
 
 namespace physics {
-	class PhysicsEntity : public GameObject {
+	class ManagedPhysicsEntity : public GameObject, public IPhysicsEntity {
 	
 	public:
-		PhysicsEntity(BodyInterface& body_interface);
+		ManagedPhysicsEntity(PhysicsSystem& physics_system);
 
 		// TODO do not delete a physics entity before deleting it from its scene!
-		virtual ~PhysicsEntity();
+		virtual ~ManagedPhysicsEntity();
 
-		// also creates physics body if it does not exist yet
-		virtual void addPhysicsBody() = 0;
+		void removePhysicsBody() override;
 
-		void removePhysicsBody();
-
-		BodyID getBodyID();
+		BodyID getBodyID() override;
 	
 	protected:
 
-		BodyInterface& body_interface;
+		PhysicsSystem& physics_system;
 		BodyID bodyID;
 	};
 }

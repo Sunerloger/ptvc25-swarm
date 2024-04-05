@@ -1,8 +1,9 @@
 #pragma once
 
 #include "GameObject.h"
-#include "simulation/objects/PhysicsEntity.h"
+#include "simulation/objects/ManagedPhysicsEntity.h"
 #include "simulation/objects/actors/Player.h"
+#include "simulation/objects/actors/enemies/Enemy.h"
 
 using namespace vk;
 using namespace physics;
@@ -13,11 +14,11 @@ struct Scene {
 	// has to be unique
 	string name;
 
-	// physics engine doesn't influence position (e.g. terrain)
-	std::vector<std::shared_ptr<PhysicsEntity>> staticObjects = {};
+	// manage themselves - need to be treated differently
+	std::vector<std::shared_ptr<Enemy>> enemies = {};
 
-	// physics engine has an influence on position (with behaviour e.g. enemies, whithout behaviour e.g. drops)
-	std::vector<std::shared_ptr<PhysicsEntity>> dynamicObjects = {};
+	// non actor physics objects (e.g. terrain, drops, bullets, ...)
+	std::vector<std::shared_ptr<ManagedPhysicsEntity>> physicsObjects = {};
 
 	// not influenced by physics engine (= no collisions), but translated according to viewpoint
 	std::vector<std::shared_ptr<GameObject>> spectralObjects = {};
@@ -27,4 +28,4 @@ struct Scene {
 };
 
 // TODO ensure that game object is only part of one scene
-// TODO maybe use PhysicsScene (see LoadSaveBinaryTest.cpp in Jolt)
+// TODO physicsObjects managed by a PhysicsScene (see LoadSaveBinaryTest.cpp in Jolt)

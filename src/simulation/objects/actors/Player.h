@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../../../camera/FPVCamera.h"
-#include "../PhysicsEntity.h"
+#include "../../../GameObject.h"
+#include "../IPhysicsEntity.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
@@ -18,27 +19,38 @@ using namespace JPH;
 using namespace JPH::literals;
 
 namespace physics {
-	class Player : public PhysicsEntity {
+	class Player : public GameObject, public IPhysicsEntity {
 
 	public:
 		// JPH_DECLARE_RTTI_VIRTUAL(JPH_NO_EXPORT, Player)
 
-		Player(BodyInterface& body_interface);
+		Player(PhysicsSystem& physics_system, double height, double width, double movementSpeed, double jumpHeight, float fov, float aspectRatio, float nearPlane, float farPlane);
 		virtual ~Player();
 
-		virtual void addPhysicsBody();
+		void addPhysicsBody() override;
+
+		void removePhysicsBody() override;
+
+		BodyID getBodyID() override;
 
 	private:
 
+		PhysicsSystem* physics_system;
+
 		BodyCreationSettings* body_settings = nullptr;
 
-		// before the physics update
-		// FPVCamera& camera;
+		double movementSpeed;
+		double jumpHeight;
 
-		// RefConst<Shape> standingShape;
-		// Ref<Character> body;
+		// before the physics update
+		FPVCamera* camera;
+
+		Character* character;
 
 	};
 }
 
 // TODO all camera transformations and rotations caused by the physics simulation and main pass through this class and update both the camera and the body
+
+
+// TODO physics body doesn't care about rotation but needs movement vector in world coordinates

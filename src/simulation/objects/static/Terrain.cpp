@@ -4,7 +4,7 @@ namespace physics {
 
 	static const float cCollisionTolerance = 0.05f;
 
-	Terrain::Terrain(BodyInterface& body_interface) : PhysicsEntity(body_interface) {
+	Terrain::Terrain(PhysicsSystem& physics_system) : ManagedPhysicsEntity(physics_system) {
 
 		// We can create a rigid body to serve as the floor, we make a large box
 		// Create the settings for the collision volume (the shape).
@@ -25,6 +25,6 @@ namespace physics {
 	}
 
 	void Terrain::addPhysicsBody() {
-		body_interface.CreateAndAddBody(*body_settings, EActivation::DontActivate);
+		physics_system.GetBodyInterface().CreateAndAddBody(*body_settings, EActivation::DontActivate);
 	}
 }

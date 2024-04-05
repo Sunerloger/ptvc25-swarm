@@ -98,12 +98,12 @@ namespace physics {
     void PhysicsSimulation::addScene(Scene* additionalScene) {
         this->scenes.insert(std::pair<string, Scene*>(additionalScene->name, additionalScene));
 
-        for (auto& sceneObject : additionalScene->staticObjects)
+        for (auto& sceneObject : additionalScene->enemies)
         {
             sceneObject->addPhysicsBody();
         }
 
-        for (auto& sceneObject : additionalScene->dynamicObjects)
+        for (auto& sceneObject : additionalScene->physicsObjects)
         {
             sceneObject->addPhysicsBody();
         }
@@ -120,12 +120,12 @@ namespace physics {
         if (it != scenes.end()) { // found scene in active scenes
             Scene* sceneToRemove = it->second;
 
-            for (auto& sceneObject : sceneToRemove->staticObjects)
+            for (auto& sceneObject : sceneToRemove->enemies)
             {
                 sceneObject->removePhysicsBody();
             }
 
-            for (auto& sceneObject : sceneToRemove->dynamicObjects)
+            for (auto& sceneObject : sceneToRemove->physicsObjects)
             {
                 sceneObject->removePhysicsBody();
             }
@@ -137,8 +137,8 @@ namespace physics {
         this->physics_system->OptimizeBroadPhase();
     }
 
-    BodyInterface* PhysicsSimulation::getBodyInterface() {
-        return &physics_system->GetBodyInterface();
+    PhysicsSystem* PhysicsSimulation::getPhysicsSystem() {
+        return physics_system;
     }
 
     void PhysicsSimulation::simulate() {

@@ -1005,18 +1005,18 @@ int main(int argc, char** argv) {
     std::unique_ptr<physics::PhysicsSimulation> physicsSimulation(new physics::PhysicsSimulation());
 
     // add player
-    BodyInterface* body_interface = physicsSimulation->getBodyInterface();
-    std::shared_ptr<Player> player(new Player{*body_interface});
+    PhysicsSystem* physics_system = physicsSimulation->getPhysicsSystem();
+    std::shared_ptr<Player> player(new Player{*physics_system});
     physicsSimulation->setPlayer(player.get());
 
     // create terrain
-    std::shared_ptr<Terrain> terrain(new Terrain{ *body_interface });
+    std::shared_ptr<Terrain> terrain(new Terrain{*physics_system});
 
     // create scenes
     std::shared_ptr<Scene> terrainScene(new Scene());
     // name is used to identify a scene and to remove it afterwards
     terrainScene->name = "terrainScene";
-    terrainScene->staticObjects.push_back(terrain);
+    terrainScene->physicsObjects.push_back(terrain);
 
     // add scenes to physics system
     physicsSimulation->addScene(terrainScene.get());
