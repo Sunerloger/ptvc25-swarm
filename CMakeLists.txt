@@ -19,7 +19,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 #file(GLOB SOURCES "src/*.cpp" "src/*.h")
-file(GLOB SOURCES "src/refactor/*.cpp" "src/refactor/*.h")
+file(GLOB SOURCES "src/*.cpp" "src/*.h")
 set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/linux" ".")
@@ -53,42 +53,40 @@ set(LINK_LIBRARIES
 add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 add_executable(${PROJECT_NAME} ${SOURCES}
-        "src/camera/FPVCamera.cpp"
-        "src/camera/FPVCamera.h"
-        "src/refactor/main.cpp"
-        "src/refactor/vk_window.h"
-        "src/refactor/vk_window.cpp"
-        "src/refactor/first_app.h"
-        "src/refactor/first_app.cpp"
-        "src/refactor/vk_pipeline.h"
-        "src/refactor/vk_pipeline.cpp"
-        "src/refactor/vk_pipeline.cpp"
-        "src/refactor/vk_swap_chain.cpp"
-        "src/refactor/vk_swap_chain.h"
-        "src/refactor/vk_model.h"
-        "src/refactor/vk_model.cpp"
-        "src/refactor/vk_game_object.h"
-        "src/refactor/vk_renderer.h"
-        "src/refactor/vk_renderer.cpp"
-        "src/refactor/systems/simple_render_system.h"
-        "src/refactor/systems/simple_render_system.cpp"
-        src/refactor/vk_camera.h
-        src/refactor/vk_camera.cpp
-        src/refactor/keyboard_movement_controller.h
-        src/refactor/keyboard_movement_controller.cpp
-        src/refactor/vk_utils.hpp
-        src/refactor/vk_game_object.cpp
-        src/refactor/vk_buffer.h
-        src/refactor/vk_buffer.cpp
-        src/refactor/vk_frame_info.h
-        src/refactor/vk_descriptors.h
-        src/refactor/vk_descriptors.cpp
-        src/refactor/systems/point_light_system.h
-        src/refactor/systems/point_light_system.cpp
-        src/refactor/systems/cross_hair_system.h
-        src/refactor/systems/cross_hair_system.cpp
-        src/refactor/systems/hud_system.h
-        src/refactor/systems/hud_system.cpp
+        "src/main.cpp"
+        "src/vk_window.h"
+        "src/vk_window.cpp"
+        "src/first_app.h"
+        "src/first_app.cpp"
+        "src/vk_pipeline.h"
+        "src/vk_pipeline.cpp"
+        "src/vk_pipeline.cpp"
+        "src/vk_swap_chain.cpp"
+        "src/vk_swap_chain.h"
+        "src/vk_model.h"
+        "src/vk_model.cpp"
+        "src/vk_game_object.h"
+        "src/vk_renderer.h"
+        "src/vk_renderer.cpp"
+        "src/systems/simple_render_system.h"
+        "src/systems/simple_render_system.cpp"
+        src/vk_camera.h
+        src/vk_camera.cpp
+        src/keyboard_movement_controller.h
+        src/keyboard_movement_controller.cpp
+        src/vk_utils.hpp
+        src/vk_game_object.cpp
+        src/vk_buffer.h
+        src/vk_buffer.cpp
+        src/vk_frame_info.h
+        src/vk_descriptors.h
+        src/vk_descriptors.cpp
+        src/systems/point_light_system.h
+        src/systems/point_light_system.cpp
+        src/systems/cross_hair_system.h
+        src/systems/cross_hair_system.cpp
+        src/systems/hud_system.h
+        src/systems/hud_system.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})

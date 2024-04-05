@@ -1,8 +1,8 @@
 //
-// Created by Vlad Dancea on 03.04.24.
+// Created by Vlad Dancea on 29.03.24.
 //
 
-#include "hud_system.h"
+#include "cross_hair_system.h"
 #include "../vk_renderer.h"
 
 #define GLM_FORCE_RADIANS
@@ -23,17 +23,17 @@ namespace vk {
         alignas(16) glm::vec3 translation{0.0f};
     };
 
-    HudSystem::HudSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
+    CrossHairSystem::CrossHairSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
         createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
 
-    HudSystem::~HudSystem() {
+    CrossHairSystem::~CrossHairSystem() {
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
 
-    void HudSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+    void CrossHairSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
 
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -56,32 +56,25 @@ namespace vk {
         }
     }
 
-    void HudSystem::createPipeline(VkRenderPass renderPass) {
+    void CrossHairSystem::createPipeline(VkRenderPass renderPass) {
         assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
+        pipelineConfig.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
         pipelineConfig.attributeDescriptions = std::vector<VkVertexInputAttributeDescription>(2);
         pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
         pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Use the source alpha value...
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // ...combined with the inverse of the source alpha value
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Add the two values together...
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // Apply blending to all color channels
 
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.frag.spv",
+        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.vert.spv",
+                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.frag.spv",
                                               pipelineConfig);
     }
 
     // here are the push constants (for rotation or translation of the object)
-    void HudSystem::renderGameObjects(FrameInfo& frameInfo, bool escapeMenuOpen) {
+    void CrossHairSystem::renderGameObjects(FrameInfo& frameInfo) {
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer,
@@ -95,7 +88,7 @@ namespace vk {
 
         for (auto& kv : frameInfo.gameObjects) {
             auto& obj = kv.second;
-            if(obj.isHud == nullptr || !*obj.isHud || !escapeMenuOpen) {
+            if(obj.isCrossHair == nullptr || !*obj.isCrossHair) {
                 continue;
             }
 

@@ -2,8 +2,9 @@
 // Created by Vlad Dancea on 29.03.24.
 //
 
-#include "cross_hair_system.h"
+#include "simple_render_system.h"
 #include "../vk_renderer.h"
+#include "../vk_camera.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -18,29 +19,28 @@
 
 namespace vk {
 
-    struct PushConstantData {
-        alignas(16) float scale{1.0f};
-        alignas(16) glm::vec3 translation{0.0f};
+    struct SimplePushConstantData {
+        glm::mat4 modelMatrix{1.0f};
+        glm::mat4 normalMatrix{1.0f};
     };
 
-    CrossHairSystem::CrossHairSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
+    SimpleRenderSystem::SimpleRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
         createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
 
-    CrossHairSystem::~CrossHairSystem() {
+    SimpleRenderSystem::~SimpleRenderSystem() {
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
 
-    void CrossHairSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+    void SimpleRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
 
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(PushConstantData);
+        pushConstantRange.size = sizeof(SimplePushConstantData);
 
-        VkDescriptorSetLayout layout = globalSetLayout;
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {globalSetLayout};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -56,25 +56,23 @@ namespace vk {
         }
     }
 
-    void CrossHairSystem::createPipeline(VkRenderPass renderPass) {
+    void SimpleRenderSystem::createPipeline(VkRenderPass renderPass) {
         assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        pipelineConfig.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        pipelineConfig.attributeDescriptions = std::vector<VkVertexInputAttributeDescription>(2);
-        pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
-        pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
-
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/hud.frag.spv",
+        // output the current directoy;
+        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
+        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/simple_shader.vert.spv",
+                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/simple_shader.frag.spv",
                                               pipelineConfig);
     }
 
+
     // here are the push constants (for rotation or translation of the object)
-    void CrossHairSystem::renderGameObjects(FrameInfo& frameInfo) {
+    void SimpleRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer,
@@ -88,25 +86,46 @@ namespace vk {
 
         for (auto& kv : frameInfo.gameObjects) {
             auto& obj = kv.second;
-            if(obj.isCrossHair == nullptr || !*obj.isCrossHair) {
+           if(obj.isEntity == nullptr) {
                 continue;
-            }
+           }
 
-            PushConstantData push{};
-            push.scale = obj.transform.scale.x;
-            push.translation = obj.transform.translation;
+            //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
+            //obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());
+
+
+            SimplePushConstantData push{};
+            push.modelMatrix = obj.transform.mat4();
+            push.normalMatrix = obj.transform.normalMatrix();
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
                     pipelineLayout,
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                     0,
-                    sizeof(PushConstantData),
+                    sizeof(SimplePushConstantData),
                     &push
             );
-
             obj.model->bind(frameInfo.commandBuffer);
             obj.model->draw(frameInfo.commandBuffer);
+        }
+    }
+
+    void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo, Camera& camera) {
+        //move objects towards camera position
+        //also rotate objects to look towards camera
+        for (auto& kv : frameInfo.gameObjects) {
+            auto& obj = kv.second;
+            if(obj.isEnemy == nullptr) {
+                continue;
+            }
+            auto cameraPosition = camera.getPosition();
+            auto direction = glm::normalize(cameraPosition - obj.transform.translation);
+            obj.transform.translation += direction * 0.01f;
+            obj.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
+            obj.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
+            //rotate bounding box by the same amount
+
         }
     }
 }

@@ -68,8 +68,8 @@ namespace vk {
         pipelineConfig.pipelineLayout = pipelineLayout;
         // output the current directoy;
         std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/point_light.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/point_light.frag.spv",
+        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/point_light.vert.spv",
+                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/point_light.frag.spv",
                                               pipelineConfig);
     }
 

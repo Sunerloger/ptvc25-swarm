@@ -1,10 +1,9 @@
 //
-// Created by Vlad Dancea on 29.03.24.
+// Created by Vlad Dancea on 03.04.24.
 //
 
-#include "simple_render_system.h"
+#include "hud_system.h"
 #include "../vk_renderer.h"
-#include "../vk_camera.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -19,28 +18,29 @@
 
 namespace vk {
 
-    struct SimplePushConstantData {
-        glm::mat4 modelMatrix{1.0f};
-        glm::mat4 normalMatrix{1.0f};
+    struct PushConstantData {
+        alignas(16) float scale{1.0f};
+        alignas(16) glm::vec3 translation{0.0f};
     };
 
-    SimpleRenderSystem::SimpleRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
+    HudSystem::HudSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
         createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
 
-    SimpleRenderSystem::~SimpleRenderSystem() {
+    HudSystem::~HudSystem() {
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
 
-    void SimpleRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+    void HudSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
 
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(SimplePushConstantData);
+        pushConstantRange.size = sizeof(PushConstantData);
 
+        VkDescriptorSetLayout layout = globalSetLayout;
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {globalSetLayout};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -56,23 +56,32 @@ namespace vk {
         }
     }
 
-    void SimpleRenderSystem::createPipeline(VkRenderPass renderPass) {
+    void HudSystem::createPipeline(VkRenderPass renderPass) {
         assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        // output the current directoy;
-        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/simple_shader.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/refactor/simple_shader.frag.spv",
+        pipelineConfig.attributeDescriptions = std::vector<VkVertexInputAttributeDescription>(2);
+        pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
+        pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
+        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Use the source alpha value...
+        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // ...combined with the inverse of the source alpha value
+        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Add the two values together...
+        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        pipelineConfig.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // Apply blending to all color channels
+
+        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.vert.spv",
+                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.frag.spv",
                                               pipelineConfig);
     }
 
-
     // here are the push constants (for rotation or translation of the object)
-    void SimpleRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+    void HudSystem::renderGameObjects(FrameInfo& frameInfo, bool escapeMenuOpen) {
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer,
@@ -86,48 +95,25 @@ namespace vk {
 
         for (auto& kv : frameInfo.gameObjects) {
             auto& obj = kv.second;
-           if(obj.isEntity == nullptr) {
+            if(obj.isHud == nullptr || !*obj.isHud || !escapeMenuOpen) {
                 continue;
-           }
+            }
 
-            //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
-            //obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());
-
-
-            SimplePushConstantData push{};
-            push.modelMatrix = obj.transform.mat4();
-            push.normalMatrix = obj.transform.normalMatrix();
+            PushConstantData push{};
+            push.scale = obj.transform.scale.x;
+            push.translation = obj.transform.translation;
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
                     pipelineLayout,
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                     0,
-                    sizeof(SimplePushConstantData),
+                    sizeof(PushConstantData),
                     &push
             );
+
             obj.model->bind(frameInfo.commandBuffer);
             obj.model->draw(frameInfo.commandBuffer);
-        }
-    }
-
-    void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo, Camera& camera) {
-        //move objects towards camera position
-        //also rotate objects to look towards camera
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.isEnemy == nullptr) {
-                continue;
-            }
-            auto cameraPosition = camera.getPosition();
-            auto direction = glm::normalize(cameraPosition - obj.transform.translation);
-            obj.transform.translation += direction * 0.01f;
-            obj.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
-            obj.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
-            obj.transform.rotation.y = glm::pi<float>() + glm::atan(direction.x, direction.z);
-            obj.transform.rotation.x = glm::atan(direction.y, glm::length(glm::vec2(direction.x, direction.z)));
-            //rotate bounding box by the same amount
-
         }
     }
 }
