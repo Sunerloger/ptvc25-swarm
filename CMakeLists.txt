@@ -18,6 +18,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+#file(GLOB SOURCES "src/*.cpp" "src/*.h")
 file(GLOB SOURCES "src/*.cpp" "src/*.h")
 set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 if(UNIX AND NOT APPLE)
@@ -49,11 +50,47 @@ set(LINK_LIBRARIES
     >
 )
 
+add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
 add_executable(${PROJECT_NAME} ${SOURCES}
-        "src/camera/FPVCamera.cpp"
-        "src/camera/FPVCamera.h")
+        "src/main.cpp"
+        "src/vk_window.h"
+        "src/vk_window.cpp"
+        "src/first_app.h"
+        "src/first_app.cpp"
+        "src/vk_pipeline.h"
+        "src/vk_pipeline.cpp"
+        "src/vk_pipeline.cpp"
+        "src/vk_swap_chain.cpp"
+        "src/vk_swap_chain.h"
+        "src/vk_model.h"
+        "src/vk_model.cpp"
+        "src/vk_game_object.h"
+        "src/vk_renderer.h"
+        "src/vk_renderer.cpp"
+        "src/systems/simple_render_system.h"
+        "src/systems/simple_render_system.cpp"
+        src/vk_camera.h
+        src/vk_camera.cpp
+        src/keyboard_movement_controller.h
+        src/keyboard_movement_controller.cpp
+        src/vk_utils.hpp
+        src/vk_game_object.cpp
+        src/vk_buffer.h
+        src/vk_buffer.cpp
+        src/vk_frame_info.h
+        src/vk_descriptors.h
+        src/vk_descriptors.cpp
+        src/systems/point_light_system.h
+        src/systems/point_light_system.cpp
+        src/systems/cross_hair_system.h
+        src/systems/cross_hair_system.cpp
+        src/systems/hud_system.h
+        src/systems/hud_system.cpp
+)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
+
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
 # IDE specific settings
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
