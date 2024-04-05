@@ -1,8 +1,22 @@
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/simple_shader.vert -o ../../assets/shaders_vk/simple_shader.vert.spv
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/simple_shader.frag -o ../../assets/shaders_vk/imple_shader.frag.spv
+#!/bin/bash
 
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/point_light.vert -o ../../assets/shaders_vk/point_light.vert.spv
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/point_light.frag -o ../../assets/shaders_vk/point_light.frag.spv
+# Automatically find the path to the glslc compiler
+GLSLC=$(which glslc)
+if [ -z "$GLSLC" ]; then
+    echo "glslc compiler not found. Make sure it's installed and in your PATH."
+    exit 1
+fi
 
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/hud.vert -o ../../assets/shaders_vk/hud.vert.spv
-/Users/dancea/VulkanSDK/1.3.261.1/macOS/bin/glslc ../../assets/shaders_vk/hud.frag -o ../../assets/shaders_vk/hud.frag.spv
+# Define the directory for the shaders and output
+SHADER_DIR="../assets/shaders_vk"
+OUTPUT_DIR="../assets/shaders_vk"
+
+# Compile the shaders
+"$GLSLC" "$SHADER_DIR/simple_shader.vert" -o "$OUTPUT_DIR/simple_shader.vert.spv"
+"$GLSLC" "$SHADER_DIR/simple_shader.frag" -o "$OUTPUT_DIR/simple_shader.frag.spv"
+"$GLSLC" "$SHADER_DIR/point_light.vert" -o "$OUTPUT_DIR/point_light.vert.spv"
+"$GLSLC" "$SHADER_DIR/point_light.frag" -o "$OUTPUT_DIR/point_light.frag.spv"
+"$GLSLC" "$SHADER_DIR/hud.vert" -o "$OUTPUT_DIR/hud.vert.spv"
+"$GLSLC" "$SHADER_DIR/hud.frag" -o "$OUTPUT_DIR/hud.frag.spv"
+
+echo "Shader compilation finished."
