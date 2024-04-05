@@ -18,24 +18,24 @@ namespace physics {
         // If you implement your own default material (PhysicsMaterial::sDefault) make sure to initialize it before this function or else this function will create one for you.
         RegisterTypes();
 
-        temp_allocator = new TempAllocatorImpl(10 * 1024 * 1024);
+        temp_allocator = shared_ptr<TempAllocator>(new TempAllocatorImpl(10 * 1024 * 1024));
 
-        job_system = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
+        job_system = shared_ptr<JobSystemThreadPool>(new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1));
 
-        this->broad_phase_layer_interface = new BPLayerInterfaceImpl();
+        this->broad_phase_layer_interface = shared_ptr<BPLayerInterfaceImpl>(new BPLayerInterfaceImpl());
 
-        this->object_vs_broadphase_layer_filter = new ObjectVsBroadPhaseLayerFilterImpl();
+        this->object_vs_broadphase_layer_filter = shared_ptr<ObjectVsBroadPhaseLayerFilterImpl>(new ObjectVsBroadPhaseLayerFilterImpl());
 
-        this->object_vs_object_layer_filter = new ObjectLayerPairFilterImpl();
+        this->object_vs_object_layer_filter = shared_ptr<ObjectLayerPairFilterImpl>(new ObjectLayerPairFilterImpl());
 
-        this->physics_system = new PhysicsSystem();
+        this->physics_system = shared_ptr<PhysicsSystem>(new PhysicsSystem());
         this->physics_system->Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, *broad_phase_layer_interface, *object_vs_broadphase_layer_filter, *object_vs_object_layer_filter);
 
-        this->body_activation_listener = new MyBodyActivationListener();
-        this->physics_system->SetBodyActivationListener(body_activation_listener);
+        this->body_activation_listener = shared_ptr<MyBodyActivationListener>(new MyBodyActivationListener());
+        this->physics_system->SetBodyActivationListener(body_activation_listener.get());
 
-        this->contact_listener = new MyContactListener();
-        this->physics_system->SetContactListener(contact_listener);
+        this->contact_listener = shared_ptr<MyContactListener>(new MyContactListener());
+        this->physics_system->SetContactListener(contact_listener.get());
 
         // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
         // variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
@@ -45,31 +45,6 @@ namespace physics {
     PhysicsSimulation::~PhysicsSimulation() {
         
         // each physics object removes and destroys its body when it is destroyed
-
-        delete contact_listener;
-        contact_listener = nullptr;
-
-        delete body_activation_listener;
-        body_activation_listener = nullptr;
-
-        delete physics_system;
-        physics_system = nullptr;
-
-
-        delete object_vs_object_layer_filter;
-        object_vs_object_layer_filter = nullptr;
-
-        delete object_vs_broadphase_layer_filter;
-        object_vs_broadphase_layer_filter = nullptr;
-
-        delete broad_phase_layer_interface;
-        broad_phase_layer_interface = nullptr;
-
-
-        delete job_system;
-        job_system = nullptr;
-        delete temp_allocator;
-        temp_allocator = nullptr;
 
         // Unregisters all types with the factory and cleans up the default material
         UnregisterTypes();
@@ -98,9 +73,9 @@ namespace physics {
     void PhysicsSimulation::addScene(Scene* additionalScene) {
         this->scenes.insert(std::pair<string, Scene*>(additionalScene->name, additionalScene));
 
-        for (auto& sceneObject : additionalScene->enemies)
+        for (auto& enemy : additionalScene->enemies)
         {
-            sceneObject->addPhysicsBody();
+            enemy->addPhysicsBody();
         }
 
         for (auto& sceneObject : additionalScene->physicsObjects)
@@ -120,9 +95,9 @@ namespace physics {
         if (it != scenes.end()) { // found scene in active scenes
             Scene* sceneToRemove = it->second;
 
-            for (auto& sceneObject : sceneToRemove->enemies)
+            for (auto& enemy : sceneToRemove->enemies)
             {
-                sceneObject->removePhysicsBody();
+                enemy->removePhysicsBody();
             }
 
             for (auto& sceneObject : sceneToRemove->physicsObjects)
@@ -138,7 +113,7 @@ namespace physics {
     }
 
     PhysicsSystem* PhysicsSimulation::getPhysicsSystem() {
-        return physics_system;
+        return physics_system.get();
     }
 
     void PhysicsSimulation::simulate() {
@@ -155,6 +130,17 @@ namespace physics {
         const int cCollisionSteps = 1;
 
         // Step the world
-        this->physics_system->Update(cPhysicsDeltaTime, cCollisionSteps, temp_allocator, job_system);
+        this->physics_system->Update(cPhysicsDeltaTime, cCollisionSteps, temp_allocator.get(), job_system.get());
+
+        player->postSimulation();
+
+        for (auto& nameToScene : this->scenes)
+        {
+            Scene* scene = nameToScene.second;
+            for (auto& enemy : scene->enemies)
+            {
+                enemy->postSimulation();
+            }
+        }
     }
 }

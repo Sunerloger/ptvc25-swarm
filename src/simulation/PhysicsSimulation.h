@@ -57,12 +57,12 @@ namespace physics {
 		// B.t.w. 10 MB is way too much for this example but it is a typical value you can use.
 		// If you don't want to pre-allocate you can also use TempAllocatorMalloc to fall back to
 		// malloc / free.
-		TempAllocator* temp_allocator = nullptr;
+		shared_ptr<TempAllocator> temp_allocator;
 
 		// We need a job system that will execute physics jobs on multiple threads. Typically
 		// you would implement the JobSystem interface yourself and let Jolt Physics run on top
 		// of your own job scheduler. JobSystemThreadPool is an example implementation.
-		JobSystem* job_system = nullptr;
+		shared_ptr<JobSystem> job_system;
 
 		// This is the max amount of rigid bodies that you can add to the physics system. If you try to add more you'll get an error.
 		// Note: This value is low because this is a simple test. For a real project use something in the order of 65536.
@@ -84,27 +84,27 @@ namespace physics {
 
 		// Create mapping table from object layer to broadphase layer
 		// Note: As this is an interface, PhysicsSystem will take a reference to this so THIS INSTANCE NEEDS TO STAY ALIVE!
-		BPLayerInterfaceImpl* broad_phase_layer_interface = nullptr;
+		shared_ptr<BPLayerInterfaceImpl> broad_phase_layer_interface;
 
 		// Create class that filters object vs broadphase layers
 		// Note: As this is an interface, PhysicsSystem will take a reference to this so THIS INSTANCE NEEDS TO STAY ALIVE!
-		ObjectVsBroadPhaseLayerFilterImpl* object_vs_broadphase_layer_filter = nullptr;
+		shared_ptr<ObjectVsBroadPhaseLayerFilterImpl> object_vs_broadphase_layer_filter;
 
 		// Create class that filters object vs object layers
 		// Note: As this is an interface, PhysicsSystem will take a reference to this so THIS INSTANCE NEEDS TO STAY ALIVE!
-		ObjectLayerPairFilterImpl* object_vs_object_layer_filter = nullptr;
+		shared_ptr<ObjectLayerPairFilterImpl> object_vs_object_layer_filter;
 
-		PhysicsSystem* physics_system = nullptr;
+		shared_ptr<PhysicsSystem> physics_system;
 
 		// A body activation listener gets notified when bodies activate and go to sleep
 		// Note that this is called from a job so whatever you do here needs to be thread safe.
 		// Registering one is entirely optional. KEEP THIS ALIVE
-		MyBodyActivationListener* body_activation_listener = nullptr;
+		shared_ptr<MyBodyActivationListener> body_activation_listener;
 
 		// A contact listener gets notified when bodies (are about to) collide, and when they separate again.
 		// Note that this is called from a job so whatever you do here needs to be thread safe.
 		// Registering one is entirely optional. KEEP THIS ALIVE
-		MyContactListener* contact_listener = nullptr;
+		shared_ptr<MyContactListener> contact_listener;
 
 
 		// We simulate the physics world in discrete time steps. e.g. 60 Hz is a good rate to update the physics system.

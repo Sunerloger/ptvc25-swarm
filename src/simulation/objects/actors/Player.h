@@ -24,7 +24,7 @@ namespace physics {
 	public:
 		// JPH_DECLARE_RTTI_VIRTUAL(JPH_NO_EXPORT, Player)
 
-		Player(PhysicsSystem& physics_system, double height, double width, double movementSpeed, double jumpHeight, float fov, float aspectRatio, float nearPlane, float farPlane);
+		Player(PhysicsSystem& physics_system, float height, float width, float movementSpeed, float jumpHeight, float maxFloorSeparationDistance, float fov, float aspectRatio, float nearPlane, float farPlane);
 		virtual ~Player();
 
 		void addPhysicsBody() override;
@@ -32,6 +32,8 @@ namespace physics {
 		void removePhysicsBody() override;
 
 		BodyID getBodyID() override;
+
+		void postSimulation();
 
 	private:
 
@@ -41,11 +43,12 @@ namespace physics {
 
 		double movementSpeed;
 		double jumpHeight;
+		float maxFloorSeparationDistance;
 
 		// before the physics update
-		FPVCamera* camera;
+		std::unique_ptr<FPVCamera> camera;
 
-		Character* character;
+		std::unique_ptr<Character> character;
 
 	};
 }
@@ -53,4 +56,4 @@ namespace physics {
 // TODO all camera transformations and rotations caused by the physics simulation and main pass through this class and update both the camera and the body
 
 
-// TODO physics body doesn't care about rotation but needs movement vector in world coordinates
+// TODO just transform camera according to position and rotation of physics body and update physics body based on input

@@ -9,5 +9,9 @@
 
 namespace physics {
 	class Enemy : public GameObject, public IPhysicsEntity {
+
+	public:
+
+		virtual void postSimulation();
 	};
 }
