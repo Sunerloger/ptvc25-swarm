@@ -92,10 +92,7 @@ add_executable(${PROJECT_NAME} ${SOURCES}
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
-find_package(Freetype REQUIRED)
-include_directories(${FREETYPE_INCLUDE_DIRS})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${FREETYPE_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
 # IDE specific settings
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
