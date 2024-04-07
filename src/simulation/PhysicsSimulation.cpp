@@ -71,6 +71,9 @@ namespace physics {
     }
 
     void PhysicsSimulation::addScene(Scene* additionalScene) {
+
+        // todo AddBodiesPrepare in BodyInterface for batch adding
+
         this->scenes.insert(std::pair<string, Scene*>(additionalScene->name, additionalScene));
 
         for (auto& enemy : additionalScene->enemies)

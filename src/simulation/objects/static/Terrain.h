@@ -27,6 +27,6 @@ namespace physics {
 
 	private:
 
-		BodyCreationSettings* body_settings = nullptr;
+		unique_ptr<BodyCreationSettings> body_settings;
 	};
 }

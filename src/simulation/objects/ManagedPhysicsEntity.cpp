@@ -6,6 +6,11 @@ namespace physics {
 
 	ManagedPhysicsEntity::~ManagedPhysicsEntity() {
 		BodyInterface& body_interface = physics_system.GetBodyInterface();
+
+		if (body_interface.IsActive(bodyID)) {
+			body_interface.RemoveBody(bodyID);
+		}
+
 		body_interface.DestroyBody(bodyID);
 	}
 

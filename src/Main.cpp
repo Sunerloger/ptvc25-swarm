@@ -349,7 +349,7 @@ void keyCallbackFromGlfw(GLFWwindow* window, int key, int scancode, int action, 
 }
 
 Vec3 getMovementDirection() {
-    Vec3 movementDirection;
+    Vec3 movementDirection = RVec3::sZero();
 
     if (keys[GLFW_KEY_UP] != KEY_NOT_PRESSED || keys[GLFW_KEY_W] != KEY_NOT_PRESSED) {
         movementDirection += Vec3{ 0,0,-1 };
@@ -364,7 +364,9 @@ Vec3 getMovementDirection() {
         movementDirection += Vec3{ 1,0,0 };
     }
 
-    return movementDirection.Normalized();
+
+
+    return movementDirection.NormalizedOr(Vec3{0,0,0});
 }
 
 /* --------------------------------------------- */

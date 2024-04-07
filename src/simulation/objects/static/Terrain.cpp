@@ -16,13 +16,10 @@ namespace physics {
 		ShapeRefC floor_shape = floor_shape_result.Get(); // We don't expect an error here, but you can check floor_shape_result for HasError() / GetError()
 
 		// Create the settings for the body itself. Note that here you can also set other properties like the restitution / friction.
-		body_settings = new BodyCreationSettings(floor_shape, RVec3(0.0_r, -1.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+		body_settings = std::make_unique<BodyCreationSettings>(BodyCreationSettings(floor_shape, RVec3(0.0_r, -2.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING));
 	}
 
-	Terrain::~Terrain() {
-		delete body_settings;
-		body_settings = nullptr;
-	}
+	Terrain::~Terrain() {}
 
 	void Terrain::addPhysicsBody() {
 		physics_system.GetBodyInterface().CreateAndAddBody(*body_settings, EActivation::DontActivate);
