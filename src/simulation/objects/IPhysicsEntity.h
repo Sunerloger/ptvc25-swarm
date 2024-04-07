@@ -8,6 +8,8 @@ using namespace JPH;
 namespace physics {
 	class IPhysicsEntity {
 
+	public:
+
 		// also creates physics body if it does not exist yet
 		virtual void addPhysicsBody() = 0;
 

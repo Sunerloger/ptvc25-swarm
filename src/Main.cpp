@@ -14,12 +14,14 @@
 #include <array>
 
 #include <sstream>
-#include "camera/FPVCamera.h"
 #include "geometry/Geometry.h"
 
 #include "simulation/PhysicsSimulation.h"
 #include "simulation/objects/actors/Player.h"
 #include "simulation/objects/static/Terrain.h"
+
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
 #undef min
 #undef max
@@ -156,6 +158,12 @@ struct PointLight {
     glm::vec4 attenuation;
 };
 
+enum KeyState {
+    KEY_NOT_PRESSED,
+    KEY_PRESSED,
+    KEY_HELD_DOWN
+};
+
 /*!
  *	Allocates a new descriptor set of the given layout from the given descriptor pool.
  *	It is not required to cleanup the returned descriptor set explicitly, it will be cleaned up when the descriptor pool is destroyed.
@@ -210,19 +218,12 @@ void errorCallbackFromGlfw(int error, const char* description) { std::cout << "G
 // static = limited to this .c file
 static float g_zoom = 5.0f;
 
-// Adjust as needed (update per second)
-static const double movementSpeed = 10;
-static const double cameraSpeed = 20;
-
 // factor deltaTime does nothing if not set (default=1)
 static double deltaTime = 1;
 
-//FPV
-void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+void mouseCallbackFromGlfw(GLFWwindow* window, double xpos, double ypos) {
     static double lastX = 800, lastY = 800;
     static bool firstMouse = true;
-
-    // TODO always true
 
     if (firstMouse) {
         lastX = xpos;
@@ -238,12 +239,8 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     lastX = xpos;
     lastY = ypos;
 
-    xoffset *= cameraSpeed * deltaTime;
-    yoffset *= cameraSpeed * deltaTime;
-
-    FPVCamera* camera = static_cast<FPVCamera*>(glfwGetWindowUserPointer(window));
-    camera->addYaw(xoffset);
-    camera->addPitch(yoffset);
+    Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
+    player->handleRotation(xoffset, yoffset, deltaTime);
 }
 
 
@@ -316,6 +313,59 @@ struct ImageAndView {
  *	Waits until the operation has finished on the GPU.
  */
 ImageAndView loadImage(VkDevice device, VkQueue queue, VkCommandPool command_pool, std::string image_file_name);
+
+KeyState keys[1024];
+
+void keyCallbackFromGlfw(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, true);
+        return;
+    }
+
+    if (key >= 0 && key < 1024) {
+        if (action == GLFW_PRESS) {
+            keys[key] = KEY_PRESSED;
+        }
+        else if (action == GLFW_RELEASE) {
+            keys[key] = KEY_NOT_PRESSED;
+        }
+        else if (action == GLFW_REPEAT) {
+            keys[key] = KEY_HELD_DOWN;
+        }
+    }
+
+    if (key == GLFW_KEY_F1) {
+        g_polygon_mode_index = 1 - g_polygon_mode_index;
+    }
+    if (key == GLFW_KEY_F2) {
+        g_culling_index = (g_culling_index + 1) % 3;
+    }
+    if (key == GLFW_KEY_N) {
+        g_draw_normals = !g_draw_normals;
+    }
+    if (key == GLFW_KEY_T) {
+        g_draw_texcoords = !g_draw_texcoords;
+    }
+}
+
+Vec3 getMovementDirection() {
+    Vec3 movementDirection;
+
+    if (keys[GLFW_KEY_UP] != KEY_NOT_PRESSED || keys[GLFW_KEY_W] != KEY_NOT_PRESSED) {
+        movementDirection += Vec3{ 0,0,-1 };
+    }
+    if (keys[GLFW_KEY_DOWN] != KEY_NOT_PRESSED || keys[GLFW_KEY_S] != KEY_NOT_PRESSED) {
+        movementDirection += Vec3{ 0,0,1 };
+    }
+    if (keys[GLFW_KEY_LEFT] != KEY_NOT_PRESSED || keys[GLFW_KEY_A] != KEY_NOT_PRESSED) {
+        movementDirection += Vec3{ -1,0,0 };
+    }
+    if (keys[GLFW_KEY_RIGHT] != KEY_NOT_PRESSED || keys[GLFW_KEY_D] != KEY_NOT_PRESSED) {
+        movementDirection += Vec3{ 1,0,0 };
+    }
+
+    return movementDirection.Normalized();
+}
 
 /* --------------------------------------------- */
 // Main
@@ -1006,7 +1056,25 @@ int main(int argc, char** argv) {
 
     // add player
     PhysicsSystem* physics_system = physicsSimulation->getPhysicsSystem();
-    std::shared_ptr<Player> player(new Player{*physics_system});
+
+    float playerHeight = 1.35f;
+    float playerRadius = 0.3f;
+    Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
+
+    CharacterCameraSettings cameraSettings = {};
+    PlayerSettings playerSettings = {};
+    CharacterSettings characterSettings = {};
+    characterSettings.mShape = characterShape;
+    characterSettings.mLayer = Layers::MOVING;
+    characterSettings.mFriction = 0.5f;
+    characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
+
+    PlayerCreationSettings playerCreationSettings = {};
+    playerCreationSettings.characterSettings = &characterSettings;
+    playerCreationSettings.cameraSettings = &cameraSettings;
+    playerCreationSettings.playerSettings = &playerSettings;
+
+    std::shared_ptr<Player> player(new Player{&playerCreationSettings, physics_system});
     physicsSimulation->setPlayer(player.get());
 
     // create terrain
@@ -1025,21 +1093,7 @@ int main(int argc, char** argv) {
     // TODO improve this by keeping track of active game objects automatically
 
 
-    /* --------------------------------------------- */
-    // Subtask 2.6: Orbit Camera
-    /* --------------------------------------------- */
-
-    //FPV
-    FPVCamera camera(field_of_view, aspect_ratio, near_plane_distance, far_plane_distance);
-    camera.setYaw(camera_yaw);
-    camera.setPitch(camera_pitch);
-    static bool isMovingForward = false;
-    static bool isMovingBackward = false;
-    static bool isMovingLeft = false;
-    static bool isMovingRight = false;
-
-    glfwSetWindowUserPointer(window, &camera);
-
+    glfwSetWindowUserPointer(window, player.get());
 
     // Establish a callback function for handling mouse scroll events:
     glfwSetScrollCallback(window, scrollCallbackFromGlfw);
@@ -1048,39 +1102,7 @@ int main(int argc, char** argv) {
     // Subtask 1.11: Register a Key Callback
     /* --------------------------------------------- */
 
-    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-            glfwSetWindowShouldClose(window, true);
-        }
-
-        FPVCamera* camera = static_cast<FPVCamera*>(glfwGetWindowUserPointer(window));
-
-        if (key == GLFW_KEY_UP || key == GLFW_KEY_W) {
-            isMovingForward = (action != GLFW_RELEASE);
-        }
-        if (key == GLFW_KEY_DOWN || key == GLFW_KEY_S) {
-            isMovingBackward = (action != GLFW_RELEASE);
-        }
-        if (key == GLFW_KEY_LEFT || key == GLFW_KEY_A) {
-            isMovingLeft = (action != GLFW_RELEASE);
-        }
-        if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_D) {
-            isMovingRight = (action != GLFW_RELEASE);
-        }
-
-        if (key == GLFW_KEY_F1) {
-            g_polygon_mode_index = 1 - g_polygon_mode_index;
-        }
-        if (key == GLFW_KEY_F2) {
-            g_culling_index = (g_culling_index + 1) % 3;
-        }
-        if (key == GLFW_KEY_N) {
-            g_draw_normals = !g_draw_normals;
-        }
-        if (key == GLFW_KEY_T) {
-            g_draw_texcoords = !g_draw_texcoords;
-        }
-    });
+    glfwSetKeyCallback(window, keyCallbackFromGlfw);
 
     float health = 100.0f;
 
@@ -1088,7 +1110,7 @@ int main(int argc, char** argv) {
 
     //FPV
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetCursorPosCallback(window, mouseCallbackFromGlfw);
 
 
     vklEnablePipelineHotReloading(window, GLFW_KEY_F5);
@@ -1101,30 +1123,12 @@ int main(int argc, char** argv) {
         deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
+        Vec3 movement_direction = getMovementDirection();
+
+        player->handleMovement(movement_direction, keys[GLFW_KEY_SPACE] != KEY_NOT_PRESSED);
+
 
         physicsSimulation->simulate();
-
-
-        double movementDelta = movementSpeed * deltaTime;
-
-        // TODO test different speeds for different directions
-        if (isMovingForward) {
-            camera.moveForward(movementDelta);
-        }
-        if (isMovingBackward) {
-            camera.moveBackward(movementDelta);
-        }
-        if (isMovingLeft) {
-            camera.moveLeft(movementDelta);
-        }
-        if (isMovingRight) {
-            camera.moveRight(movementDelta);
-        }
-
-
-
-
-
 
 
         UniformBuffer ub_data;
@@ -1132,18 +1136,9 @@ int main(int argc, char** argv) {
         ub_data.userInput[1] = g_draw_texcoords ? 1 : 0;
 
 
-
-
-
         //FPV
-        ub_data.viewProjMatrix = camera.getViewProjMatrix();
-        ub_data.cameraPosition = glm::vec4{camera.getPosition(), 1.0f};
-
-
-
-
-
-
+        ub_data.viewProjMatrix = player->getViewProjMatrix();
+        ub_data.cameraPosition = glm::vec4{player->getCameraPosition(), 1.0f};
 
 
         ub_data.color = {1.f, 1.f, 1.f, 1.f};

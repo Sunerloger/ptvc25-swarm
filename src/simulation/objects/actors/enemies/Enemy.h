@@ -8,7 +8,7 @@
 // TODO abstract standard enemy?
 
 namespace physics {
-	class Enemy : public GameObject, public IPhysicsEntity {
+	class Enemy : public vk::GameObject, public IPhysicsEntity {
 
 	public:
 

@@ -2,29 +2,15 @@
 
 namespace physics {
 
-	static const float cCollisionTolerance = 0.05f;
+	Player::Player(PlayerCreationSettings* playerCreationSettings, PhysicsSystem* physics_system) {
 
-	Player::Player(PhysicsSystem& physics_system, float height, float width, float movementSpeed, float jumpHeight, float maxFloorSeparationDistance, float fov, float aspectRatio, float nearPlane, float farPlane) {
+		this->character = unique_ptr<Character>(new Character(playerCreationSettings->characterSettings, playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, physics_system));
+		this->camera = unique_ptr<CharacterCamera>(new CharacterCamera(playerCreationSettings->cameraSettings));
 
-		this->physics_system = &physics_system;
-
-		body_settings = new BodyCreationSettings(new SphereShape(0.5f), RVec3(0.0_r, 2.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
-
-		QuatArg rotation = Quatarg();
-
-		this->character = unique_ptr<Character>(new Character());
-
-		this->camera = unique_ptr<FPVCamera>(new FPVCamera(fov, aspectRatio, nearPlane, farPlane));
-
-		this->movementSpeed = movementSpeed;
-		this->jumpHeight = jumpHeight;
-		this->maxFloorSeparationDistance = maxFloorSeparationDistance;
+		this->settings = playerCreationSettings->playerSettings;
 	}
 
-	Player::~Player() {
-		delete body_settings;
-		body_settings = nullptr;
-	}
+	Player::~Player() {}
 
 	void Player::addPhysicsBody() {
 		character->AddToPhysicsSystem();
@@ -38,7 +24,61 @@ namespace physics {
 		return character->GetBodyID();
 	}
 
+	void Player::handleMovement(Vec3 movementDirectionCharacter, bool isJump) {
+
+		// deltaTime is handled by the physics system
+
+		Vec3 movementDirectionWorld = character->GetWorldTransform() * movementDirectionCharacter;
+
+		// Cancel movement in opposite direction of normal when touching something we can't walk up
+		Character::EGroundState ground_state = this->character->GetGroundState();
+		if (ground_state == Character::EGroundState::OnSteepGround || ground_state == Character::EGroundState::NotSupported) {
+			Vec3 normal = character->GetGroundNormal();
+			normal.SetY(0.0f);
+			float dot = normal.Dot(movementDirectionWorld);
+			if (dot < 0.0f) {
+				movementDirectionWorld -= (dot * normal) / normal.LengthSq();
+			}
+		}
+
+		if (settings->controlMovementDuringJump || character->IsSupported()) {
+			
+			// Update velocity
+			Vec3 current_velocity = character->GetLinearVelocity();
+			Vec3 desired_velocity = settings->movementSpeed * movementDirectionWorld;
+			desired_velocity.SetY(current_velocity.GetY());
+			Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
+
+			// Jump - OnGround also means you have friction
+			if (isJump && ground_state == Character::EGroundState::OnGround) {
+				new_velocity += Vec3(0, settings->jumpSpeed, 0);
+			}
+
+			// Update the velocity
+			character->SetLinearVelocity(new_velocity);
+		}
+		// TODO test different speeds for different directions, double jump, different movement speed in air
+	}
+
+	void Player::handleRotation(float deltaYaw, float deltaPitch, float deltaTime) {
+		camera->addRotation(deltaYaw, deltaPitch, deltaTime);
+	}
+
+	glm::vec3 Player::getFront() {
+		return this->camera->getFront();
+	}
+
 	void Player::postSimulation() {
-		return character->PostSimulation(this->maxFloorSeparationDistance);
+		character->PostSimulation(settings->maxFloorSeparationDistance);
+
+		camera->setViewMatrix(character->GetWorldTransform());
+	}
+
+	glm::vec3 Player::getCameraPosition() {
+		return camera->getPosition();
+	}
+
+	glm::mat4 Player::getViewProjMatrix() {
+		return camera->getViewProjMatrix();
 	}
 }

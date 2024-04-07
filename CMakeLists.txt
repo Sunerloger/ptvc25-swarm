@@ -175,7 +175,7 @@ message(LINK_LIBRARIES=${LINK_LIBRARIES})
 # Enable link time optimization in Release and Distribution mode if requested and available
 SET_INTERPROCEDURAL_OPTIMIZATION()
 
-add_executable(${PROJECT_NAME} ${SOURCES} "src/simulation/objects/IPhysicsEntity.h")
+add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES} Jolt)

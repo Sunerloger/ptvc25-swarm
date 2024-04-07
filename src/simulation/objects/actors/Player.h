@@ -1,59 +1,66 @@
 #pragma once
 
-#include "../../../camera/FPVCamera.h"
+#include "../../../camera/CharacterCamera.h"
 #include "../../../GameObject.h"
 #include "../IPhysicsEntity.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
-
 #include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
 #include "../../PhysicsUtils.h"
 
 using namespace JPH;
 
-// If you want your code to compile using single or double precision write 0.0_r to get a Real value that compiles to double or float depending if JPH_DOUBLE_PRECISION is set or not.
-using namespace JPH::literals;
-
 namespace physics {
-	class Player : public GameObject, public IPhysicsEntity {
+
+	struct PlayerSettings {
+
+		// update per second
+		float movementSpeed = 10;
+		float jumpSpeed = 10;
+		float maxFloorSeparationDistance = 0.05f;
+		bool controlMovementDuringJump = true;
+	};
+
+	struct PlayerCreationSettings {
+		RVec3Arg position = RVec3::sZero();
+		QuatArg rotation = Quat::sIdentity();
+
+		PlayerSettings* playerSettings;
+		CharacterCameraSettings* cameraSettings;
+
+		CharacterSettings* characterSettings;
+
+		uint64 inUserData = 0;
+	};
+
+	class Player : public vk::GameObject, public IPhysicsEntity {
 
 	public:
-		// JPH_DECLARE_RTTI_VIRTUAL(JPH_NO_EXPORT, Player)
 
-		Player(PhysicsSystem& physics_system, float height, float width, float movementSpeed, float jumpHeight, float maxFloorSeparationDistance, float fov, float aspectRatio, float nearPlane, float farPlane);
+		Player(PlayerCreationSettings* playerSettings, PhysicsSystem* physics_system);
 		virtual ~Player();
 
 		void addPhysicsBody() override;
-
 		void removePhysicsBody() override;
 
 		BodyID getBodyID() override;
 
-		void postSimulation();
+		virtual void postSimulation();
+
+		virtual void handleMovement(Vec3 movementDirectionWorld, bool isJump);
+		virtual void handleRotation(float deltaYaw, float deltaPitch, float deltaTime);
+
+		virtual glm::vec3 getCameraPosition();
+		virtual glm::mat4 getViewProjMatrix();
+		virtual glm::vec3 getFront();
 
 	private:
 
-		PhysicsSystem* physics_system;
+		PlayerSettings* settings;
 
-		BodyCreationSettings* body_settings = nullptr;
-
-		double movementSpeed;
-		double jumpHeight;
-		float maxFloorSeparationDistance;
-
-		// before the physics update
-		std::unique_ptr<FPVCamera> camera;
-
+		std::unique_ptr<CharacterCamera> camera;
 		std::unique_ptr<Character> character;
-
 	};
 }
-
-// TODO all camera transformations and rotations caused by the physics simulation and main pass through this class and update both the camera and the body
-
-
-// TODO just transform camera according to position and rotation of physics body and update physics body based on input
