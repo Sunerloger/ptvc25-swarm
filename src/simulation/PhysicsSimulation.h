@@ -110,6 +110,9 @@ namespace physics {
 		// We simulate the physics world in discrete time steps. e.g. 60 Hz is a good rate to update the physics system.
 		const float cPhysicsDeltaTime;
 
+		// If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
+		const int cCollisionSteps = 1;
+
 		uint step = 0;
 
 

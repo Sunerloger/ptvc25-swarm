@@ -45,8 +45,6 @@ namespace physics {
 		void addPhysicsBody() override;
 		void removePhysicsBody() override;
 
-		BodyID getBodyID() override;
-
 		virtual void postSimulation();
 
 		virtual void handleMovement(Vec3 movementDirectionWorld, bool isJump);
@@ -55,6 +53,8 @@ namespace physics {
 		virtual glm::vec3 getCameraPosition();
 		virtual glm::mat4 getViewProjMatrix();
 		virtual glm::vec3 getFront();
+
+		void printPosition(int iterationStep);
 
 	private:
 

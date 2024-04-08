@@ -20,8 +20,6 @@ namespace physics {
 		virtual ~ManagedPhysicsEntity();
 
 		void removePhysicsBody() override;
-
-		BodyID getBodyID() override;
 	
 	protected:
 

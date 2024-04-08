@@ -2,8 +2,6 @@
 
 namespace physics {
 
-	static const float cCollisionTolerance = 0.05f;
-
 	Terrain::Terrain(PhysicsSystem& physics_system) : ManagedPhysicsEntity(physics_system) {
 
 		// We can create a rigid body to serve as the floor, we make a large box
@@ -17,11 +15,17 @@ namespace physics {
 
 		// Create the settings for the body itself. Note that here you can also set other properties like the restitution / friction.
 		body_settings = std::make_unique<BodyCreationSettings>(BodyCreationSettings(floor_shape, RVec3(0.0_r, -2.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING));
+
+		// create physics body
+		this->bodyID = physics_system.GetBodyInterface().CreateBody(*body_settings)->GetID();
 	}
 
 	Terrain::~Terrain() {}
 
 	void Terrain::addPhysicsBody() {
-		this->bodyID = physics_system.GetBodyInterface().CreateAndAddBody(*body_settings, EActivation::DontActivate);
+
+		// edits body if it was already added
+		// bodyID is never a nullptr here
+		physics_system.GetBodyInterface().AddBody(this->bodyID, EActivation::DontActivate);
 	}
 }

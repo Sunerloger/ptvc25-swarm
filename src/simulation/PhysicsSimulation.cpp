@@ -120,20 +120,12 @@ namespace physics {
     }
 
     void PhysicsSimulation::simulate() {
-        ++this->step;
+        ++step;
 
-        BodyInterface& body_interface = this->physics_system->GetBodyInterface();
-
-        // Output current position and velocity of the player, player needs to be set
-        RVec3 position = body_interface.GetCenterOfMassPosition(player->getBodyID());
-        Vec3 velocity = body_interface.GetLinearVelocity(player->getBodyID());
-        cout << "Step " << this->step << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
-
-        // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
-        const int cCollisionSteps = 1;
+        player->printPosition(step);
 
         // Step the world
-        this->physics_system->Update(cPhysicsDeltaTime, cCollisionSteps, temp_allocator.get(), job_system.get());
+        physics_system->Update(cPhysicsDeltaTime, cCollisionSteps, temp_allocator.get(), job_system.get());
 
         player->postSimulation();
 

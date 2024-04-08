@@ -10,7 +10,9 @@ namespace physics {
 		this->settings = playerCreationSettings->playerSettings;
 	}
 
-	Player::~Player() {}
+	Player::~Player() {
+		removePhysicsBody();
+	}
 
 	void Player::addPhysicsBody() {
 		character->AddToPhysicsSystem();
@@ -18,10 +20,6 @@ namespace physics {
 
 	void Player::removePhysicsBody() {
 		character->RemoveFromPhysicsSystem();
-	}
-
-	BodyID Player::getBodyID() {
-		return character->GetBodyID();
 	}
 
 	void Player::handleMovement(Vec3 movementDirectionCharacter, bool isJump) {
@@ -83,5 +81,14 @@ namespace physics {
 
 	glm::mat4 Player::getViewProjMatrix() {
 		return camera->getViewProjMatrix();
+	}
+
+	void Player::printPosition(int iterationStep) {
+
+		// Output current position and velocity of the player, player needs to be set
+		
+		RVec3 position = character->GetCenterOfMassPosition();
+		Vec3 velocity = character->GetLinearVelocity();
+		cout << "Step " << iterationStep << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
 	}
 }
