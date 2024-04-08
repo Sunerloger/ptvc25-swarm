@@ -29,8 +29,7 @@ public:
     glm::mat4 getViewProjMatrix();
     glm::vec3 getPosition();
 
-    // sets viewMatrix of physics character and applies locally stored rotation
-    void setViewMatrix(RMat44 physicsViewMatrix);
+    void setPhysicsPosition(Vec3 physicsPosition);
 
     void addRotation(float deltaYaw, float deltaPitch, float deltaTime);
 

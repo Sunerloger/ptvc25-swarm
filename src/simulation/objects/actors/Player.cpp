@@ -74,7 +74,7 @@ namespace physics {
 	void Player::postSimulation() {
 		character->PostSimulation(settings->maxFloorSeparationDistance);
 
-		camera->setViewMatrix(character->GetWorldTransform());
+		camera->setPhysicsPosition(character->GetCenterOfMassPosition());
 	}
 
 	glm::vec3 Player::getCameraPosition() {

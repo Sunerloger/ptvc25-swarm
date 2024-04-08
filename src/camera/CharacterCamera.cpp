@@ -14,14 +14,13 @@ glm::mat4 CharacterCamera::getViewProjMatrix() {
 	return projMatrix * glm::lookAt(position, position + this->getFront(), glm::vec3{0.0f, 1.0f, 0.0f});
 }
 
-void CharacterCamera::setViewMatrix(RMat44 physicsViewMatrix) {
+void CharacterCamera::setPhysicsPosition(Vec3 physicsPosition) {
 	for (size_t i = 0; i < 3; i++)
 	{
-		this->position[i] = physicsViewMatrix(i, 3);
-		// TODO this could be wrong - TEST!
+		this->position[i] = physicsPosition[i];
 	}
 
-	// doesn't need to be rotated
+	// offset doesn't need to be rotated
 	this->position += settings->cameraOffsetFromCharacter;
 }
 
