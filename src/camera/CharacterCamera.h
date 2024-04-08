@@ -36,6 +36,8 @@ public:
 
     glm::vec3 getFront();
 
+    float getYaw();
+
 private:
 
     CharacterCameraSettings* settings;

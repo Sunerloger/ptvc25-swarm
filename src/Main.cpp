@@ -1127,7 +1127,9 @@ int main(int argc, char** argv) {
 
         Vec3 movement_direction = getMovementDirection();
 
-        player->handleMovement(movement_direction, keys[GLFW_KEY_SPACE] != KEY_NOT_PRESSED);
+        if (movement_direction != Vec3{ 0,0,0 }) {
+            player->handleMovement(movement_direction, keys[GLFW_KEY_SPACE] != KEY_NOT_PRESSED);
+        }
 
 
         physicsSimulation->simulate();

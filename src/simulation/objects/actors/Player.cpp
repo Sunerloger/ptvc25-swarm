@@ -28,7 +28,10 @@ namespace physics {
 
 		// deltaTime is handled by the physics system
 
-		Vec3 movementDirectionWorld = character->GetWorldTransform() * movementDirectionCharacter;
+		float yaw = glm::radians(camera->getYaw());
+		RMat44 rotation_matrix = RMat44::sIdentity().sRotationY(yaw);
+
+		Vec3 movementDirectionWorld = Vec3(rotation_matrix * Vec4(movementDirectionCharacter, 1));
 
 		// Cancel movement in opposite direction of normal when touching something we can't walk up
 		Character::EGroundState ground_state = this->character->GetGroundState();
