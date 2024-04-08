@@ -1,0 +1,39 @@
+//
+// Created by Vlad Dancea on 30.03.24.
+//
+
+#pragma once
+
+#include "vk_camera.h"
+#include "vk_game_object.h"
+
+#include "vulkan/vulkan.h"
+
+namespace vk {
+
+    #define MAX_LIGHTS 10
+
+    struct PointLight {
+        glm::vec4 position{};
+        glm::vec4 color{};
+    };
+
+    struct GlobalUbo {
+        glm::mat4 projection{1.0f};
+        glm::mat4 view{1.0f};
+        glm::mat4 inverseView{1.0f};
+        glm::vec4 ambientLightColor{1.0f, 1.0f, 1.0f, 0.02f};
+        PointLight pointLights[MAX_LIGHTS];
+        int numLights;
+        float aspectRatio;
+    };
+
+    struct FrameInfo {
+        float frameTime;
+        VkCommandBuffer commandBuffer;
+        Camera &camera;
+        VkDescriptorSet globalDescriptorSet;
+        GameObject::Map &gameObjects;
+    };
+}
+

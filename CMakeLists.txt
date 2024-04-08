@@ -138,6 +138,7 @@ else()
 endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
+
 set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/linux" ".")
@@ -176,10 +177,14 @@ message(LINK_LIBRARIES=${LINK_LIBRARIES})
 SET_INTERPROCEDURAL_OPTIMIZATION()
 
 add_executable(${PROJECT_NAME} ${SOURCES})
+
+add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES} Jolt)
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
+
 # IDE specific settings
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
