@@ -17,8 +17,8 @@ namespace physics {
 	struct PlayerSettings {
 
 		// update per second
-		float movementSpeed = 10;
-		float jumpSpeed = 10;
+		float movementSpeed = 7.0f;
+		float jumpHeight = 3.0f;
 		float maxFloorSeparationDistance = 0.05f;
 		bool controlMovementDuringJump = true;
 	};
@@ -59,6 +59,7 @@ namespace physics {
 	private:
 
 		PlayerSettings* settings;
+		CharacterSettings* characterSettings;
 
 		std::unique_ptr<CharacterCamera> camera;
 		std::unique_ptr<Character> character;

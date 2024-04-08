@@ -1067,7 +1067,7 @@ int main(int argc, char** argv) {
     // add player
     PhysicsSystem* physics_system = physicsSimulation->getPhysicsSystem();
 
-    float playerHeight = 1.35f;
+    float playerHeight = 1.80f;
     float playerRadius = 0.3f;
     Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
@@ -1078,12 +1078,15 @@ int main(int argc, char** argv) {
     cameraSettings.farPlane = far_plane_distance;
     cameraSettings.initialYaw = camera_yaw;
     cameraSettings.initialPitch = camera_pitch;
+    cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
 
     PlayerSettings playerSettings = {};
+
     CharacterSettings characterSettings = {};
+    characterSettings.mGravityFactor = 1.0f;
+    characterSettings.mFriction = 10.0f;
     characterSettings.mShape = characterShape;
     characterSettings.mLayer = Layers::MOVING;
-    characterSettings.mFriction = 0.5f;
     characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
 
     PlayerCreationSettings playerCreationSettings = {};

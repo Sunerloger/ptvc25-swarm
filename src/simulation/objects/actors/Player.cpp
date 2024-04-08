@@ -3,11 +3,10 @@
 namespace physics {
 
 	Player::Player(PlayerCreationSettings* playerCreationSettings, PhysicsSystem* physics_system) {
-
-		this->character = unique_ptr<Character>(new Character(playerCreationSettings->characterSettings, playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, physics_system));
-		this->camera = unique_ptr<CharacterCamera>(new CharacterCamera(playerCreationSettings->cameraSettings));
-
 		this->settings = playerCreationSettings->playerSettings;
+		this->characterSettings = playerCreationSettings->characterSettings;
+		this->character = unique_ptr<Character>(new Character(characterSettings, playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, physics_system));
+		this->camera = unique_ptr<CharacterCamera>(new CharacterCamera(playerCreationSettings->cameraSettings));
 	}
 
 	Player::~Player() {
@@ -52,7 +51,7 @@ namespace physics {
 
 			// Jump - OnGround also means you have friction
 			if (isJump && ground_state == Character::EGroundState::OnGround) {
-				new_velocity += Vec3(0, settings->jumpSpeed, 0);
+				new_velocity += Vec3(0, std::sqrt(2 * settings->jumpHeight * characterSettings->mGravityFactor * 9.81f), 0);
 			}
 
 			// Update the velocity
