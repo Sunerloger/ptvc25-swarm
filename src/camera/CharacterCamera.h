@@ -10,10 +10,12 @@
 using namespace JPH;
 
 struct CharacterCameraSettings {
-    float fov;
+    float fov = 60.0f;
     float aspectRatio;
-    float nearPlane;
-    float farPlane;
+    float nearPlane = 0.1f;
+    float farPlane = 100.0f;
+    float initialYaw = 0.0f;
+    float initialPitch = 0.0f;
     glm::vec3 cameraOffsetFromCharacter = glm::vec3(0);
 
     // update per second

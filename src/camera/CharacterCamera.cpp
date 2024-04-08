@@ -4,6 +4,9 @@ CharacterCamera::CharacterCamera(CharacterCameraSettings* cameraSettings) {
 
 	this->settings = cameraSettings;
 
+	this->yaw = cameraSettings->initialYaw;
+	this->pitch = cameraSettings->initialPitch;
+
 	// vklCreatePerspectiveProjectionMatrix already flips y axis
 	projMatrix = vklCreatePerspectiveProjectionMatrix(glm::radians(cameraSettings->fov), cameraSettings->aspectRatio, cameraSettings->nearPlane, cameraSettings->farPlane);
 }

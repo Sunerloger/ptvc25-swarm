@@ -1072,6 +1072,13 @@ int main(int argc, char** argv) {
     Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
     CharacterCameraSettings cameraSettings = {};
+    cameraSettings.fov = field_of_view;
+    cameraSettings.aspectRatio = aspect_ratio;
+    cameraSettings.nearPlane = near_plane_distance;
+    cameraSettings.farPlane = far_plane_distance;
+    cameraSettings.initialYaw = camera_yaw;
+    cameraSettings.initialPitch = camera_pitch;
+
     PlayerSettings playerSettings = {};
     CharacterSettings characterSettings = {};
     characterSettings.mShape = characterShape;
