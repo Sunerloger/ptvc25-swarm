@@ -364,9 +364,17 @@ Vec3 getMovementDirection() {
         movementDirection += Vec3{ 1,0,0 };
     }
 
-
-
     return movementDirection.NormalizedOr(Vec3{0,0,0});
+}
+
+bool getPlayerIsJump() {
+    bool isJump = false;
+
+    if (keys[GLFW_KEY_SPACE] != KEY_NOT_PRESSED) {
+        isJump = true;
+    }
+
+    return isJump;
 }
 
 /* --------------------------------------------- */
@@ -1126,9 +1134,11 @@ int main(int argc, char** argv) {
         lastTime = currentTime;
 
         Vec3 movement_direction = getMovementDirection();
+        bool playerIsJump = getPlayerIsJump();
 
-        if (movement_direction != Vec3{ 0,0,0 }) {
-            player->handleMovement(movement_direction, keys[GLFW_KEY_SPACE] != KEY_NOT_PRESSED);
+        // only update if something happened
+        if (movement_direction != Vec3{ 0,0,0 } || playerIsJump) {
+            player->handleMovement(movement_direction, playerIsJump);
         }
 
 
