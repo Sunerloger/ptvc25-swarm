@@ -1067,7 +1067,8 @@ int main(int argc, char** argv) {
     // add player
     PhysicsSystem* physics_system = physicsSimulation->getPhysicsSystem();
 
-    float playerHeight = 1.80f;
+    // 2m player
+    float playerHeight = 1.40f;
     float playerRadius = 0.3f;
     Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
