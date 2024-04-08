@@ -22,6 +22,6 @@ namespace physics {
 	Terrain::~Terrain() {}
 
 	void Terrain::addPhysicsBody() {
-		physics_system.GetBodyInterface().CreateAndAddBody(*body_settings, EActivation::DontActivate);
+		this->bodyID = physics_system.GetBodyInterface().CreateAndAddBody(*body_settings, EActivation::DontActivate);
 	}
 }
