@@ -152,18 +152,19 @@ namespace vk {
         viewerObject.transform.translation.z = -2.5f;
         glfwSetWindowUserPointer(window.getGLFWWindow(), &viewerObject);
         glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        KeyboardMovementController cameraController{WIDTH, HEIGHT};
+        KeyboardMovementController movementController{WIDTH, HEIGHT};
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto startTime = std::chrono::high_resolution_clock::now();
+        
+        auto currentTime = startTime;
         int currentSecond = 0;
-
-        auto startTime = currentTime;
+        
         while (!window.shouldClose()) {
             glfwPollEvents();
 
 
             auto newTime = std::chrono::high_resolution_clock::now();
-            float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
             currentTime = newTime;
 
             auto timeSinceStart = std::chrono::duration<float, std::chrono::seconds::period>(
@@ -172,17 +173,18 @@ namespace vk {
             if (timeSinceStartInt > currentSecond) {
                 currentSecond = timeSinceStartInt;
                 std::cout << "Time since start: " << currentSecond << "s" << std::endl;
+                // TODO only update gameTime if not in menu
             }
 
-            frameTime = std::min(frameTime, MAX_FRANE_TIME);
+            deltaTime = std::min(deltaTime, MAX_FRAME_TIME);
 
 
-            cameraController.handleEscMenu(window.getGLFWWindow());
+            movementController.handleEscMenu(window.getGLFWWindow());
 
 
-            if (!cameraController.escapeMenuOpen) {
-                cameraController.moveInPlaneXZ(window.getGLFWWindow(), frameTime, viewerObject);
-                cameraController.lookInPlaneXY(window.getGLFWWindow(), frameTime, viewerObject);
+            if (!movementController.escapeMenuOpen) {
+                movementController.moveInPlaneXZ(window.getGLFWWindow(), deltaTime, viewerObject);
+                movementController.lookInPlaneXY(window.getGLFWWindow(), deltaTime, viewerObject);
                 camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
                 float aspect = renderer.getAspectRatio();
@@ -193,12 +195,12 @@ namespace vk {
 
                 if (auto commandBuffer = renderer.beginFrame()) {
                     int frameIndex = renderer.getFrameIndex();
-                    FrameInfo frameInfo{frameTime,
+                    FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
                                         camera,
                                         globalDescriptorSets[frameIndex],
                                         gameObjects};
-                    cameraController.handleClicking(window.getGLFWWindow(), frameTime, camera, frameInfo);
+                    movementController.handleClicking(window.getGLFWWindow(), deltaTime, camera, frameInfo);
                     //update
                     GlobalUbo ubo{};
                     ubo.projection = camera.getProjection();
@@ -215,7 +217,7 @@ namespace vk {
                     simpleRenderSystem.renderGameObjects(frameInfo);
                     pointLightSystem.render(frameInfo);
                     crossHairSystem.renderGameObjects(frameInfo);
-                    hudSystem.renderGameObjects(frameInfo, cameraController.escapeMenuOpen);
+                    hudSystem.renderGameObjects(frameInfo, movementController.escapeMenuOpen);
                     renderer.endSwapChainRenderPass(commandBuffer);
                     renderer.endFrame();
                 }
@@ -223,7 +225,7 @@ namespace vk {
 
                 if (auto commandBuffer = renderer.beginFrame()) {
                     int frameIndex = renderer.getFrameIndex();
-                    FrameInfo frameInfo{frameTime,
+                    FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
                                         camera,
                                         globalDescriptorSets[frameIndex],
@@ -234,7 +236,7 @@ namespace vk {
                     simpleRenderSystem.renderGameObjects(frameInfo);
                     pointLightSystem.render(frameInfo);
                     crossHairSystem.renderGameObjects(frameInfo);
-                    hudSystem.renderGameObjects(frameInfo, cameraController.escapeMenuOpen);
+                    hudSystem.renderGameObjects(frameInfo, movementController.escapeMenuOpen);
                     renderer.endSwapChainRenderPass(commandBuffer);
                     renderer.endFrame();
                 }

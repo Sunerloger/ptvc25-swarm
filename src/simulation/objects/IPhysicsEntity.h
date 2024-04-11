@@ -10,6 +10,8 @@ namespace physics {
 
 	public:
 
+		~IPhysicsEntity() = default;
+
 		// also creates physics body if it does not exist yet
 		virtual void addPhysicsBody() = 0;
 

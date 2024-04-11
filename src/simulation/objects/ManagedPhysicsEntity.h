@@ -14,14 +14,15 @@ namespace physics {
 	class ManagedPhysicsEntity : public GameObject, public IPhysicsEntity {
 	
 	public:
-		ManagedPhysicsEntity(PhysicsSystem& physics_system);
-
+		
 		// TODO do not delete a physics entity before deleting it from its scene!
 		virtual ~ManagedPhysicsEntity();
 
 		void removePhysicsBody() override;
 	
 	protected:
+
+		ManagedPhysicsEntity(PhysicsSystem& physics_system);
 
 		PhysicsSystem& physics_system;
 		BodyID bodyID;

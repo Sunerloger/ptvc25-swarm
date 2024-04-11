@@ -29,3 +29,4 @@ struct Scene {
 
 // TODO ensure that game object is only part of one scene
 // TODO physicsObjects managed by a PhysicsScene (see LoadSaveBinaryTest.cpp in Jolt)
+// TODO maybe use std::unordered_map<id_t, GameObject>
