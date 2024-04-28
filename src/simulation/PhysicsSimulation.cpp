@@ -2,7 +2,7 @@
 
 namespace physics {
 
-    PhysicsSimulation::PhysicsSimulation() : cPhysicsDeltaTime(1.0f / 60.0f) {
+    PhysicsSimulation::PhysicsSimulation(const SceneManager* sceneManager) : cPhysicsDeltaTime(1.0f / 60.0f), sceneManager(sceneManager) {
 
         // Register allocation hook. Here just malloc / free (overrideable, see Memory.h).
         RegisterDefaultAllocator();

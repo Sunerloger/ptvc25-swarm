@@ -18,6 +18,8 @@
 #include "glm/glm.hpp"
 #include "tiny_obj_loader.h"
 
+#include "simulation/objects/static/Terrain.h"
+
 #include <array>
 #include <iostream>
 #include <chrono>
@@ -26,70 +28,9 @@
 
 namespace vk {
 
-    glm::mat2x3 FirstApp::loadBoundingBoxFromFile(const std::string &filename) {
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
-
-        if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str())){
-            throw std::runtime_error(warn + err);
-        }
-
-        std::vector<Model::Vertex> vertices;
-        std::vector<uint32_t> indices;
-
-        for(const auto& shape : shapes){
-            for(const auto& index : shape.mesh.indices){
-                Model::Vertex vertex{};
-
-                if(index.vertex_index >= 0) {
-                    vertex.position = {
-                            attrib.vertices[3 * index.vertex_index + 0],
-                            attrib.vertices[3 * index.vertex_index + 1],
-                            attrib.vertices[3 * index.vertex_index + 2]
-                    };
-
-                    vertex.color = {
-                            attrib.colors[3 * index.vertex_index + 0],
-                            attrib.colors[3 * index.vertex_index + 1],
-                            attrib.colors[3 * index.vertex_index + 2]
-                    };
-                }
-
-                if(index.normal_index >= 0) {
-                    vertex.normal = {
-                            attrib.normals[3 * index.normal_index + 0],
-                            attrib.normals[3 * index.normal_index + 1],
-                            attrib.normals[3 * index.normal_index + 2]
-                    };
-                }
-
-                if(index.texcoord_index >= 0) {
-                    vertex.uv = {
-                            attrib.texcoords[2 * index.normal_index + 0],
-                            attrib.texcoords[2 * index.normal_index + 1],
-                    };
-                }
-
-                vertices.push_back(vertex);
-                indices.push_back(vertices.size() - 1);
-
-            }
-        }
-
-        //calculate bounding box
-        glm::vec3 currentMin = glm::vec3(std::numeric_limits<float>::max());
-        glm::vec3 currentMax = glm::vec3(std::numeric_limits<float>::min());
-        for (auto& vertex : vertices) {
-            currentMin = glm::min(currentMin, vertex.position);
-            currentMax = glm::max(currentMax, vertex.position);
-        }
-
-        return glm::mat2x3(currentMin, currentMax);
-    }
-
     FirstApp::FirstApp() {
+        physicsSimulation->setSceneManager(sceneManager);
+
         globalPool = DescriptorPool::Builder(device)
                 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -147,49 +88,95 @@ namespace vk {
         //camera.setViewDirection(glm::vec3{0.0f}, glm::vec3{0.5f, 0.0f, 1.0f});
         camera.setViewTarget(glm::vec3(-1.0f, -2.0f, -2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
 
-        auto viewerObject = GameObject::createGameObject();
-        // move camera
-        viewerObject.transform.translation.z = -2.5f;
-        glfwSetWindowUserPointer(window.getGLFWWindow(), &viewerObject);
+        //
+        // set up physics
+        //
+
+        // add player
+        PhysicsSystem* physics_system = physicsSimulation->getPhysicsSystem();
+
+        // 2m player
+        float playerHeight = 1.40f;
+        float playerRadius = 0.3f;
+        Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
+
+        CharacterCameraSettings cameraSettings = {};
+        cameraSettings.fov = field_of_view;
+        cameraSettings.aspectRatio = aspect_ratio;
+        cameraSettings.nearPlane = near_plane_distance;
+        cameraSettings.farPlane = far_plane_distance;
+        cameraSettings.initialYaw = camera_yaw;
+        cameraSettings.initialPitch = camera_pitch;
+        cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
+
+        PlayerSettings playerSettings = {};
+
+        CharacterSettings characterSettings = {};
+        characterSettings.mGravityFactor = 1.0f;
+        characterSettings.mFriction = 10.0f;
+        characterSettings.mShape = characterShape;
+        characterSettings.mLayer = Layers::MOVING;
+        characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
+
+        PlayerCreationSettings playerCreationSettings = {};
+        playerCreationSettings.characterSettings = &characterSettings;
+        playerCreationSettings.cameraSettings = &cameraSettings;
+        playerCreationSettings.playerSettings = &playerSettings;
+
+        std::unique_ptr<Player> player = make_unique<Player>(&playerCreationSettings, physics_system);
+        physicsSimulation->setPlayer(player.get());
+
+        // create terrain
+        std::unique_ptr<Terrain> terrain = make_unique<Terrain>(*physics_system);
+
+        // add terrain to scene
+        sceneManager->addManagedPhysicsEntity(terrain);
+
+        glfwSetWindowUserPointer(window.getGLFWWindow(), player.get());
         glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        KeyboardMovementController movementController{WIDTH, HEIGHT};
+        KeyboardMovementController movementController{ WIDTH, HEIGHT };
+
+        // -------------
+
 
         auto startTime = std::chrono::high_resolution_clock::now();
-        
         auto currentTime = startTime;
+
         int currentSecond = 0;
+        float gameTimer = 0;
         
         while (!window.shouldClose()) {
             glfwPollEvents();
 
+            // TODO callbacks for jumping, shooting and menu for better responsiveness
 
             auto newTime = std::chrono::high_resolution_clock::now();
             float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
             currentTime = newTime;
 
-            auto timeSinceStart = std::chrono::duration<float, std::chrono::seconds::period>(
-                    currentTime - startTime).count();
-            auto timeSinceStartInt = static_cast<int>(timeSinceStart);
-            if (timeSinceStartInt > currentSecond) {
-                currentSecond = timeSinceStartInt;
-                std::cout << "Time since start: " << currentSecond << "s" << std::endl;
-                // TODO only update gameTime if not in menu
-            }
-
             deltaTime = std::min(deltaTime, MAX_FRAME_TIME);
-
 
             movementController.handleEscMenu(window.getGLFWWindow());
 
 
             if (!movementController.escapeMenuOpen) {
-                movementController.moveInPlaneXZ(window.getGLFWWindow(), deltaTime, viewerObject);
-                movementController.lookInPlaneXY(window.getGLFWWindow(), deltaTime, viewerObject);
+
+                gameTimer += deltaTime;
+
+                // debug timer output
+                int newSecond = static_cast<int>(gameTimer);
+                if (newSecond > currentSecond) {
+                    currentSecond = newSecond;
+                    std::cout << "Time since start: " << currentSecond << "s" << std::endl;
+                }
+
+                movementController.handleMovement(window.getGLFWWindow(), deltaTime, player);
+                movementController.lookInPlaneXY(window.getGLFWWindow(), deltaTime, player);
                 camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
                 float aspect = renderer.getAspectRatio();
                 // switch between orthographic and perspective projection
-                //camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
+                // camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
                 camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f,
                                                 100.0f); // objects further away than 100 are clipped
 
@@ -246,6 +233,9 @@ namespace vk {
     }
 
     void FirstApp::loadGameObjects() {
+
+        this->sceneManager = make_unique<SceneManager>();
+
         bool usingTriangles = true;
         std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
         std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
@@ -257,7 +247,7 @@ namespace vk {
         std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/BlackScreen.obj");
         glm::mat2x3 boundingBox = loadBoundingBoxFromFile(std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
 
-        auto gameObject1 = GameObject::createGameObject();
+        GameObject gameObject1{};
         gameObject1.model = flatVaseModel;
         gameObject1.transform.translation = {-0.5f, 0.5f, 0.0f};
         gameObject1.transform.scale = {3.0f, 1.5f, 3.0f};

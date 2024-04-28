@@ -9,6 +9,11 @@
 #include "vk_camera.h"
 #include "vk_frame_info.h"
 
+#include "vk_model.h"
+
+#include <iostream>
+#include "simulation/objects/actors/Player.h"
+
 namespace vk {
     class KeyboardMovementController {
     public:
@@ -24,31 +29,23 @@ namespace vk {
             int moveRight = GLFW_KEY_D;
             int moveForward = GLFW_KEY_W;
             int moveBackward = GLFW_KEY_S;
-            int moveUp = GLFW_KEY_E;
-            int moveDown = GLFW_KEY_Q;
-            int lookLeft = GLFW_KEY_LEFT;
-            int lookRight = GLFW_KEY_RIGHT;
-            int lookUp = GLFW_KEY_UP;
-            int lookDown = GLFW_KEY_DOWN;
+            int jump = GLFW_KEY_SPACE;
         };
 
-        void moveInPlaneXZ(GLFWwindow *window,
-                           float dt,
-                           GameObject &gameObject);
+        void handleMovement(GLFWwindow* window,
+                           physics::Player& player);
 
-        void lookInPlaneXY(GLFWwindow *window,
-                           float dt,
-                           GameObject &gameObject);
+        void handleRotation(GLFWwindow* window,
+                           float deltaTime,
+                           physics::Player& player);
 
-        void handleEscMenu(GLFWwindow *window);
+        void handleEscMenu(GLFWwindow* window);
 
-        void handleClicking(GLFWwindow *window, float dt, Camera &camera, FrameInfo &frameInfo);
+        void handleClicking(GLFWwindow* window, float deltaTime, Camera& camera, FrameInfo& frameInfo);
 
         bool escapeMenuOpen = false;
     private:
         KeyMappings keys{};
-        float moveSpeed{3.0f};
-        float lookSpeed{0.1f};
 
         double lastMouseX = 0;
         double lastMouseY = {0};

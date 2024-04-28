@@ -5,8 +5,6 @@
 
 #include <Jolt/Jolt.h>
 
-#include "VulkanLaunchpad.h"
-
 using namespace JPH;
 
 struct CharacterCameraSettings {

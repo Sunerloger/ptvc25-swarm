@@ -4,14 +4,17 @@
 #pragma once
 
 #include "vk_device.h"
-#include "vk_game_object.h"
 #include "vk_renderer.h"
 #include "vk_window.h"
 #include "vk_descriptors.h"
 #include "vk_camera.h"
 
+#include "simulation/objects/actors/Player.h"
+#include "simulation/PhysicsSimulation.h"
+
 #include <memory>
 #include <vector>
+#include "SceneManager.h"
 
 namespace vk {
     class FirstApp {
@@ -30,13 +33,15 @@ namespace vk {
 
     private:
         void loadGameObjects();
-        glm::mat2x3 loadBoundingBoxFromFile(const std::string& filename);
 
-        Window window{WIDTH, HEIGHT, "Hello Vulkan!"};
+        Window window{WIDTH, HEIGHT, "Swarm"};
         Device device{window};
         Renderer renderer{window, device};
 
         std::unique_ptr<DescriptorPool> globalPool{};
-        GameObject::Map gameObjects;
+
+        std::unique_ptr<physics::PhysicsSimulation> physicsSimulation = make_unique<physics::PhysicsSimulation>();
+
+        unique_ptr<SceneManager> sceneManager = make_unique<SceneManager>();;
     }
 ;}

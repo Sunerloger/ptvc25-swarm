@@ -15,7 +15,7 @@
 #include <thread>
 #include <map>
 
-#include "../Scene.h"
+#include "../SceneManager.h"
 #include "objects/ManagedPhysicsEntity.h"
 #include "objects/actors/Player.h"
 
@@ -36,17 +36,10 @@ using namespace JPH::literals;
 namespace physics {
 	class PhysicsSimulation {
 	public:
-		PhysicsSimulation();
+		PhysicsSimulation(const SceneManager* sceneManager);
 		virtual ~PhysicsSimulation();
 
 		PhysicsSystem* getPhysicsSystem();
-
-		void setPlayer(Player* newPlayer);
-
-		void addScene(Scene* additionalScene);
-
-		// removes bodies of scene from simulation but doesn't delete them (preserves state)
-		void removeScene(string sceneName);
 
 		void simulate();
 
@@ -115,12 +108,6 @@ namespace physics {
 
 		uint step = 0;
 
-
-		// scenes that are active or objects that are part of active scenes mustn't be changed!
-		Player* player = nullptr;
-
-		// multiple scenes can be active: e.g. one scene for enemies, one scene for drops, one scene for bullets, one scene for terrain -> referenced by name;
-		// maybe even some constellations of enemies around the player with their drops (= multiple types of game objects) or e.g. spawn enemy wave in a new scene
-		std::map<string, Scene*> scenes = {};
+		const SceneManager* sceneManager = nullptr;
 	};
 }
