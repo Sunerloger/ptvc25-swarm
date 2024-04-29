@@ -32,7 +32,6 @@ namespace vk {
     struct FrameInfo {
         float frameTime;
         VkCommandBuffer commandBuffer;
-        glm::vec3 cameraPosition;
         VkDescriptorSet globalDescriptorSet;
         SceneManager& sceneManager;
     };

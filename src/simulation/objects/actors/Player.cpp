@@ -64,25 +64,17 @@ namespace physics {
 		camera->addRotation(deltaYaw, deltaPitch, deltaTime);
 	}
 
-	glm::vec3 Player::getFront() {
-		return this->camera->getFront();
-	}
-
 	void Player::postSimulation() {
 		character->PostSimulation(settings->maxFloorSeparationDistance);
 
 		camera->setPhysicsPosition(character->GetCenterOfMassPosition());
 	}
 
-	glm::vec3 Player::getCameraPosition() {
+	const glm::vec3 Player::getCameraPosition() const {
 		return camera->getPosition();
 	}
 
-	glm::mat4 Player::getViewProjMatrix() {
-		return camera->getViewProjMatrix();
-	}
-
-	void Player::printPosition(int iterationStep) {
+	void Player::printPosition(int iterationStep) const {
 
 		// Output current position and velocity of the player, player needs to be set
 		

@@ -25,6 +25,9 @@ namespace physics {
 
 	struct PlayerCreationSettings {
 		RVec3Arg position = RVec3::sZero();
+
+		// you probably don't want to set that but the camera rotation
+		// this only rotates the physics-body
 		QuatArg rotation = Quat::sIdentity();
 
 		PlayerSettings* playerSettings;
@@ -45,16 +48,25 @@ namespace physics {
 		void addPhysicsBody() override;
 		void removePhysicsBody() override;
 
-		virtual void postSimulation();
+		void postSimulation();
 
-		virtual void handleMovement(Vec3 movementDirectionWorld, bool isJump);
-		virtual void handleRotation(float deltaYaw, float deltaPitch, float deltaTime);
+		void handleMovement(Vec3 movementDirectionWorld, bool isJump);
+		void handleRotation(float deltaYaw, float deltaPitch, float deltaTime);
 
-		virtual glm::vec3 getCameraPosition();
-		virtual glm::mat4 getViewProjMatrix();
-		virtual glm::vec3 getFront();
+		const glm::vec3 getCameraPosition() const;
+		const glm::mat4 calculateViewMat() const { return camera->calculateViewMat(); }
+		const glm::mat4 getProjMat() const { return camera->getProjMat(); }
+		const glm::vec3 getFront() const { return camera->getFront(); }
 
-		void printPosition(int iterationStep);
+		void printPosition(int iterationStep) const;
+
+		void setViewDirection(glm::vec3 direction) { camera->setViewDirection(direction); }
+		void setViewTarget(glm::vec3 target) { camera->setViewTarget(target); }
+
+		void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) { 
+			camera->setOrthographicProjection(left, right, top, bottom, near, far); }
+		void setPerspectiveProjection(float fov, float aspect, float near, float far) { 
+			camera->setPerspectiveProjection(fov, aspect, near, far); }
 
 	private:
 

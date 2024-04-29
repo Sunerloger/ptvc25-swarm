@@ -59,12 +59,6 @@ namespace vk {
                             renderer.getSwapChainRenderPass(),
                             globalSetLayout->getDescriptorSetLayout()};
 
-        Camera camera{};
-
-        // switch between looking at a position and looking in a direction
-        //camera.setViewDirection(glm::vec3{0.0f}, glm::vec3{0.5f, 0.0f, 1.0f});
-        camera.setViewTarget(glm::vec3(-1.0f, -2.0f, -2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
-
 
         glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         KeyboardMovementController movementController{ WIDTH, HEIGHT };
@@ -103,12 +97,12 @@ namespace vk {
 
                 movementController.handleMovement(window.getGLFWWindow(), *sceneManager->getPlayer());
                 movementController.handleRotation(window.getGLFWWindow(), deltaTime, *sceneManager->getPlayer());
-                camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
+                // TODO maybe read this in via a settings file and recalculate only if setting is changed via menu (performance, typically no dynamic window scaling during runtime in games)
                 float aspect = renderer.getAspectRatio();
                 // switch between orthographic and perspective projection
                 // camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
-                camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f,
+                sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f,
                                                 100.0f); // objects further away than 100 are clipped
 
                 // simulate physics step
@@ -118,14 +112,13 @@ namespace vk {
                     int frameIndex = renderer.getFrameIndex();
                     FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
-                                        camera,
                                         globalDescriptorSets[frameIndex],
                                         *sceneManager};
                     movementController.handleClicking(window.getGLFWWindow(), deltaTime, frameInfo);
                     //update
                     GlobalUbo ubo{};
-                    ubo.projection = camera.getProjection();
-                    ubo.view = camera.getView();
+                    ubo.projection = sceneManager->getPlayer()->getProjMat();
+                    ubo.view = sceneManager->getPlayer()->calculateViewMat();
                     ubo.inverseView = camera.getInverseView();
                     ubo.aspectRatio = aspect;
                     pointLightSystem.update(frameInfo, ubo);
@@ -148,7 +141,6 @@ namespace vk {
                     int frameIndex = renderer.getFrameIndex();
                     FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
-                                        camera,
                                         globalDescriptorSets[frameIndex],
                                         *sceneManager};
 
@@ -191,12 +183,6 @@ namespace vk {
         Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
         CharacterCameraSettings cameraSettings = {};
-        cameraSettings.fov = field_of_view;
-        cameraSettings.aspectRatio = aspect_ratio;
-        cameraSettings.nearPlane = near_plane_distance;
-        cameraSettings.farPlane = far_plane_distance;
-        cameraSettings.initialYaw = camera_yaw;
-        cameraSettings.initialPitch = camera_pitch;
         cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
 
         PlayerSettings playerSettings = {};
