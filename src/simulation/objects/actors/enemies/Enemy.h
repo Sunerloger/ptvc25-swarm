@@ -13,5 +13,10 @@ namespace physics {
 	public:
 
 		virtual void postSimulation();
+
+	private:
+		// TODO set this in subclass depending on enemy
+		float maxHealth = 100.0f;
+		float currentHealth = 100.0f;
 	};
 }

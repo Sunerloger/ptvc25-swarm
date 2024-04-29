@@ -9,12 +9,35 @@
 #include "vk_descriptors.h"
 #include "vk_camera.h"
 
+#include "SceneManager.h"
+
+#include "vk_buffer.h"
+#include "systems/simple_render_system.h"
+#include "systems/point_light_system.h"
+#include "systems/cross_hair_system.h"
+#include "systems/hud_system.h"
+#include "keyboard_movement_controller.h"
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "glm/glm.hpp"
+#include "tiny_obj_loader.h"
+
 #include "simulation/objects/actors/Player.h"
 #include "simulation/PhysicsSimulation.h"
+#include "simulation/objects/static/Terrain.h"
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Character/Character.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 #include <memory>
 #include <vector>
-#include "SceneManager.h"
+#include <array>
+#include <iostream>
+#include <chrono>
+#include <numeric>
 
 namespace vk {
     class FirstApp {
@@ -40,8 +63,8 @@ namespace vk {
 
         std::unique_ptr<DescriptorPool> globalPool{};
 
-        std::unique_ptr<physics::PhysicsSimulation> physicsSimulation = make_unique<physics::PhysicsSimulation>();
+        std::unique_ptr<physics::PhysicsSimulation> physicsSimulation;
 
-        unique_ptr<SceneManager> sceneManager = make_unique<SceneManager>();;
+        unique_ptr<SceneManager> sceneManager;
     }
 ;}

@@ -4,32 +4,9 @@
 
 #include "first_app.h"
 
-#include "vk_buffer.h"
-#include "vk_camera.h"
-#include "systems/simple_render_system.h"
-#include "systems/point_light_system.h"
-#include "systems/cross_hair_system.h"
-#include "systems/hud_system.h"
-#include "vk_device.h"
-#include "keyboard_movement_controller.h"
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "tiny_obj_loader.h"
-
-#include "simulation/objects/static/Terrain.h"
-
-#include <array>
-#include <iostream>
-#include <chrono>
-#include <memory>
-#include <numeric>
-
 namespace vk {
 
     FirstApp::FirstApp() {
-        physicsSimulation->setSceneManager(sceneManager);
 
         globalPool = DescriptorPool::Builder(device)
                 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -88,55 +65,9 @@ namespace vk {
         //camera.setViewDirection(glm::vec3{0.0f}, glm::vec3{0.5f, 0.0f, 1.0f});
         camera.setViewTarget(glm::vec3(-1.0f, -2.0f, -2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
 
-        //
-        // set up physics
-        //
 
-        // add player
-        PhysicsSystem* physics_system = physicsSimulation->getPhysicsSystem();
-
-        // 2m player
-        float playerHeight = 1.40f;
-        float playerRadius = 0.3f;
-        Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
-
-        CharacterCameraSettings cameraSettings = {};
-        cameraSettings.fov = field_of_view;
-        cameraSettings.aspectRatio = aspect_ratio;
-        cameraSettings.nearPlane = near_plane_distance;
-        cameraSettings.farPlane = far_plane_distance;
-        cameraSettings.initialYaw = camera_yaw;
-        cameraSettings.initialPitch = camera_pitch;
-        cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
-
-        PlayerSettings playerSettings = {};
-
-        CharacterSettings characterSettings = {};
-        characterSettings.mGravityFactor = 1.0f;
-        characterSettings.mFriction = 10.0f;
-        characterSettings.mShape = characterShape;
-        characterSettings.mLayer = Layers::MOVING;
-        characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
-
-        PlayerCreationSettings playerCreationSettings = {};
-        playerCreationSettings.characterSettings = &characterSettings;
-        playerCreationSettings.cameraSettings = &cameraSettings;
-        playerCreationSettings.playerSettings = &playerSettings;
-
-        std::unique_ptr<Player> player = make_unique<Player>(&playerCreationSettings, physics_system);
-        physicsSimulation->setPlayer(player.get());
-
-        // create terrain
-        std::unique_ptr<Terrain> terrain = make_unique<Terrain>(*physics_system);
-
-        // add terrain to scene
-        sceneManager->addManagedPhysicsEntity(terrain);
-
-        glfwSetWindowUserPointer(window.getGLFWWindow(), player.get());
         glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         KeyboardMovementController movementController{ WIDTH, HEIGHT };
-
-        // -------------
 
 
         auto startTime = std::chrono::high_resolution_clock::now();
@@ -170,8 +101,8 @@ namespace vk {
                     std::cout << "Time since start: " << currentSecond << "s" << std::endl;
                 }
 
-                movementController.handleMovement(window.getGLFWWindow(), deltaTime, player);
-                movementController.lookInPlaneXY(window.getGLFWWindow(), deltaTime, player);
+                movementController.handleMovement(window.getGLFWWindow(), *sceneManager->getPlayer());
+                movementController.handleRotation(window.getGLFWWindow(), deltaTime, *sceneManager->getPlayer());
                 camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
                 float aspect = renderer.getAspectRatio();
@@ -180,14 +111,17 @@ namespace vk {
                 camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f,
                                                 100.0f); // objects further away than 100 are clipped
 
+                // simulate physics step
+                physicsSimulation->simulate();
+
                 if (auto commandBuffer = renderer.beginFrame()) {
                     int frameIndex = renderer.getFrameIndex();
                     FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
                                         camera,
                                         globalDescriptorSets[frameIndex],
-                                        gameObjects};
-                    movementController.handleClicking(window.getGLFWWindow(), deltaTime, camera, frameInfo);
+                                        *sceneManager};
+                    movementController.handleClicking(window.getGLFWWindow(), deltaTime, frameInfo);
                     //update
                     GlobalUbo ubo{};
                     ubo.projection = camera.getProjection();
@@ -216,7 +150,7 @@ namespace vk {
                                         commandBuffer,
                                         camera,
                                         globalDescriptorSets[frameIndex],
-                                        gameObjects};
+                                        *sceneManager};
 
                     //render
                     renderer.beginSwapChainRenderPass(commandBuffer);
@@ -234,7 +168,10 @@ namespace vk {
 
     void FirstApp::loadGameObjects() {
 
+        // couple scene manager and physics simulation
         this->sceneManager = make_unique<SceneManager>();
+        this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager.get());
+        this->sceneManager->setPhysicsSystem(physicsSimulation->getPhysicsSystem());
 
         bool usingTriangles = true;
         std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
@@ -246,6 +183,43 @@ namespace vk {
         std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/ToggleFullScreenText.obj");
         std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/BlackScreen.obj");
         glm::mat2x3 boundingBox = loadBoundingBoxFromFile(std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
+
+
+        // 2m player
+        float playerHeight = 1.40f;
+        float playerRadius = 0.3f;
+        Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
+
+        CharacterCameraSettings cameraSettings = {};
+        cameraSettings.fov = field_of_view;
+        cameraSettings.aspectRatio = aspect_ratio;
+        cameraSettings.nearPlane = near_plane_distance;
+        cameraSettings.farPlane = far_plane_distance;
+        cameraSettings.initialYaw = camera_yaw;
+        cameraSettings.initialPitch = camera_pitch;
+        cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
+
+        PlayerSettings playerSettings = {};
+
+        CharacterSettings characterSettings = {};
+        characterSettings.mGravityFactor = 1.0f;
+        characterSettings.mFriction = 10.0f;
+        characterSettings.mShape = characterShape;
+        characterSettings.mLayer = Layers::MOVING;
+        characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
+
+        PlayerCreationSettings playerCreationSettings = {};
+        playerCreationSettings.characterSettings = &characterSettings;
+        playerCreationSettings.cameraSettings = &cameraSettings;
+        playerCreationSettings.playerSettings = &playerSettings;
+
+        sceneManager->setPlayer(std::move(make_unique<Player>(&playerCreationSettings, physicsSimulation->getPhysicsSystem())));
+
+        // add terrain to scene
+        sceneManager->addManagedPhysicsEntity(std::move(make_unique<Terrain>(*physicsSimulation->getPhysicsSystem())));
+
+        glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager->getPlayer());
+
 
         GameObject gameObject1{};
         gameObject1.model = flatVaseModel;

@@ -5,9 +5,10 @@
 #pragma once
 
 #include "vk_camera.h"
-#include "vk_game_object.h"
+#include "GameObject.h"
 
 #include "vulkan/vulkan.h"
+#include "SceneManager.h"
 
 namespace vk {
 
@@ -31,9 +32,9 @@ namespace vk {
     struct FrameInfo {
         float frameTime;
         VkCommandBuffer commandBuffer;
-        Camera &camera;
+        glm::vec3 cameraPosition;
         VkDescriptorSet globalDescriptorSet;
-        GameObject::Map &gameObjects;
+        SceneManager& sceneManager;
     };
 }
 

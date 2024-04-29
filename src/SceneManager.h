@@ -36,7 +36,7 @@ enum GameObjectType {
 class SceneManager {
 public:
 
-	SceneManager(PhysicsSystem* physics_system);
+	SceneManager();
 	virtual ~SceneManager() = default;
 
 	// @return false if object could not be added because it already exists
@@ -73,13 +73,19 @@ public:
 	// scenes that are active or objects that are part of active scenes mustn't be changed!
 	bool editPassivePhysicsObject(string sceneName);
 
-	const Scene& getActiveSceneReadOnly() const;
+	const std::map<id_t, unique_ptr<GameObject>>& getRenderObjectsReadOnly() const;
+
+	Player* getPlayer();
+
+	void setPlayer(std::unique_ptr<Player> player);
+
+	void setPhysicsSystem(PhysicsSystem* physics_system);
 
 private:
 
 	PhysicsSystem* physics_system;
 
-	Player* player = nullptr;
+	unique_ptr<Player> player = nullptr;
 
 	unique_ptr<Scene> scene{};
 

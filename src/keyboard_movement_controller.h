@@ -33,15 +33,15 @@ namespace vk {
         };
 
         void handleMovement(GLFWwindow* window,
-                           physics::Player& player);
+                           const physics::Player& player);
 
         void handleRotation(GLFWwindow* window,
                            float deltaTime,
-                           physics::Player& player);
+                           const physics::Player& player);
 
         void handleEscMenu(GLFWwindow* window);
 
-        void handleClicking(GLFWwindow* window, float deltaTime, Camera& camera, FrameInfo& frameInfo);
+        void handleClicking(GLFWwindow* window, float deltaTime, FrameInfo& frameInfo);
 
         bool escapeMenuOpen = false;
     private:

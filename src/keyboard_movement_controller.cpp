@@ -4,7 +4,7 @@ namespace vk {
 
     void KeyboardMovementController::handleRotation(GLFWwindow* window,
                                                    float deltaTime,
-                                                   physics::Player& player) {
+                                                   const physics::Player& player) {
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
 
@@ -31,7 +31,7 @@ namespace vk {
     }
 
     void KeyboardMovementController::handleMovement(GLFWwindow* window,
-                                                   physics::Player& player) {
+                                                   const physics::Player& player) {
 
         Vec3 movementDirection = RVec3::sZero();
 
@@ -114,7 +114,7 @@ namespace vk {
         f2KeyPressedLastFrame = f2KeyPressed;
     }
 
-    void KeyboardMovementController::handleClicking(GLFWwindow *window, float dt, Camera &camera, FrameInfo &frameInfo) {
+    void KeyboardMovementController::handleClicking(GLFWwindow *window, float dt, FrameInfo &frameInfo) {
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
             glm::vec3 cameraForward = camera.getDirection();
             glm::vec3 cameraPosition = camera.getPosition();
