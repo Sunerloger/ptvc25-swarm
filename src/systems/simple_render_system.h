@@ -25,7 +25,7 @@ namespace vk {
         SimpleRenderSystem& operator=(const SimpleRenderSystem&) = delete;
 
         void renderGameObjects(FrameInfo& frameInfo);
-        void update(FrameInfo& frameInfo, GlobalUbo& ubo, Camera& camera);
+        void update(FrameInfo& frameInfo, GlobalUbo& ubo, Player& player);
 
 
     private:

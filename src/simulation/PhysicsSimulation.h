@@ -36,7 +36,7 @@ using namespace JPH::literals;
 namespace physics {
 	class PhysicsSimulation {
 	public:
-		PhysicsSimulation(const SceneManager* sceneManager);
+		PhysicsSimulation(SceneManager* sceneManager);
 		virtual ~PhysicsSimulation();
 
 		PhysicsSystem* getPhysicsSystem();
@@ -108,6 +108,6 @@ namespace physics {
 
 		uint step = 0;
 
-		const SceneManager* sceneManager = nullptr;
+		SceneManager* sceneManager = nullptr;
 	};
 }

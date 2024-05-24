@@ -28,9 +28,13 @@ namespace vk {
 
         id_t getId() const { return id; }
 
+        // TODO not for UI and lights
         virtual glm::mat4 computeModelMatrix() = 0;
+
+        // TODO not for UI and lights
         virtual glm::mat4 computeNormalMatrix() = 0;
-        virtual glm::vec3 getPosition() = 0;
+
+        virtual glm::vec3 getObjectPosition() = 0;
         
         // returns a nullptr if object has no model
         virtual Model* getModel() = 0;

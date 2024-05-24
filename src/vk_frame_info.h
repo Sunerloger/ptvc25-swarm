@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "vk_camera.h"
 #include "GameObject.h"
 
 #include "vulkan/vulkan.h"

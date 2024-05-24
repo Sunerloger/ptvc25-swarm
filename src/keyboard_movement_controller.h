@@ -4,9 +4,7 @@
 
 #pragma once
 
-#include "vk_game_object.h"
 #include "vk_window.h"
-#include "vk_camera.h"
 #include "vk_frame_info.h"
 
 #include "vk_model.h"
@@ -33,11 +31,11 @@ namespace vk {
         };
 
         void handleMovement(GLFWwindow* window,
-                           const physics::Player& player);
+                           physics::Player& player);
 
         void handleRotation(GLFWwindow* window,
                            float deltaTime,
-                           const physics::Player& player);
+                           physics::Player& player);
 
         void handleEscMenu(GLFWwindow* window);
 

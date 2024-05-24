@@ -6,6 +6,71 @@
 
 namespace vk {
 
+    glm::mat2x3 FirstApp::loadBoundingBoxFromFile(const std::string& filename) {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
+
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str())) {
+            throw std::runtime_error(warn + err);
+        }
+
+        std::vector<Model::Vertex> vertices;
+        std::vector<uint32_t> indices;
+
+        for (const auto& shape : shapes) {
+            for (const auto& index : shape.mesh.indices) {
+                Model::Vertex vertex{};
+
+                if (index.vertex_index >= 0) {
+                    vertex.position = {
+                            attrib.vertices[3 * index.vertex_index + 0],
+                            attrib.vertices[3 * index.vertex_index + 1],
+                            attrib.vertices[3 * index.vertex_index + 2]
+                    };
+
+                    vertex.color = {
+                            attrib.colors[3 * index.vertex_index + 0],
+                            attrib.colors[3 * index.vertex_index + 1],
+                            attrib.colors[3 * index.vertex_index + 2]
+                    };
+                }
+
+                if (index.normal_index >= 0) {
+                    vertex.normal = {
+                            attrib.normals[3 * index.normal_index + 0],
+                            attrib.normals[3 * index.normal_index + 1],
+                            attrib.normals[3 * index.normal_index + 2]
+                    };
+                }
+
+                if (index.texcoord_index >= 0) {
+                    vertex.uv = {
+                            attrib.texcoords[2 * index.normal_index + 0],
+                            attrib.texcoords[2 * index.normal_index + 1],
+                    };
+                }
+
+                vertices.push_back(vertex);
+                indices.push_back(vertices.size() - 1);
+
+            }
+        }
+
+        //calculate bounding box
+        glm::vec3 currentMin = glm::vec3(std::numeric_limits<float>::max());
+        glm::vec3 currentMax = glm::vec3(std::numeric_limits<float>::min());
+        for (auto& vertex : vertices) {
+            currentMin = glm::min(currentMin, vertex.position);
+            currentMax = glm::max(currentMax, vertex.position);
+        }
+
+        return glm::mat2x3(currentMin, currentMax);
+    }
+
+
+
     FirstApp::FirstApp() {
 
         globalPool = DescriptorPool::Builder(device)
@@ -119,7 +184,7 @@ namespace vk {
                     GlobalUbo ubo{};
                     ubo.projection = sceneManager->getPlayer()->getProjMat();
                     ubo.view = sceneManager->getPlayer()->calculateViewMat();
-                    ubo.inverseView = camera.getInverseView();
+                    ubo.inverseView = glm::inverse(ubo.view);
                     ubo.aspectRatio = aspect;
                     pointLightSystem.update(frameInfo, ubo);
                     simpleRenderSystem.update(frameInfo, ubo, camera);
@@ -204,22 +269,8 @@ namespace vk {
         // add terrain to scene
         sceneManager->addManagedPhysicsEntity(std::move(make_unique<Terrain>(*physicsSimulation->getPhysicsSystem())));
 
-        glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager->getPlayer());
+        glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager.get());
 
-
-        GameObject gameObject1{};
-        gameObject1.model = flatVaseModel;
-        gameObject1.transform.translation = {-0.5f, 0.5f, 0.0f};
-        gameObject1.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObject1.isEntity = std::make_unique<bool>(true);
-        gameObjects.emplace(gameObject1.getId(), std::move(gameObject1));
-
-        auto gameObject2 = GameObject::createGameObject();
-        gameObject2.model = smoothVaseModel;
-        gameObject2.transform.translation = {0.5f, 0.5f, 0.0f};
-        gameObject2.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObject2.isEntity = std::make_unique<bool>(true);
-        gameObjects.emplace(gameObject2.getId(), std::move(gameObject2));
 
         auto gameObject3 = GameObject::createGameObject();
         gameObject3.model = floorModel;

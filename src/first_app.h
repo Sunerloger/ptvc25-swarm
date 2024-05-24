@@ -7,7 +7,6 @@
 #include "vk_renderer.h"
 #include "vk_window.h"
 #include "vk_descriptors.h"
-#include "vk_camera.h"
 
 #include "SceneManager.h"
 
@@ -56,6 +55,7 @@ namespace vk {
 
     private:
         void loadGameObjects();
+        glm::mat2x3 loadBoundingBoxFromFile(const std::string& filename);
 
         Window window{WIDTH, HEIGHT, "Swarm"};
         Device device{window};

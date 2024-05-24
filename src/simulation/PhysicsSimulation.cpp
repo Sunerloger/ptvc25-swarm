@@ -2,7 +2,7 @@
 
 namespace physics {
 
-    PhysicsSimulation::PhysicsSimulation(const SceneManager* sceneManager) : cPhysicsDeltaTime(1.0f / 60.0f), sceneManager(sceneManager) {
+    PhysicsSimulation::PhysicsSimulation(SceneManager* sceneManager) : cPhysicsDeltaTime(1.0f / 60.0f), sceneManager(sceneManager) {
 
         // Register allocation hook. Here just malloc / free (overrideable, see Memory.h).
         RegisterDefaultAllocator();
@@ -54,88 +54,37 @@ namespace physics {
         Factory::sInstance = nullptr;
     }
 
-    void PhysicsSimulation::setPlayer(Player* newPlayer) {
-
-        if (player != nullptr) {
-            player->removePhysicsBody();
-        }
-
-        player = newPlayer;
-
-        player->addPhysicsBody();
-
-        // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance for many objects.
-        // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
-        // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
-        this->physics_system->OptimizeBroadPhase();
-    }
-
-    void PhysicsSimulation::addScene(Scene* additionalScene) {
-
-        // todo AddBodiesPrepare in BodyInterface for batch adding
-
-        this->scenes.insert(std::pair<string, Scene*>(additionalScene->name, additionalScene));
-
-        for (auto& enemy : additionalScene->enemies)
-        {
-            enemy->addPhysicsBody();
-        }
-
-        for (auto& sceneObject : additionalScene->physicsObjects)
-        {
-            sceneObject->addPhysicsBody();
-        }
-
-        // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance for many objects.
-        // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
-        // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
-        this->physics_system->OptimizeBroadPhase();
-    }
-
-    void PhysicsSimulation::removeScene(string name) {
-        auto it = this->scenes.find(name);
-
-        if (it != scenes.end()) { // found scene in active scenes
-            Scene* sceneToRemove = it->second;
-
-            for (auto& enemy : sceneToRemove->enemies)
-            {
-                enemy->removePhysicsBody();
-            }
-
-            for (auto& sceneObject : sceneToRemove->physicsObjects)
-            {
-                sceneObject->removePhysicsBody();
-            }
-        }
-
-        // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance for many objects.
-        // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
-        // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
-        this->physics_system->OptimizeBroadPhase();
-    }
-
     PhysicsSystem* PhysicsSimulation::getPhysicsSystem() {
         return physics_system.get();
     }
 
     void PhysicsSimulation::simulate() {
+
+        // nothing to simulate
+        if (sceneManager == nullptr) {
+            return;
+        }
+
         ++step;
 
-        player->printPosition(step);
+        if (sceneManager->isBroadPhaseOptimizationNeeded()) {
+            // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance for many objects.
+            // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
+            // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
+            physics_system->OptimizeBroadPhase();
+        }
+
+        sceneManager->getPlayer()->printPosition(step);
 
         // Step the world
         physics_system->Update(cPhysicsDeltaTime, cCollisionSteps, temp_allocator.get(), job_system.get());
 
-        player->postSimulation();
+        sceneManager->getPlayer()->postSimulation();
 
-        for (auto& nameToScene : this->scenes)
+        const vector<Enemy*> enemies = sceneManager->getAllEnemies();
+        for (auto& enemy : enemies)
         {
-            Scene* scene = nameToScene.second;
-            for (auto& enemy : scene->enemies)
-            {
-                enemy->postSimulation();
-            }
+            enemy->postSimulation();
         }
     }
 }
