@@ -6,10 +6,12 @@
 #include "simulation/objects/ManagedPhysicsEntity.h"
 #include "simulation/objects/actors/Player.h"
 #include "simulation/objects/actors/enemies/Enemy.h"
-#include "lighting/Light.h"
+#include "lighting/PointLight.h"
+#include "lighting/Sun.h"
 
 using namespace vk;
 using namespace physics;
+using namespace lighting;
 
 // provides scene information to the renderer and the physics engine
 struct Scene {
@@ -29,14 +31,15 @@ struct Scene {
 	std::unordered_map<id_t, std::unique_ptr<GameObject>> uiObjects = {};
 
 	// not rendered and not in physics engine
-	std::unordered_map<id_t, std::unique_ptr<Light>> lights = {};
+	std::unordered_map<id_t, std::unique_ptr<PointLight>> lights = {};
+
+	// not rendered and not in physics engine
+	// TODO bring this back
+	std::unique_ptr<Sun> sun = nullptr;
 
 	std::unordered_map<id_t, unique_ptr<Enemy>> passiveEnemies{};
 	std::unordered_map<id_t, unique_ptr<ManagedPhysicsEntity>> passivePhysicsObjects{};
 };
-
-// TODO models should be managed by each object but only loaded once (not per object)
-// TODO inject sceneManager reference into every place it is needed
 
 // manages active scenes
 class SceneManager {
@@ -47,6 +50,9 @@ public:
 
 	// always replaces old player!
 	void setPlayer(std::unique_ptr<Player> player);
+
+	// always replaces old sun!
+	void setSun(std::unique_ptr<Sun> sun);
 
 	// @return false if object could not be added because it already exists
 	bool addSpectralObject(std::unique_ptr<GameObject> spectralObject);
@@ -61,7 +67,7 @@ public:
 	bool addManagedPhysicsEntity(std::unique_ptr<ManagedPhysicsEntity> managedPhysicsEntity);
 
 	// @return false if light could not be added because it already exists
-	bool addLight(std::unique_ptr<Light> light);
+	bool addLight(std::unique_ptr<PointLight> light);
 
 	// @return true if the object could be found and deleted
 	bool deleteSpectralObject(id_t id);
@@ -87,12 +93,14 @@ public:
 	// TODO edits should happen via returned pointers/references and to physics objects only via locks
 
 	// TODO replace this with injection of manager
-	const std::map<id_t, unique_ptr<GameObject>>& getRenderObjectsReadOnly() const;
+	// const std::map<id_t, unique_ptr<GameObject>>& getRenderObjectsReadOnly() const;
 
 	// don't change returned enemies (not thread safe)
 	vector<Enemy*> getAllEnemies() const;
 
 	Player* getPlayer();
+
+	Sun* getSun();
 
 	// returns the boolean and resets it to false
 	bool isBroadPhaseOptimizationNeeded();

@@ -176,7 +176,7 @@ message(LINK_LIBRARIES=${LINK_LIBRARIES})
 # Enable link time optimization in Release and Distribution mode if requested and available
 SET_INTERPROCEDURAL_OPTIMIZATION()
 
-add_executable(${PROJECT_NAME} ${SOURCES} "src/lighting/Light.h")
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 

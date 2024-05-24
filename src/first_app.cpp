@@ -187,7 +187,7 @@ namespace vk {
                     ubo.inverseView = glm::inverse(ubo.view);
                     ubo.aspectRatio = aspect;
                     pointLightSystem.update(frameInfo, ubo);
-                    simpleRenderSystem.update(frameInfo, ubo, camera);
+                    simpleRenderSystem.update(frameInfo, ubo);
                     uboBuffers[frameIndex]->writeToBuffer(&ubo);
                     uboBuffers[frameIndex]->flush();
 
@@ -225,10 +225,9 @@ namespace vk {
 
     void FirstApp::loadGameObjects() {
 
-        // couple scene manager and physics simulation
+        // inject scene manager into physics simulation
         this->sceneManager = make_unique<SceneManager>();
         this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager.get());
-        this->sceneManager->setPhysicsSystem(physicsSimulation->getPhysicsSystem());
 
         bool usingTriangles = true;
         std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
@@ -267,17 +266,9 @@ namespace vk {
         sceneManager->setPlayer(std::move(make_unique<Player>(&playerCreationSettings, physicsSimulation->getPhysicsSystem())));
 
         // add terrain to scene
-        sceneManager->addManagedPhysicsEntity(std::move(make_unique<Terrain>(*physicsSimulation->getPhysicsSystem())));
+        sceneManager->addManagedPhysicsEntity(std::move(make_unique<Terrain>(*physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 })));
 
         glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager.get());
-
-
-        auto gameObject3 = GameObject::createGameObject();
-        gameObject3.model = floorModel;
-        gameObject3.transform.translation = {0.0f, 0.5f, 0.0f};
-        gameObject3.transform.scale = {3.0f, 1.0f, 3.0f};
-        gameObject3.isEntity = std::make_unique<bool>(true);
-        gameObjects.emplace(gameObject3.getId(), std::move(gameObject3));
 
         for (int i = 0; i < 5; ++i) {
             auto gameObject4 = GameObject::createGameObject();

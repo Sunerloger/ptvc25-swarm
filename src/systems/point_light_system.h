@@ -4,9 +4,7 @@
 
 #pragma once
 
-#include "../vk_camera.h"
 #include "../vk_device.h"
-#include "../vk_game_object.h"
 #include "../vk_pipeline.h"
 #include "../vk_frame_info.h"
 

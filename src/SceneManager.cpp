@@ -8,10 +8,13 @@ void SceneManager::setPlayer(std::unique_ptr<Player> newPlayer) {
 
 	scene->player = std::move(newPlayer);
 
-
 	scene->player->addPhysicsBody();
 
 	this->physicsSceneIsChanged = true;
+}
+
+void SceneManager::setSun(std::unique_ptr<Sun> sun) {
+	scene->sun = std::move(sun);
 }
 
 bool SceneManager::addSpectralObject(std::unique_ptr<GameObject> spectralObject) {
@@ -26,7 +29,7 @@ bool SceneManager::addUIObject(std::unique_ptr<GameObject> uiObject) {
 	return result.second;
 }
 
-bool SceneManager::addLight(std::unique_ptr<Light> light) {
+bool SceneManager::addLight(std::unique_ptr<PointLight> light) {
 	id_t id = light->getId();
 	std::pair result = this->scene->lights.emplace(id, std::move(light));
 	return result.second;
@@ -98,6 +101,10 @@ bool SceneManager::deleteEnemy(id_t id) {
 
 Player* SceneManager::getPlayer() {
 	return scene->player.get();
+}
+
+Sun* SceneManager::getSun() {
+	return scene->sun.get();
 }
 
 vector<Enemy*> SceneManager::getAllEnemies() const {

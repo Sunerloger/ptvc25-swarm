@@ -4,7 +4,6 @@
 
 #include "simple_render_system.h"
 #include "../vk_renderer.h"
-#include "../vk_camera.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -111,7 +110,7 @@ namespace vk {
         }
     }
 
-    void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo, Player& player) {
+    void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo) {
         //move objects towards camera position
         //also rotate objects to look towards camera
         for (auto& kv : frameInfo.gameObjects) {
@@ -119,13 +118,14 @@ namespace vk {
             if(obj.isEnemy == nullptr) {
                 continue;
             }
-            auto cameraPosition = player.getCameraPosition();
+            auto cameraPosition = frameInfo.sceneManager.getPlayer()->getCameraPosition();
             auto direction = glm::normalize(cameraPosition - obj.transform.translation);
             obj.transform.translation += direction * 0.01f;
             obj.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
             obj.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
             //rotate bounding box by the same amount
 
+            // TODO write method in enemy for this (different enemy behaviour)
         }
     }
 }
