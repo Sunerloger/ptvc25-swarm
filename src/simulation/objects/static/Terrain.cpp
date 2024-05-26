@@ -2,11 +2,9 @@
 
 namespace physics {
 
-	Terrain::Terrain(PhysicsSystem& physics_system, glm::vec3 color, Model* model, glm::vec3 position) : ManagedPhysicsEntity(physics_system) {
+	Terrain::Terrain(PhysicsSystem& physics_system, glm::vec3 color, Model* model, glm::vec3 position) : ManagedPhysicsEntity(physics_system), model(model), position(position) {
 
-		this->model = model;
 		this->color = color;
-		this->position = position;
 		this->scale = glm::vec3{ 100.0, 1.0, 100.0 };
 
 		// We can create a rigid body to serve as the floor, we make a large box

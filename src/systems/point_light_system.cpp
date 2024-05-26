@@ -80,19 +80,15 @@ namespace vk {
                 frameInfo.frameTime,
                 {0.0f, -1.f, 0.f});
         int lightIndex = 0;
-        for (auto& kv: frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.pointLight == nullptr) {
-                continue;
-            }
+        for (shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
 
             assert(lightIndex < MAX_LIGHTS && "Too many lights in the scene");
 
             // update light positions
-            obj.transform.translation = glm::vec3(rotateLight * glm::vec4(obj.transform.translation, 1.0f));
+            light->setPosition(glm::vec3(rotateLight * glm::vec4(light->getPosition(), 1.0f)));
 
-            ubo.pointLights[lightIndex].position = glm::vec4(obj.transform.translation, 1.0f);
-            ubo.pointLights[lightIndex].color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
+            ubo.pointLights[lightIndex].position = glm::vec4(light->getPosition(), 1.0f);
+            ubo.pointLights[lightIndex].color = glm::vec4(light->color, light->getIntensity());
             lightIndex += 1;
         }
         ubo.numLights = lightIndex;
@@ -111,16 +107,12 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv: frameInfo.gameObjects) {
-            auto &obj = kv.second;
-            if (obj.pointLight == nullptr) {
-                continue;
-            }
+        for (shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
 
             PointLightPushConstants push{};
-            push.position = glm::vec4(obj.transform.translation, 1.0f);
-            push.color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
-            push.radius = obj.transform.scale.x;
+            push.position = glm::vec4(light->getPosition(), 1.0f);
+            push.color = glm::vec4(light->color, light->getIntensity());
+            push.radius = light->getRadius();
 
             vkCmdPushConstants(frameInfo.commandBuffer,
                                pipelineLayout,
@@ -128,7 +120,7 @@ namespace vk {
                                0,
                                sizeof(PointLightPushConstants),
                                &push);
-        vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
+            vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
         }
     }
 }

@@ -2,25 +2,36 @@
 
 namespace lighting {
 	
-	PointLight::PointLight(float intensity = 10.0f, float radius = 0.1f, glm::vec3 color = glm::vec3{ 1.0f }) : GameObject() {
-		this->lightIntensity = intensity;
+	PointLight::PointLight(float intensity = 10.0f, float radius = 0.1f, glm::vec3 color = glm::vec3{ 1.0f }, glm::vec3 position = glm::vec3{0.0f}) : lightIntensity(intensity),
+		radius(radius), position(position) {
 		this->color = color;
-		this->scale.x = radius;
 	}
 
-	glm::mat4 PointLight::computeModelMatrix() {
-		glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), scale);
-		glm::mat4 rotXMat = glm::rotate(glm::mat4(1.0f), rotation.x, glm::vec3(1, 0, 0));
-		glm::mat4 rotYMat = glm::rotate(glm::mat4(1.0f), rotation.y, glm::vec3(0, 1, 0));
-		glm::mat4 rotZMat = glm::rotate(glm::mat4(1.0f), rotation.z, glm::vec3(0, 0, 1));
-		glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), translation);
+	glm::mat4 PointLight::computeModelMatrix() const {
+		glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(radius, radius, radius));
+		glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), position);
 
-		// Matrix corresponds to Translate Rz * Ry * Rx * Scale
-		glm::mat4 modelMat = translateMat * rotZMat * rotYMat * rotXMat * scaleMat;
+		glm::mat4 modelMat = translateMat * scaleMat;
 		return modelMat;
 	}
 
-	glm::mat4 PointLight::computeNormalMatrix() {
+	glm::mat4 PointLight::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
+	}
+
+	glm::vec3 PointLight::getPosition() const {
+		return this->position;
+	}
+
+	float PointLight::getIntensity() const {
+		return this->lightIntensity;
+	}
+
+	float PointLight::getRadius() const {
+		return this->radius;
+	}
+
+	void PointLight::setPosition(glm::vec3 newPosition) {
+		this->position = newPosition;
 	}
 }

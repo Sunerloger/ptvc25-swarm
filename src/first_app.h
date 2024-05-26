@@ -26,6 +26,8 @@
 #include "simulation/PhysicsSimulation.h"
 #include "simulation/objects/static/Terrain.h"
 
+#include "ui/UIComponent.h"
+
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>

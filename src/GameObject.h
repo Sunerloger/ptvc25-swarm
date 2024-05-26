@@ -28,14 +28,14 @@ namespace vk {
 
         id_t getId() const { return id; }
 
-        virtual glm::mat4 computeModelMatrix() = 0;
+        virtual glm::mat4 computeModelMatrix() const = 0;
 
-        virtual glm::mat4 computeNormalMatrix() = 0;
+        virtual glm::mat4 computeNormalMatrix() const = 0;
 
-        virtual glm::vec3 getObjectPosition() = 0;
+        virtual glm::vec3 getPosition() const = 0;
         
         // returns a nullptr if object has no model (e.g. light)
-        virtual Model* getModel() = 0;
+        virtual Model* getModel() const = 0;
 
         glm::vec3 color{};
 

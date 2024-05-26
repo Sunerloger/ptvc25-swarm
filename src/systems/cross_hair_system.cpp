@@ -86,15 +86,14 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.isCrossHair == nullptr || !*obj.isCrossHair) {
+        for (shared_ptr<vk::UIComponent> uiElement : frameInfo.sceneManager.getUIObjects()) {
+            if(!uiElement->isDrawLines) {
                 continue;
             }
-
+            
             PushConstantData push{};
-            push.scale = obj.transform.scale.x;
-            push.translation = obj.transform.translation;
+            push.scale = uiElement->getScale().x;
+            push.translation = uiElement->getPosition();
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
@@ -105,8 +104,8 @@ namespace vk {
                     &push
             );
 
-            obj.model->bind(frameInfo.commandBuffer);
-            obj.model->draw(frameInfo.commandBuffer);
+            uiElement->getModel()->bind(frameInfo.commandBuffer);
+            uiElement->getModel()->draw(frameInfo.commandBuffer);
         }
     }
 }

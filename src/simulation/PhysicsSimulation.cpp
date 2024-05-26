@@ -81,7 +81,7 @@ namespace physics {
 
         sceneManager->getPlayer()->postSimulation();
 
-        const vector<Enemy*> enemies = sceneManager->getAllEnemies();
+        const vector<shared_ptr<Enemy>> enemies = sceneManager->getActiveEnemies();
         for (auto& enemy : enemies)
         {
             enemy->postSimulation();

@@ -8,20 +8,25 @@ namespace lighting {
 
 	public:
 
-		PointLight(float intensity = 10.0f, float radius = 0.1f, glm::vec3 color = glm::vec3{ 1.0f });
+		PointLight(float intensity = 10.0f, float radius = 0.1f, glm::vec3 color = glm::vec3{ 1.0f }, glm::vec3 position = glm::vec3{0.0f});
 		virtual ~PointLight() = default;
 
-		float lightIntensity = 1.0f;
+		glm::mat4 computeModelMatrix() const override;
+		glm::mat4 computeNormalMatrix() const override;
 
-		glm::mat4 computeModelMatrix() override;
-		glm::mat4 computeNormalMatrix() override;
+		glm::vec3 getPosition() const override;
+		vk::Model* getModel() const override { return nullptr; }
+
+		float getIntensity() const;
+		float getRadius() const;
+
+		void setPosition(glm::vec3 newPosition);
 
 	private:
 
-		glm::vec3 translation{};
-		glm::vec3 scale{ 1.0f, 1.0f, 1.0f };
-		// yaw, pitch, roll
-		glm::vec3 rotation{};
+		glm::vec3 position{};
+		float radius;
+		float lightIntensity = 1.0f;
 
 	};
 }

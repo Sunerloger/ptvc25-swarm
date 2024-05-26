@@ -93,15 +93,21 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.isHud == nullptr || !*obj.isHud || !escapeMenuOpen) {
+        for (shared_ptr<UIComponent> uiElement : frameInfo.sceneManager.getUIObjects()) {
+
+            // escape menu only gets drawn if open
+            if(!escapeMenuOpen && uiElement->isEscapeMenu) {
+                continue;
+            }
+
+            // other ui elements only get drawn if escape menu not open
+            if (escapeMenuOpen && !uiElement->isEscapeMenu) {
                 continue;
             }
 
             PushConstantData push{};
-            push.scale = obj.transform.scale.x;
-            push.translation = obj.transform.translation;
+            push.scale = uiElement->getScale().x;
+            push.translation = uiElement->getPosition();
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
@@ -112,8 +118,8 @@ namespace vk {
                     &push
             );
 
-            obj.model->bind(frameInfo.commandBuffer);
-            obj.model->draw(frameInfo.commandBuffer);
+            uiElement->getModel()->bind(frameInfo.commandBuffer);
+            uiElement->getModel()->draw(frameInfo.commandBuffer);
         }
     }
 }

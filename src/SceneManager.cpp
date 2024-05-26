@@ -29,7 +29,7 @@ bool SceneManager::addUIObject(std::unique_ptr<GameObject> uiObject) {
 	return result.second;
 }
 
-bool SceneManager::addLight(std::unique_ptr<PointLight> light) {
+bool SceneManager::addLight(std::unique_ptr<lighting::PointLight> light) {
 	id_t id = light->getId();
 	std::pair result = this->scene->lights.emplace(id, std::move(light));
 	return result.second;
@@ -99,23 +99,43 @@ bool SceneManager::deleteEnemy(id_t id) {
 	return false;
 }
 
-Player* SceneManager::getPlayer() {
-	return scene->player.get();
+shared_ptr<Player> SceneManager::getPlayer() {
+	return scene->player;
 }
 
-Sun* SceneManager::getSun() {
-	return scene->sun.get();
+shared_ptr<Sun> SceneManager::getSun() {
+	return scene->sun;
 }
 
-vector<Enemy*> SceneManager::getAllEnemies() const {
+vector<shared_ptr<Enemy>> SceneManager::getActiveEnemies() const {
 
-	vector<Enemy*> enemies{};
+	vector<shared_ptr<Enemy>> enemies{};
 
 	for (auto& pair : scene->enemies) {
-		enemies.push_back(pair.second.get());
+		enemies.push_back(pair.second);
 	}
 
 	return enemies;
+}
+
+vector<std::shared_ptr<PointLight>> SceneManager::getLights() {
+	vector<shared_ptr<PointLight>> lights{};
+
+	for (auto& pair : scene->lights) {
+		lights.push_back(pair.second);
+	}
+
+	return lights;
+}
+
+vector<std::shared_ptr<UIComponent>> SceneManager::getUIObjects() {
+	vector<shared_ptr<UIComponent>> uiObjects{};
+
+	for (auto& pair : scene->uiObjects) {
+		uiObjects.push_back(pair.second);
+	}
+
+	return uiObjects;
 }
 
 bool SceneManager::activatePhysicsObject(id_t id) {

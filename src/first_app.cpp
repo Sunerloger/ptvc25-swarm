@@ -267,6 +267,17 @@ namespace vk {
 
         // add terrain to scene
         sceneManager->addManagedPhysicsEntity(std::move(make_unique<Terrain>(*physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 })));
+ 
+        // add point lights
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 1.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f })));
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 1.0f, 0.0f, 0.0f })));
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 0.0f, 1.0f }, glm::vec3{ 2.0f, 0.0f, 0.0f })));
+
+        // add ui
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(crossHairModel, glm::vec3(0.0f), true, false)));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(blackScreenTextModel, glm::vec3{ -1.0f, -1.0f, 0.0f }, glm::vec3{ 30.0f, 30.0f, 30.0f }, false, true)));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(closeTextModel, glm::vec3{ -0.9f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, false, true)));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(toggleFullscreenTextModel, glm::vec3{ -0.5f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, false, true)));
 
         glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager.get());
 
@@ -284,51 +295,5 @@ namespace vk {
             gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
         }
 
-
-        auto crossHair = GameObject::createGameObject();
-        crossHair.model = crossHairModel;
-        crossHair.transform.translation = {0.0f, 0.0f, 0.0f};
-        crossHair.isCrossHair = std::make_unique<bool>(true);
-        gameObjects.emplace(crossHair.getId(), std::move(crossHair));
-
-        auto blackScreenTextObject = GameObject::createGameObject();
-        blackScreenTextObject.model = blackScreenTextModel;
-        blackScreenTextObject.transform.translation = {-1.0f, -1.0f, 0.0f};
-        blackScreenTextObject.transform.scale = {30.0f, 30.0f, 30.0f};
-        blackScreenTextObject.isHud = std::make_unique<bool>(true);
-        gameObjects.emplace(blackScreenTextObject.getId(), std::move(blackScreenTextObject));
-
-        auto closeTextObject = GameObject::createGameObject();
-        closeTextObject.model = closeTextModel;
-        closeTextObject.transform.translation = {-0.9f, 0.9f, 0.0f};
-        closeTextObject.transform.scale = {0.1f, 0.1f, 0.1f};
-        closeTextObject.isHud = std::make_unique<bool>(true);
-        gameObjects.emplace(closeTextObject.getId(), std::move(closeTextObject));
-
-        auto toggleFullscreenTextObject = GameObject::createGameObject();
-        toggleFullscreenTextObject.model = toggleFullscreenTextModel;
-        toggleFullscreenTextObject.transform.translation = {-0.5f, 0.9f, 0.0f};
-        toggleFullscreenTextObject.transform.scale = {0.1f, 0.1f, 0.1f};
-        toggleFullscreenTextObject.isHud = std::make_unique<bool>(true);
-        gameObjects.emplace(toggleFullscreenTextObject.getId(), std::move(toggleFullscreenTextObject));
-
-
-
-        auto pointLight1 = GameObject::makePointLight(1.2f);
-        pointLight1.color = {1.0f, 0.0f, 0.0f};
-        gameObjects.emplace(pointLight1.getId(), std::move(pointLight1));
-
-        auto pointLight2 = GameObject::makePointLight(1.2f);
-        pointLight2.color = {0.0f, 1.0f, 0.0f};
-        pointLight2.transform.translation = {1.0f, 0.0f, 0.0f};
-        gameObjects.emplace(pointLight2.getId(), std::move(pointLight2));
-
-        auto pointLight3 = GameObject::makePointLight(1.2f);
-        pointLight3.color = {0.0f, 0.0f, 1.0f};
-        pointLight3.transform.translation = {2.0f, 0.0f, 0.0f};
-        gameObjects.emplace(pointLight3.getId(), std::move(pointLight3));
     }
-
-
-
 }

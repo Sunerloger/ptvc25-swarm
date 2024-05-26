@@ -8,6 +8,7 @@
 #include "simulation/objects/actors/enemies/Enemy.h"
 #include "lighting/PointLight.h"
 #include "lighting/Sun.h"
+#include "ui/UIComponent.h"
 
 using namespace vk;
 using namespace physics;
@@ -16,29 +17,29 @@ using namespace lighting;
 // provides scene information to the renderer and the physics engine
 struct Scene {
 
-	unique_ptr<Player> player = nullptr;
+	shared_ptr<Player> player = nullptr;
 
 	// manage themselves - need to be treated differently
-	std::unordered_map<id_t, std::unique_ptr<Enemy>> enemies = {};
+	std::unordered_map<id_t, std::shared_ptr<Enemy>> enemies = {};
 
 	// non actor physics objects (e.g. terrain, drops, bullets, ...)
-	std::unordered_map<id_t, std::unique_ptr<ManagedPhysicsEntity>> physicsObjects = {};
+	std::unordered_map<id_t, std::shared_ptr<ManagedPhysicsEntity>> physicsObjects = {};
 
 	// not influenced by physics engine (= no collisions), but translated according to viewpoint - (also pointlights)
-	std::unordered_map<id_t, std::unique_ptr<GameObject>> spectralObjects = {};
+	std::unordered_map<id_t, std::shared_ptr<GameObject>> spectralObjects = {};
 
 	// not influenced by physics engine (= no collisions) and not translated according to viewpoint (= fixed on screen)
-	std::unordered_map<id_t, std::unique_ptr<GameObject>> uiObjects = {};
+	std::unordered_map<id_t, std::shared_ptr<UIComponent>> uiObjects = {};
 
 	// not rendered and not in physics engine
-	std::unordered_map<id_t, std::unique_ptr<PointLight>> lights = {};
+	std::unordered_map<id_t, std::shared_ptr<PointLight>> lights = {};
 
 	// not rendered and not in physics engine
 	// TODO bring this back
-	std::unique_ptr<Sun> sun = nullptr;
+	std::shared_ptr<Sun> sun = nullptr;
 
-	std::unordered_map<id_t, unique_ptr<Enemy>> passiveEnemies{};
-	std::unordered_map<id_t, unique_ptr<ManagedPhysicsEntity>> passivePhysicsObjects{};
+	std::unordered_map<id_t, shared_ptr<Enemy>> passiveEnemies{};
+	std::unordered_map<id_t, shared_ptr<ManagedPhysicsEntity>> passivePhysicsObjects{};
 };
 
 // manages active scenes
@@ -58,7 +59,7 @@ public:
 	bool addSpectralObject(std::unique_ptr<GameObject> spectralObject);
 
 	// @return false if object could not be added because it already exists
-	bool addUIObject(std::unique_ptr<GameObject> uiObject);
+	bool addUIObject(std::unique_ptr<UIComponent> uiObject);
 
 	// @return false if enemy could not be added because it already exists
 	bool addEnemy(std::unique_ptr<Enemy> enemy);
@@ -67,7 +68,7 @@ public:
 	bool addManagedPhysicsEntity(std::unique_ptr<ManagedPhysicsEntity> managedPhysicsEntity);
 
 	// @return false if light could not be added because it already exists
-	bool addLight(std::unique_ptr<PointLight> light);
+	bool addLight(std::unique_ptr<lighting::PointLight> light);
 
 	// @return true if the object could be found and deleted
 	bool deleteSpectralObject(id_t id);
@@ -96,11 +97,15 @@ public:
 	// const std::map<id_t, unique_ptr<GameObject>>& getRenderObjectsReadOnly() const;
 
 	// don't change returned enemies (not thread safe)
-	vector<Enemy*> getAllEnemies() const;
+	vector<std::shared_ptr<Enemy>> getActiveEnemies() const;
 
-	Player* getPlayer();
+	vector<std::shared_ptr<PointLight>> getLights();
 
-	Sun* getSun();
+	vector<std::shared_ptr<UIComponent>> getUIObjects();
+
+	std::shared_ptr<Player> getPlayer();
+
+	std::shared_ptr<Sun> getSun();
 
 	// returns the boolean and resets it to false
 	bool isBroadPhaseOptimizationNeeded();
@@ -110,7 +115,8 @@ private:
 	// for optimize broad phase -> optimize broad phase before simulation step if bodies in physics system changed
 	bool physicsSceneIsChanged = false;
 
-	PhysicsSystem* physics_system;
+	// weak to prevent ownership loop
+	std::weak_ptr<PhysicsSystem> physics_system;
 
 	unique_ptr<Scene> scene{};
 };
