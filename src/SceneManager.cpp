@@ -174,6 +174,8 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 
 		this->idToClass.erase(id);
 
+		spectralObject->sceneManager.reset();
+
 		// compiler automatically applies move semantics here
 		return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, spectralObject));
 	}
@@ -184,6 +186,8 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 
 		this->idToClass.erase(id);
 
+		uiElement->sceneManager.reset();
+
 		return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, uiElement));
 	}
 	else if (sceneClass == LIGHT) {
@@ -192,6 +196,8 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 		scene->lights.erase(id);
 
 		this->idToClass.erase(id);
+
+		light->sceneManager.reset();
 
 		return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, light));
 	}
@@ -208,6 +214,8 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 			scene->enemies.erase(id);
 			this->physicsSceneIsChanged = true;
 
+			enemy->sceneManager.reset();
+
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, enemy));
 		}
 		else {
@@ -217,6 +225,8 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 
 			scene->passiveEnemies.erase(id);
 			this->physicsSceneIsChanged = true;
+
+			enemy->sceneManager.reset();
 
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, enemy));
 		}
@@ -234,6 +244,8 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 			scene->physicsObjects.erase(id);
 			this->physicsSceneIsChanged = true;
 
+			physicsObject->sceneManager.reset();
+
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, physicsObject));
 		}
 		else {
@@ -243,6 +255,8 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 
 			scene->passivePhysicsObjects.erase(id);
 			this->physicsSceneIsChanged = true;
+
+			physicsObject->sceneManager.reset();
 
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, physicsObject));
 		}
