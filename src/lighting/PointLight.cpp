@@ -2,8 +2,7 @@
 
 namespace lighting {
 	
-	PointLight::PointLight(float intensity = 10.0f, float radius = 0.1f, glm::vec3 color = glm::vec3{ 1.0f }, glm::vec3 position = glm::vec3{0.0f}) : lightIntensity(intensity),
-		radius(radius), position(position) {
+	PointLight::PointLight(float intensity, float radius, glm::vec3 color, glm::vec3 position) : lightIntensity(intensity), radius(radius), position(position) {
 		this->color = color;
 	}
 

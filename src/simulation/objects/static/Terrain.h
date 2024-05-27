@@ -26,22 +26,19 @@ namespace physics {
 		void addPhysicsBody() override;
 
 		// model information
-		glm::mat4 computeModelMatrix() override;
-		glm::mat4 computeNormalMatrix() override;
-		glm::vec3 getObjectPosition() override;
-		Model* getModel() override;
+		glm::mat4 computeModelMatrix() const override;
+		glm::mat4 computeNormalMatrix() const override;
+		glm::vec3 getPosition() const override;
+		Model* getModel() const override;
 
 	private:
 
 		Model* model;
 
-		glm::vec3 position;
-		glm::vec3 scale;
-
 		unique_ptr<BodyCreationSettings> body_settings;
 	};
 }
 
-// TODO for now map model to physics model
+// TODO create model from dynamically created mesh and enhance model in tesselation shaders
 
-// TODO mesh instead of Box
+// TODO procedural texturing

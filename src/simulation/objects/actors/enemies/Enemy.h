@@ -12,7 +12,12 @@ namespace physics {
 
 	public:
 
+		Enemy();
+		virtual ~Enemy();
+
 		virtual void postSimulation();
+
+		virtual BodyID getBodyID();
 
 	private:
 		// TODO set this in subclass depending on enemy

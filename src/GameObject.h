@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vk_model.h"
+#include "SceneManager.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -10,16 +11,21 @@
 namespace vk {
 
     using id_t = unsigned int;
+    constexpr id_t INVALID_OBJECT_ID = 0;
 
     class GameObject {
 
     private:
 
-        static inline id_t nextID = 0;
+        static inline id_t nextID = 1;
 
     public:
 
-        virtual ~GameObject() = default;
+        virtual ~GameObject() {
+            if (auto manager = this->sceneManager.lock()) {
+                manager->removeGameObject(this->getId());
+            }
+        }
 
         GameObject(const GameObject &) = delete;
         GameObject &operator=(const GameObject &) = delete;
@@ -36,6 +42,8 @@ namespace vk {
         
         // returns a nullptr if object has no model (e.g. light)
         virtual Model* getModel() const = 0;
+
+        std::weak_ptr<SceneManager> sceneManager;
 
         glm::vec3 color{};
 
