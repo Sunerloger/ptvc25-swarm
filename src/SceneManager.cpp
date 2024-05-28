@@ -9,7 +9,12 @@ id_t SceneManager::setPlayer(std::unique_ptr<Player> newPlayer) {
 
 	this->idToClass.emplace(this->scene->player->getId(), PLAYER);
 	this->bodyIDToObjectId.emplace(this->scene->player->getBodyID(), this->scene->player->getId());
-	this->scene->player->sceneManager = weak_from_this();
+
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	this->scene->player->setRemovalCallback([weakThis](id_t id) {
+		if (auto manager = weakThis.lock()) {
+			manager->removeGameObject(id);
+		}});
 
 	scene->player->addPhysicsBody();
 
@@ -19,20 +24,31 @@ id_t SceneManager::setPlayer(std::unique_ptr<Player> newPlayer) {
 }
 
 id_t SceneManager::setSun(std::unique_ptr<Sun> sun) {
-	
+
 	this->idToClass.erase(this->scene->sun->getId());
 
 	scene->sun = std::move(sun);
 
 	this->idToClass.emplace(this->scene->sun->getId(), SUN);
-	this->scene->sun->sceneManager = weak_from_this();
+
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	this->scene->sun->setRemovalCallback([weakThis](id_t id) {
+		if (auto manager = weakThis.lock()) {
+			manager->removeGameObject(id);
+		}});
 
 	return scene->sun->getId();
 }
 
 id_t SceneManager::addSpectralObject(std::unique_ptr<GameObject> spectralObject) {
 	id_t id = spectralObject->getId();
-	spectralObject->sceneManager = weak_from_this();
+
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	spectralObject->setRemovalCallback([weakThis](id_t id) {
+		if (auto manager = weakThis.lock()) {
+			manager->removeGameObject(id);
+		}});
+
 	std::pair result = this->scene->spectralObjects.emplace(id, std::move(spectralObject));
 
 	if (result.second) {
@@ -46,7 +62,13 @@ id_t SceneManager::addSpectralObject(std::unique_ptr<GameObject> spectralObject)
 
 id_t SceneManager::addUIObject(std::unique_ptr<UIComponent> uiObject) {
 	id_t id = uiObject->getId();
-	uiObject->sceneManager = weak_from_this();
+
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	uiObject->setRemovalCallback([weakThis](id_t id) {
+		if (auto manager = weakThis.lock()) {
+			manager->removeGameObject(id);
+		}});
+
 	std::pair result = this->scene->uiObjects.emplace(id, std::move(uiObject));
 
 	if (result.second) {
@@ -60,7 +82,13 @@ id_t SceneManager::addUIObject(std::unique_ptr<UIComponent> uiObject) {
 
 id_t SceneManager::addLight(std::unique_ptr<lighting::PointLight> light) {
 	id_t id = light->getId();
-	light->sceneManager = weak_from_this();
+
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	light->setRemovalCallback([weakThis](id_t id) {
+		if (auto manager = weakThis.lock()) {
+			manager->removeGameObject(id);
+		}});
+
 	std::pair result = this->scene->lights.emplace(id, std::move(light));
 
 	if (result.second) {
@@ -75,7 +103,12 @@ id_t SceneManager::addLight(std::unique_ptr<lighting::PointLight> light) {
 id_t SceneManager::addEnemy(std::unique_ptr<Enemy> enemy) {
 	id_t id = enemy->getId();
 	BodyID bodyID = enemy->getBodyID();
-	enemy->sceneManager = weak_from_this();
+	
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	enemy->setRemovalCallback([weakThis](id_t id) {
+		if (auto manager = weakThis.lock()) {
+			manager->removeGameObject(id);
+		}});
 
 	if (scene->passiveEnemies.find(id) != scene->passiveEnemies.end()) {
 		return INVALID_OBJECT_ID;
@@ -97,7 +130,12 @@ id_t SceneManager::addEnemy(std::unique_ptr<Enemy> enemy) {
 id_t SceneManager::addManagedPhysicsEntity(std::unique_ptr<ManagedPhysicsEntity> managedPhysicsEntity) {
 	id_t id = managedPhysicsEntity->getId();
 	BodyID bodyID = managedPhysicsEntity->getBodyID();
-	managedPhysicsEntity->sceneManager = weak_from_this();
+
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	managedPhysicsEntity->setRemovalCallback([weakThis](id_t id) {
+		if (auto manager = weakThis.lock()) {
+			manager->removeGameObject(id);
+		}});
 
 	if (scene->passivePhysicsObjects.find(id) != scene->passivePhysicsObjects.end()) {
 		return INVALID_OBJECT_ID;
@@ -127,6 +165,8 @@ bool SceneManager::deleteGameObject(id_t id) {
 		return false;
 	}
 
+	BodyID bodyID;
+
 	switch (sceneClass) {
 
 	case SPECTRAL_OBJECT:
@@ -150,7 +190,7 @@ bool SceneManager::deleteGameObject(id_t id) {
 		scene->passiveEnemies.erase(id);
 
 		this->idToClass.erase(id);
-		BodyID bodyID = scene->enemies.at(id)->getBodyID();
+		bodyID = scene->enemies.at(id)->getBodyID();
 		this->bodyIDToObjectId.erase(bodyID);
 		this->physicsSceneIsChanged = true;
 		return true;
@@ -161,7 +201,7 @@ bool SceneManager::deleteGameObject(id_t id) {
 		scene->passivePhysicsObjects.erase(id);
 
 		this->idToClass.erase(id);
-		BodyID bodyID = scene->physicsObjects.at(id)->getBodyID();
+		bodyID = scene->physicsObjects.at(id)->getBodyID();
 		this->bodyIDToObjectId.erase(bodyID);
 		this->physicsSceneIsChanged = true;
 		return true;
@@ -195,7 +235,7 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 
 		this->idToClass.erase(id);
 
-		spectralObject->sceneManager.reset();
+		spectralObject->setRemovalCallback(nullptr);
 
 		// compiler automatically applies move semantics here
 		return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, spectralObject));
@@ -207,7 +247,7 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 
 		this->idToClass.erase(id);
 
-		uiElement->sceneManager.reset();
+		uiElement->setRemovalCallback(nullptr);
 
 		return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, uiElement));
 	}
@@ -218,7 +258,7 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 
 		this->idToClass.erase(id);
 
-		light->sceneManager.reset();
+		light->setRemovalCallback(nullptr);
 
 		return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, light));
 	}
@@ -235,7 +275,7 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 			scene->enemies.erase(id);
 			this->physicsSceneIsChanged = true;
 
-			enemy->sceneManager.reset();
+			enemy->setRemovalCallback(nullptr);
 
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, enemy));
 		}
@@ -247,7 +287,7 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 			scene->passiveEnemies.erase(id);
 			this->physicsSceneIsChanged = true;
 
-			enemy->sceneManager.reset();
+			enemy->setRemovalCallback(nullptr);
 
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, enemy));
 		}
@@ -265,7 +305,7 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 			scene->physicsObjects.erase(id);
 			this->physicsSceneIsChanged = true;
 
-			physicsObject->sceneManager.reset();
+			physicsObject->setRemovalCallback(nullptr);
 
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, physicsObject));
 		}
@@ -277,7 +317,7 @@ unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> SceneManager::removeGameObj
 			scene->passivePhysicsObjects.erase(id);
 			this->physicsSceneIsChanged = true;
 
-			physicsObject->sceneManager.reset();
+			physicsObject->setRemovalCallback(nullptr);
 
 			return make_unique<pair<SceneClass, shared_ptr<GameObject>>>(make_pair(sceneClass, physicsObject));
 		}

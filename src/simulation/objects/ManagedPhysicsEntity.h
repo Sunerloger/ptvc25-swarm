@@ -11,11 +11,10 @@ using namespace vk;
 using namespace JPH;
 
 namespace physics {
-	class ManagedPhysicsEntity : public GameObject, public IPhysicsEntity {
+	class ManagedPhysicsEntity : public vk::GameObject, public IPhysicsEntity {
 	
 	public:
 		
-		// TODO do not delete a physics entity before deleting it from its scene!
 		virtual ~ManagedPhysicsEntity();
 
 		void removePhysicsBody() override;
