@@ -17,5 +17,7 @@ namespace physics {
 
 		// does not delete it (state is saved) - this should be done by the destructor
 		virtual void removePhysicsBody() = 0;
+
+		virtual BodyID getBodyID() = 0;
 	};
 }

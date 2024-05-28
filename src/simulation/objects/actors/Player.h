@@ -60,6 +60,8 @@ namespace physics {
 
 		void printPosition(int iterationStep) const;
 
+		BodyID getBodyID() override;
+
 		void setViewDirection(glm::vec3 direction) { camera->setViewDirection(direction); }
 		void setViewTarget(glm::vec3 target) { camera->setViewTarget(target); }
 

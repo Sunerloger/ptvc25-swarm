@@ -96,12 +96,15 @@ public:
 
 	// TODO edits should happen via returned pointers/references and to physics objects only via locks
 
-	// don't change returned enemies (not thread safe)
+	// only change returned enemies with a lock (otherwise not thread safe)
 	vector<std::shared_ptr<Enemy>> getActiveEnemies() const;
 
 	vector<std::shared_ptr<PointLight>> getLights();
 
 	vector<std::shared_ptr<UIComponent>> getUIObjects();
+
+	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
+	unique_ptr<pair<SceneClass, shared_ptr<GameObject>>> getObject(id_t id);
 
 	std::shared_ptr<Player> getPlayer();
 

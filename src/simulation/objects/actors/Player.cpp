@@ -82,4 +82,8 @@ namespace physics {
 		Vec3 velocity = character->GetLinearVelocity();
 		cout << "Step " << iterationStep << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
 	}
+
+	BodyID Player::getBodyID() {
+		return this->character->GetBodyID();
+	}
 }

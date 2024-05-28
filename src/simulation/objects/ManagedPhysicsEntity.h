@@ -20,7 +20,7 @@ namespace physics {
 
 		void removePhysicsBody() override;
 
-		BodyID getBodyID() { return this->bodyID; }
+		BodyID getBodyID() override { return this->bodyID; }
 	
 	protected:
 

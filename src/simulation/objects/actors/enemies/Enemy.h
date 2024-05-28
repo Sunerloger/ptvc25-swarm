@@ -17,7 +17,7 @@ namespace physics {
 
 		virtual void postSimulation();
 
-		virtual BodyID getBodyID();
+		BodyID getBodyID() override;
 
 	private:
 		// TODO set this in subclass depending on enemy
