@@ -206,3 +206,8 @@ install(
 install(
     TARGETS ${PROJECT_NAME} CONFIGURATIONS Release DESTINATION "release"
 )
+
+# generate a compilation json (compile_commands.json) that enables further structure analysis for debugging purposes
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
