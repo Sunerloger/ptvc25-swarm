@@ -93,7 +93,7 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (shared_ptr<UIComponent> uiElement : frameInfo.sceneManager.getUIObjects()) {
+        for (std::shared_ptr<UIComponent> uiElement : frameInfo.sceneManager.getUIObjects()) {
 
             // escape menu only gets drawn if open
             if(!escapeMenuOpen && uiElement->isEscapeMenu) {

@@ -125,7 +125,7 @@ namespace vk {
             obj.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
             //rotate bounding box by the same amount
 
-            // TODO write method in enemy for this (different enemy behaviour)
+            // TODO write method in enemy for this (different enemy behaviour) and update in simulation step
         }
     }
 }

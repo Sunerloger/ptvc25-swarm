@@ -18,7 +18,7 @@ const glm::mat4 CharacterCamera::getProjMat() const {
 	return projMatrix;
 }
 
-void CharacterCamera::setPhysicsPosition(Vec3 physicsPosition) {
+void CharacterCamera::setPhysicsPosition(JPH::Vec3 physicsPosition) {
 	for (size_t i = 0; i < 3; i++)
 	{
 		this->position[i] = physicsPosition[i];

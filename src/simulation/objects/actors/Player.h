@@ -10,8 +10,6 @@
 
 #include "../../PhysicsUtils.h"
 
-using namespace JPH;
-
 namespace physics {
 
 	struct PlayerSettings {
@@ -24,25 +22,25 @@ namespace physics {
 	};
 
 	struct PlayerCreationSettings {
-		RVec3Arg position = RVec3::sZero();
+		JPH::RVec3Arg position = JPH::RVec3::sZero();
 
 		// you probably don't want to set that but the camera rotation
 		// this only rotates the physics-body
-		QuatArg rotation = Quat::sIdentity();
+		JPH::QuatArg rotation = JPH::Quat::sIdentity();
 
 		PlayerSettings* playerSettings;
 		CharacterCameraSettings* cameraSettings;
 
-		CharacterSettings* characterSettings;
+		JPH::CharacterSettings* characterSettings;
 
-		uint64 inUserData = 0;
+		JPH::uint64 inUserData = 0;
 	};
 
 	class Player : public vk::GameObject, public IPhysicsEntity {
 
 	public:
 
-		Player(PlayerCreationSettings* playerSettings, PhysicsSystem* physics_system);
+		Player(PlayerCreationSettings* playerSettings, JPH::PhysicsSystem* physics_system);
 		virtual ~Player();
 
 		void addPhysicsBody() override;
@@ -50,7 +48,7 @@ namespace physics {
 
 		void postSimulation();
 
-		void handleMovement(Vec3 movementDirectionWorld, bool isJump);
+		void handleMovement(JPH::Vec3 movementDirectionWorld, bool isJump);
 		void handleRotation(float deltaYaw, float deltaPitch, float deltaTime);
 
 		const glm::vec3 getCameraPosition() const;
@@ -60,7 +58,7 @@ namespace physics {
 
 		void printPosition(int iterationStep) const;
 
-		BodyID getBodyID() override;
+		JPH::BodyID getBodyID() override;
 
 		void setViewDirection(glm::vec3 direction) { camera->setViewDirection(direction); }
 		void setViewTarget(glm::vec3 target) { camera->setViewTarget(target); }
@@ -70,15 +68,20 @@ namespace physics {
 		void setPerspectiveProjection(float fov, float aspect, float near, float far) { 
 			camera->setPerspectiveProjection(fov, aspect, near, far); }
 
+		glm::mat4 computeModelMatrix() const override;
+		glm::mat4 computeNormalMatrix() const override;
+		glm::vec3 getPosition() const override;
+		vk::Model* getModel() const override { return nullptr; }
+
 	private:
 
 		float maxHealth = 100.0f;
 		float currentHealth = 100.0f;
 
 		PlayerSettings* settings;
-		CharacterSettings* characterSettings;
+		JPH::CharacterSettings* characterSettings;
 
 		std::unique_ptr<CharacterCamera> camera;
-		std::unique_ptr<Character> character;
+		std::unique_ptr<JPH::Character> character;
 	};
 }

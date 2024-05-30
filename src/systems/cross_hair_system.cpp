@@ -86,7 +86,7 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (shared_ptr<vk::UIComponent> uiElement : frameInfo.sceneManager.getUIObjects()) {
+        for (std::shared_ptr<vk::UIComponent> uiElement : frameInfo.sceneManager.getUIObjects()) {
             if(!uiElement->isDrawLines) {
                 continue;
             }

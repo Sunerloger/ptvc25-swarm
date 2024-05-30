@@ -80,7 +80,7 @@ namespace vk {
                 frameInfo.frameTime,
                 {0.0f, -1.f, 0.f});
         int lightIndex = 0;
-        for (shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
+        for (std::shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
 
             assert(lightIndex < MAX_LIGHTS && "Too many lights in the scene");
 
@@ -107,7 +107,7 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
+        for (std::shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
 
             PointLightPushConstants push{};
             push.position = glm::vec4(light->getPosition(), 1.0f);

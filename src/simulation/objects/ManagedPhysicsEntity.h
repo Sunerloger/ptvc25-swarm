@@ -7,9 +7,6 @@
 #include "IPhysicsEntity.h"
 #include "../../GameObject.h"
 
-using namespace vk;
-using namespace JPH;
-
 namespace physics {
 	class ManagedPhysicsEntity : public vk::GameObject, public IPhysicsEntity {
 	
@@ -19,13 +16,13 @@ namespace physics {
 
 		void removePhysicsBody() override;
 
-		BodyID getBodyID() override { return this->bodyID; }
+		JPH::BodyID getBodyID() override { return this->bodyID; }
 	
 	protected:
 
-		ManagedPhysicsEntity(PhysicsSystem& physics_system);
+		ManagedPhysicsEntity(JPH::PhysicsSystem& physics_system);
 
-		PhysicsSystem& physics_system;
-		BodyID bodyID;
+		JPH::PhysicsSystem& physics_system;
+		JPH::BodyID bodyID;
 	};
 }

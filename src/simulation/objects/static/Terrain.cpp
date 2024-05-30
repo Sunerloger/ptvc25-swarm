@@ -2,7 +2,7 @@
 
 namespace physics {
 
-	Terrain::Terrain(PhysicsSystem& physics_system, glm::vec3 color, Model* model, glm::vec3 position) : ManagedPhysicsEntity(physics_system), model(model) {
+	Terrain::Terrain(PhysicsSystem& physics_system, glm::vec3 color, vk::Model* model, glm::vec3 position) : ManagedPhysicsEntity(physics_system), model(model) {
 
 		this->color = color;
 		glm::vec3 scale = glm::vec3{ 100.0, 1.0, 100.0 };
@@ -49,7 +49,7 @@ namespace physics {
 		return RVec3ToGLM(physics_position);
 	}
 
-	Model* Terrain::getModel() const {
+	vk::Model* Terrain::getModel() const {
 		return this->model;
 	}
 

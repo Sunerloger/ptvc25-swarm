@@ -249,7 +249,7 @@ namespace vk {
         CharacterCameraSettings cameraSettings = {};
         cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
 
-        PlayerSettings playerSettings = {};
+        physics::PlayerSettings playerSettings = {};
 
         CharacterSettings characterSettings = {};
         characterSettings.mGravityFactor = 1.0f;
@@ -258,15 +258,15 @@ namespace vk {
         characterSettings.mLayer = Layers::MOVING;
         characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
 
-        PlayerCreationSettings playerCreationSettings = {};
+        physics::PlayerCreationSettings playerCreationSettings = {};
         playerCreationSettings.characterSettings = &characterSettings;
         playerCreationSettings.cameraSettings = &cameraSettings;
         playerCreationSettings.playerSettings = &playerSettings;
 
-        sceneManager->setPlayer(std::move(make_unique<Player>(&playerCreationSettings, physicsSimulation->getPhysicsSystem())));
+        sceneManager->setPlayer(std::move(make_unique<physics::Player>(&playerCreationSettings, physicsSimulation->getPhysicsSystem())));
 
         // add terrain to scene
-        sceneManager->addManagedPhysicsEntity(std::move(make_unique<Terrain>(*physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 })));
+        sceneManager->addManagedPhysicsEntity(std::move(make_unique<physics::Terrain>(*physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 })));
  
         // add point lights
         sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 1.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f })));
@@ -282,7 +282,7 @@ namespace vk {
         glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager.get());
 
         for (int i = 0; i < 5; ++i) {
-            auto gameObject4 = GameObject::createGameObject();
+            auto gameObject4 = vk::GameObject::createGameObject();
             gameObject4.model = humanModel;
             gameObject4.transform.translation = {3.0f * i, 0.0f, 0.0f};
             gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};

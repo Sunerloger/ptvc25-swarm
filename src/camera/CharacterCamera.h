@@ -6,8 +6,6 @@
 
 #include <Jolt/Jolt.h>
 
-using namespace JPH;
-
 struct CharacterCameraSettings {
     float initialYaw = 0.0f;
     float initialPitch = 0.0f;
@@ -27,7 +25,7 @@ public:
     const glm::mat4 getProjMat() const;
     const glm::vec3 getPosition() const;
 
-    void setPhysicsPosition(Vec3 physicsPosition);
+    void setPhysicsPosition(JPH::Vec3 physicsPosition);
 
     void addRotation(float deltaYaw, float deltaPitch, float deltaTime);
 

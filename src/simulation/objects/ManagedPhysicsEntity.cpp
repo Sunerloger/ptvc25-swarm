@@ -2,7 +2,7 @@
 
 namespace physics {
 
-	ManagedPhysicsEntity::ManagedPhysicsEntity(PhysicsSystem& physics_system) : physics_system(physics_system) {}
+	ManagedPhysicsEntity::ManagedPhysicsEntity(JPH::PhysicsSystem& physics_system) : physics_system(physics_system) {}
 
 	ManagedPhysicsEntity::~ManagedPhysicsEntity() {
 		
@@ -11,7 +11,7 @@ namespace physics {
 
 		removePhysicsBody();
 
-		BodyInterface& body_interface = physics_system.GetBodyInterface();
+		JPH::BodyInterface& body_interface = physics_system.GetBodyInterface();
 		body_interface.DestroyBody(bodyID);
 	}
 

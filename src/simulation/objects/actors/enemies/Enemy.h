@@ -12,16 +12,11 @@ namespace physics {
 
 	public:
 
-		Enemy();
-		virtual ~Enemy();
+		virtual ~Enemy() = default;
 
-		virtual void postSimulation();
+		virtual void postSimulation() = 0;
 
-		BodyID getBodyID() override;
-
-	private:
-		// TODO set this in subclass depending on enemy
-		float maxHealth = 100.0f;
-		float currentHealth = 100.0f;
+		virtual float getMaxHealth() const = 0;
+		virtual float getCurrentHealth() const = 0;
 	};
 }

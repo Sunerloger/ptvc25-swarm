@@ -23,7 +23,7 @@ namespace vk {
 
 	public:
 
-		virtual ~GameObject() {
+		virtual ~GameObject() noexcept {
 			if (removalCallback) {
 				removalCallback(id);
 			}
@@ -48,8 +48,6 @@ namespace vk {
 		void setRemovalCallback(RemovalCallback callback) {
 			removalCallback = callback;
 		}
-
-		
 
 		glm::vec3 color{};
 

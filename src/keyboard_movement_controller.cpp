@@ -33,27 +33,27 @@ namespace vk {
     void KeyboardMovementController::handleMovement(GLFWwindow* window,
                                                    physics::Player& player) {
 
-        Vec3 movementDirection = RVec3::sZero();
+        JPH::Vec3 movementDirection = JPH::RVec3::sZero();
 
         if (glfwGetKey(window, keys.moveForward) == GLFW_PRESS) {
-            movementDirection += Vec3{ 0,0,-1 };
+            movementDirection += JPH::Vec3{ 0,0,-1 };
         }
         if (glfwGetKey(window, keys.moveBackward) == GLFW_PRESS) {
-            movementDirection += Vec3{ 0,0,1 };
+            movementDirection += JPH::Vec3{ 0,0,1 };
         }
         if (glfwGetKey(window, keys.moveLeft) == GLFW_PRESS) {
-            movementDirection += Vec3{ -1,0,0 };
+            movementDirection += JPH::Vec3{ -1,0,0 };
         }
         if (glfwGetKey(window, keys.moveRight) == GLFW_PRESS) {
-            movementDirection += Vec3{ 1,0,0 };
+            movementDirection += JPH::Vec3{ 1,0,0 };
         }
 
-        movementDirection = movementDirection.NormalizedOr(Vec3{ 0,0,0 });
+        movementDirection = movementDirection.NormalizedOr(JPH::Vec3{ 0,0,0 });
 
         bool isJump = glfwGetKey(window, keys.moveForward) == GLFW_PRESS;
 
         // only update if something happened
-        if (movementDirection != Vec3{ 0,0,0 } || isJump) {
+        if (movementDirection != JPH::Vec3{ 0,0,0 } || isJump) {
             player.handleMovement(movementDirection, isJump);
         }
     }
@@ -119,14 +119,9 @@ namespace vk {
             glm::vec3 cameraForward = frameInfo.sceneManager.getPlayer()->getFront();
             glm::vec3 cameraPosition = frameInfo.sceneManager.getPlayer()->getCameraPosition();
 
-            for (auto it = frameInfo.gameObjects.begin(); it != frameInfo.gameObjects.end(); ) {
-                auto& obj = it->second;
-                if(obj.isEnemy == nullptr) {
-                    ++it;
-                    continue;
-                }
+            for (std::shared_ptr<physics::Enemy> enemy : frameInfo.sceneManager.getActiveEnemies()) {
 
-                glm::mat2x3 boundingBox = obj.boundingBox;
+                glm::mat2x3 boundingBox = enemy->getBoundingBox();
                 glm::vec3 min = boundingBox[0];
                 glm::vec3 max = boundingBox[1];
 
@@ -143,7 +138,6 @@ namespace vk {
                 if (tyMin > tyMax) std::swap(tyMin, tyMax);
 
                 if ((tMin > tyMax) || (tyMin > tMax)) {
-                    it++;
                     continue;
                 }
 
@@ -160,7 +154,6 @@ namespace vk {
                 if (tzMin > tzMax) std::swap(tzMin, tzMax);
 
                 if ((tMin > tzMax) || (tzMin > tMax)) {
-                    it++;
                     continue;
                 }
                 if (tzMin > tMin)

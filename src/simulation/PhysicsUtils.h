@@ -12,18 +12,15 @@
 
 #include "../SceneManager.h"
 
-using namespace std;
-using namespace JPH;
-
 // Layer that objects can be in, determines which other objects it can collide with
 // Typically you at least want to have 1 layer for moving bodies and 1 layer for static bodies, but you can have more
 // layers if you want. E.g. you could have a layer for high detail collision (which is not used by the physics simulation
 // but only if you do collision testing).
 namespace Layers
 {
-    static constexpr ObjectLayer NON_MOVING = 0;
-    static constexpr ObjectLayer MOVING = 1;
-    static constexpr ObjectLayer NUM_LAYERS = 2;
+    static constexpr JPH::ObjectLayer NON_MOVING = 0;
+    static constexpr JPH::ObjectLayer MOVING = 1;
+    static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
 };
 
 // Callback for traces, connect this to your own trace function if you have one
@@ -37,16 +34,16 @@ static void TraceImpl(const char* inFMT, ...)
     va_end(list);
 
     // Print to the TTY
-    cout << buffer << endl;
+    std::cout << buffer << std::endl;
 }
 
 #ifdef JPH_ENABLE_ASSERTS
 
 // Callback for asserts, connect this to your own assert handler if you have one
-static bool AssertFailedImpl(const char* inExpression, const char* inMessage, const char* inFile, uint inLine)
+static bool AssertFailedImpl(const char* inExpression, const char* inMessage, const char* inFile, JPH::uint inLine)
 {
     // Print to the TTY
-    cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr ? inMessage : "") << endl;
+    std::cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr ? inMessage : "") << std::endl;
 
     // Breakpoint
     return true;
@@ -55,10 +52,10 @@ static bool AssertFailedImpl(const char* inExpression, const char* inMessage, co
 #endif // JPH_ENABLE_ASSERTS
 
 /// Class that determines if two object layers can collide
-class ObjectLayerPairFilterImpl : public ObjectLayerPairFilter
+class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
 {
 public:
-    virtual bool					ShouldCollide(ObjectLayer inObject1, ObjectLayer inObject2) const override
+    virtual bool					ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
     {
         switch (inObject1)
         {
@@ -80,14 +77,14 @@ public:
 // your broadphase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
 namespace BroadPhaseLayers
 {
-    static constexpr BroadPhaseLayer NON_MOVING(0);
-    static constexpr BroadPhaseLayer MOVING(1);
-    static constexpr uint NUM_LAYERS(2);
+    static constexpr JPH::BroadPhaseLayer NON_MOVING(0);
+    static constexpr JPH::BroadPhaseLayer MOVING(1);
+    static constexpr JPH::uint NUM_LAYERS(2);
 };
 
 // BroadPhaseLayerInterface implementation
 // This defines a mapping between object and broadphase layers.
-class BPLayerInterfaceImpl final : public BroadPhaseLayerInterface
+class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
 {
 public:
     BPLayerInterfaceImpl()
@@ -97,38 +94,38 @@ public:
         mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
     }
 
-    virtual uint					GetNumBroadPhaseLayers() const override
+    virtual JPH::uint					GetNumBroadPhaseLayers() const override
     {
         return BroadPhaseLayers::NUM_LAYERS;
     }
 
-    virtual BroadPhaseLayer			GetBroadPhaseLayer(ObjectLayer inLayer) const override
+    virtual JPH::BroadPhaseLayer			GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
     {
         JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
         return mObjectToBroadPhase[inLayer];
     }
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char* GetBroadPhaseLayerName(BroadPhaseLayer inLayer) const override
+    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
     {
-        switch ((BroadPhaseLayer::Type)inLayer)
+        switch ((JPH::BroadPhaseLayer::Type)inLayer)
         {
-        case (BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
-        case (BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:		return "MOVING";
+        case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
+        case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:		return "MOVING";
         default:													JPH_ASSERT(false); return "INVALID";
         }
     }
 #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
 private:
-    BroadPhaseLayer					mObjectToBroadPhase[Layers::NUM_LAYERS];
+    JPH::BroadPhaseLayer					mObjectToBroadPhase[Layers::NUM_LAYERS];
 };
 
 /// Class that determines if an object layer can collide with a broadphase layer
-class ObjectVsBroadPhaseLayerFilterImpl : public ObjectVsBroadPhaseLayerFilter
+class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
 {
 public:
-    virtual bool				ShouldCollide(ObjectLayer inLayer1, BroadPhaseLayer inLayer2) const override
+    virtual bool				ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
     {
         switch (inLayer1)
         {
@@ -144,46 +141,46 @@ public:
 };
 
 // An example contact listener
-class MyContactListener : public ContactListener
+class MyContactListener : public JPH::ContactListener
 {
 public:
     // See: ContactListener
-    virtual ValidateResult	OnContactValidate(const Body& inBody1, const Body& inBody2, RVec3Arg inBaseOffset, const CollideShapeResult& inCollisionResult) override
+    virtual JPH::ValidateResult	OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override
     {
-        cout << "Contact validate callback" << endl;
+        std::cout << "Contact validate callback" << std::endl;
 
         // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
-        return ValidateResult::AcceptAllContactsForThisBodyPair;
+        return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
     }
 
-    virtual void			OnContactAdded(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings) override
+    virtual void			OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
     {
-        cout << "A contact was added" << endl;
+        std::cout << "A contact was added" << std::endl;
     }
 
-    virtual void			OnContactPersisted(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings) override
+    virtual void			OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
     {
-        cout << "A contact was persisted" << endl;
+        std::cout << "A contact was persisted" << std::endl;
     }
 
-    virtual void			OnContactRemoved(const SubShapeIDPair& inSubShapePair) override
+    virtual void			OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
     {
-        cout << "A contact was removed" << endl;
+        std::cout << "A contact was removed" << std::endl;
     }
 };
 
 // An example activation listener
-class MyBodyActivationListener : public BodyActivationListener
+class MyBodyActivationListener : public JPH::BodyActivationListener
 {
 public:
-    virtual void		OnBodyActivated(const BodyID& inBodyID, uint64 inBodyUserData) override
+    virtual void		OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
     {
-        cout << "A body got activated" << endl;
+        std::cout << "A body got activated" << std::endl;
     }
 
-    virtual void		OnBodyDeactivated(const BodyID& inBodyID, uint64 inBodyUserData) override
+    virtual void		OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
     {
-        cout << "A body went to sleep" << endl;
+        std::cout << "A body went to sleep" << std::endl;
     }
 };
 

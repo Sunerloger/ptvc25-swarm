@@ -2,11 +2,11 @@
 
 namespace physics {
 
-	Player::Player(PlayerCreationSettings* playerCreationSettings, PhysicsSystem* physics_system) {
+	Player::Player(PlayerCreationSettings* playerCreationSettings, JPH::PhysicsSystem* physics_system) {
 		this->settings = playerCreationSettings->playerSettings;
 		this->characterSettings = playerCreationSettings->characterSettings;
-		this->character = unique_ptr<Character>(new Character(characterSettings, playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, physics_system));
-		this->camera = unique_ptr<CharacterCamera>(new CharacterCamera(playerCreationSettings->cameraSettings));
+		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(characterSettings, playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, physics_system));
+		this->camera = std::unique_ptr<CharacterCamera>(new CharacterCamera(playerCreationSettings->cameraSettings));
 	}
 
 	Player::~Player() {
@@ -21,19 +21,19 @@ namespace physics {
 		character->RemoveFromPhysicsSystem();
 	}
 
-	void Player::handleMovement(Vec3 movementDirectionCharacter, bool isJump) {
+	void Player::handleMovement(JPH::Vec3 movementDirectionCharacter, bool isJump) {
 
 		// deltaTime is handled by the physics system
 
 		float yaw = glm::radians(camera->getYaw());
-		RMat44 rotation_matrix = RMat44::sIdentity().sRotationY(yaw);
+		JPH::RMat44 rotation_matrix = JPH::RMat44::sIdentity().sRotationY(yaw);
 
-		Vec3 movementDirectionWorld = Vec3(rotation_matrix * Vec4(movementDirectionCharacter, 1));
+		JPH::Vec3 movementDirectionWorld = JPH::Vec3(rotation_matrix * JPH::Vec4(movementDirectionCharacter, 1));
 
 		// Cancel movement in opposite direction of normal when touching something we can't walk up
-		Character::EGroundState ground_state = this->character->GetGroundState();
-		if (ground_state == Character::EGroundState::OnSteepGround || ground_state == Character::EGroundState::NotSupported) {
-			Vec3 normal = character->GetGroundNormal();
+		JPH::Character::EGroundState ground_state = this->character->GetGroundState();
+		if (ground_state == JPH::Character::EGroundState::OnSteepGround || ground_state == JPH::Character::EGroundState::NotSupported) {
+			JPH::Vec3 normal = character->GetGroundNormal();
 			normal.SetY(0.0f);
 			float dot = normal.Dot(movementDirectionWorld);
 			if (dot < 0.0f) {
@@ -44,14 +44,14 @@ namespace physics {
 		if (settings->controlMovementDuringJump || character->IsSupported()) {
 			
 			// Update velocity
-			Vec3 current_velocity = character->GetLinearVelocity();
-			Vec3 desired_velocity = settings->movementSpeed * movementDirectionWorld;
+			JPH::Vec3 current_velocity = character->GetLinearVelocity();
+			JPH::Vec3 desired_velocity = settings->movementSpeed * movementDirectionWorld;
 			desired_velocity.SetY(current_velocity.GetY());
-			Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
+			JPH::Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
 
 			// Jump - OnGround also means you have friction
-			if (isJump && ground_state == Character::EGroundState::OnGround) {
-				new_velocity += Vec3(0, std::sqrt(2 * settings->jumpHeight * characterSettings->mGravityFactor * 9.81f), 0);
+			if (isJump && ground_state == JPH::Character::EGroundState::OnGround) {
+				new_velocity += JPH::Vec3(0, std::sqrt(2 * settings->jumpHeight * characterSettings->mGravityFactor * 9.81f), 0);
 			}
 
 			// Update the velocity
@@ -78,12 +78,24 @@ namespace physics {
 
 		// Output current position and velocity of the player, player needs to be set
 		
-		RVec3 position = character->GetCenterOfMassPosition();
-		Vec3 velocity = character->GetLinearVelocity();
-		cout << "Step " << iterationStep << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
+		JPH::RVec3 position = character->GetCenterOfMassPosition();
+		JPH::Vec3 velocity = character->GetLinearVelocity();
+		std::cout << "Step " << iterationStep << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
 	}
 
-	BodyID Player::getBodyID() {
+	JPH::BodyID Player::getBodyID() {
 		return this->character->GetBodyID();
+	}
+
+	glm::mat4 Player::computeModelMatrix() const {
+		return glm::mat4(1.0);
+	}
+
+	glm::mat4 Player::computeNormalMatrix() const {
+		return glm::mat4(1.0);
+	}
+
+	glm::vec3 Player::getPosition() const {
+		return RVec3ToGLM(this->character->GetPosition());
 	}
 }
