@@ -77,7 +77,7 @@ namespace physics {
 
 	void Player::printPosition(int iterationStep) const {
 
-		// Output current position and velocity of the player, player needs to be set
+		// Output current position and velocity of the player
 		
 		JPH::RVec3 position = character->GetCenterOfMassPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();

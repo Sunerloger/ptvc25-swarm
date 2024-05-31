@@ -57,7 +57,7 @@ void CharacterCamera::setPitch(float newPitch) {
 	pitch = glm::clamp(newPitch, -89.0f, 89.0f); // Limit pitch to avoid gimbal lock
 }
 
-float CharacterCamera::getYaw() {
+float CharacterCamera::getYaw() const {
 	return yaw;
 }
 

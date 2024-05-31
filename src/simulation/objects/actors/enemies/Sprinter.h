@@ -6,7 +6,14 @@ namespace physics {
 
 	struct SprinterSettings {
 		// update per second
-		float movementSpeed = 5.0f;
+		float movementSpeed = 6.0f;
+
+		// in [0, 1], 0 = doesn't rotate, 1 = front is always facing player
+		float rotationSpeed = 0.01f;
+
+		// how much can the player not be directly in front of the enemy for it to still charge (in radians)
+		float movementAngle = 0.37f;
+
 		float maxFloorSeparationDistance = 0.05f;
 		float maxHealth = 100.0f;
 
@@ -16,6 +23,7 @@ namespace physics {
 	struct SprinterCreationSettings {
 		JPH::RVec3Arg position = JPH::RVec3::sZero();
 
+		std::unique_ptr<JPH::CharacterSettings> characterSettings;
 		std::unique_ptr<SprinterSettings> sprinterSettings;
 
 		JPH::uint64 inUserData = 0;
@@ -26,8 +34,6 @@ namespace physics {
 	class Sprinter : public Enemy {
 
 	public:
-
-		static std::unique_ptr<JPH::CharacterSettings> characterSettings;
 		
 		Sprinter(std::unique_ptr<SprinterCreationSettings> sprinterCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system);
 		virtual ~Sprinter();
@@ -42,31 +48,31 @@ namespace physics {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
 
-		// TODO needs to also set model to position in simulation
 		void postSimulation() override;
 
 		float getMaxHealth() const override;
 		float getCurrentHealth() const override;
 
-		// may destroy the object
-		void subtractHealth(float healthToSubtract) override;
+		// @return true if enemy gets destroyed
+		bool subtractHealth(float healthToSubtract) override;
 
 		void update() override;
-
-		void setViewDirection(glm::vec3 direction) override;
-		void setViewTarget(glm::vec3 target) override;
 
 		void printPosition(int iterationStep) const override;
 
 	private:
 
 		float currentHealth;
-		float yaw;
 
+		std::unique_ptr<JPH::CharacterSettings> characterSettings;
 		std::unique_ptr<SprinterSettings> sprinterSettings;
 
 		std::unique_ptr<JPH::Character> character;
 
 		std::shared_ptr<JPH::PhysicsSystem> physics_system;
+
+		float calculateTargetAngle();
+
+		JPH::RVec3 getDirectionToCharacter();
 	};
 }

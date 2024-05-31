@@ -31,7 +31,7 @@ public:
 
     const glm::vec3 getFront() const;
 
-    float getYaw();
+    float getYaw() const;
 
     void setViewDirection(glm::vec3 direction);
     void setViewTarget(glm::vec3 target);

@@ -2,18 +2,134 @@
 
 namespace physics {
 
-	// TODO
-	std::unique_ptr<JPH::CharacterSettings> Sprinter::characterSettings = std::move(std::make_unique<JPH::CharacterSettings>());
-
 	Sprinter::Sprinter(std::unique_ptr<SprinterCreationSettings> sprinterCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
-		current
+		this->sprinterSettings = std::move(sprinterCreationSettings->sprinterSettings);
+		this->characterSettings = std::move(sprinterCreationSettings->characterSettings);
+		this->physics_system = physics_system;
+		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(this->characterSettings.get(), sprinterCreationSettings->position, JPH::Quat::sIdentity(), sprinterCreationSettings->inUserData, this->physics_system.get()));
+
+		this->currentHealth = this->sprinterSettings->maxHealth;
 	}
 
 	Sprinter::~Sprinter() {
+		removePhysicsBody();
+	}
+
+	// doesn't move if the enemy doesn't approximately face the player
+	void Sprinter::update() {
+
+		// deltaTime is handled by the physics system
+
+		bool isLockedOnPlayer = false;
+
+		float targetAngle = calculateTargetAngle();
+		float currentHorizontalAngle = this->character->GetRotation().GetEulerAngles().GetY();
+
+		if (std::fabs(currentHorizontalAngle - targetAngle) <= this->sprinterSettings->movementAngle) {
+			isLockedOnPlayer = true;
+		}
+
+		if (isLockedOnPlayer) {
+			JPH::Vec3 current_velocity = character->GetLinearVelocity();
+			JPH::Vec3 desired_velocity = sprinterSettings->movementSpeed * getDirectionToCharacter();
+
+			JPH::Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
+
+			this->character->SetLinearVelocity(new_velocity);
+		}
 		
+		float t = std::clamp(this->sprinterSettings->rotationSpeed, 0.0f, 1.0f);
+		float updatedAngle = (1 - t) * currentHorizontalAngle + t * targetAngle;
+
+		JPH::RVec3Arg eulerAngles = this->character->GetRotation().GetEulerAngles();
+		eulerAngles.SetY(updatedAngle);
+
+		JPH::QuatArg quatRotation = JPH::QuatArg::sEulerAngles(eulerAngles);
+		
+		this->character->SetRotation(quatRotation);
+	}
+
+	float Sprinter::calculateTargetAngle() {
+		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
+
+		if (!sceneManager) {
+			return this->character->GetRotation().GetEulerAngles().GetY();
+		}
+
+		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
+		glm::vec3 enemyPosition = this->getPosition();
+		return std::atan2(playerPosition.z - enemyPosition.z, playerPosition.x - enemyPosition.x);
+	}
+
+	JPH::RVec3 Sprinter::getDirectionToCharacter() {
+		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
+
+		if (!sceneManager) {
+			return character->GetLinearVelocity();
+		}
+
+		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
+		glm::vec3 enemyPosition = this->getPosition();
+
+		return GLMToRVec3(glm::normalize(enemyPosition - playerPosition));
+	}
+
+	void Sprinter::addPhysicsBody() {
+		character->AddToPhysicsSystem();
+	}
+
+	void Sprinter::removePhysicsBody() {
+		character->RemoveFromPhysicsSystem();
+	}
+
+	void Sprinter::postSimulation() {
+		character->PostSimulation(sprinterSettings->maxFloorSeparationDistance);
+	}
+
+	glm::mat4 Sprinter::computeModelMatrix() const {
+		return RMat44ToGLM(character->GetWorldTransform());
+	}
+
+	glm::mat4 Sprinter::computeNormalMatrix() const {
+		return glm::transpose(glm::inverse(this->computeModelMatrix()));
+	}
+
+	bool Sprinter::subtractHealth(float healthToSubtract) {
+		this->currentHealth -= healthToSubtract;
+
+		if (this->currentHealth <= 0) {
+			this->destroyInScene();
+			return true;
+		}
+		return false;
 	}
 
 	glm::vec3 Sprinter::getPosition() const {
 		return RVec3ToGLM(this->character->GetPosition());
+	}
+
+	JPH::BodyID Sprinter::getBodyID() {
+		return this->character->GetBodyID();
+	}
+
+	void Sprinter::printPosition(int iterationStep) const {
+
+		// Output current position and velocity of the enemy
+
+		JPH::RVec3 position = character->GetCenterOfMassPosition();
+		JPH::Vec3 velocity = character->GetLinearVelocity();
+		std::cout << "Enemy (Sprinter) [" << this->id <<"] : Step " << iterationStep << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
+	}
+
+	float Sprinter::getMaxHealth() const {
+		return this->sprinterSettings->maxHealth;
+	}
+
+	float Sprinter::getCurrentHealth() const {
+		return this->currentHealth;
+	}
+
+	std::shared_ptr<vk::Model> Sprinter::getModel() const {
+		return this->sprinterSettings->model;
 	}
 }

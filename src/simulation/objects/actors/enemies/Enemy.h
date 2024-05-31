@@ -11,19 +11,16 @@ namespace physics {
 
 		virtual ~Enemy() = default;
 
-		// also sets model to position in simulation
+		// may also need to map model to physics object
 		virtual void postSimulation() = 0;
 
 		virtual float getMaxHealth() const = 0;
 		virtual float getCurrentHealth() const = 0;
 
-		// may destroy the object
-		virtual void subtractHealth(float healthToSubtract) = 0;
+		// @return true if enemy gets destroyed
+		virtual bool subtractHealth(float healthToSubtract) = 0;
 
 		virtual void update() = 0;
-
-		virtual void setViewDirection(glm::vec3 direction) = 0;
-		virtual void setViewTarget(glm::vec3 target) = 0;
 
 		virtual void printPosition(int iterationStep) const = 0;
 	};
