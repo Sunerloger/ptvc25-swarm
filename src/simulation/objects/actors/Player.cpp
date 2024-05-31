@@ -2,11 +2,12 @@
 
 namespace physics {
 
-	Player::Player(PlayerCreationSettings* playerCreationSettings, JPH::PhysicsSystem* physics_system) {
-		this->settings = playerCreationSettings->playerSettings;
-		this->characterSettings = playerCreationSettings->characterSettings;
-		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(characterSettings, playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, physics_system));
-		this->camera = std::unique_ptr<CharacterCamera>(new CharacterCamera(playerCreationSettings->cameraSettings));
+	Player::Player(std::unique_ptr<PlayerCreationSettings> playerCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
+		this->settings = std::move(playerCreationSettings->playerSettings);
+		this->characterSettings = std::move(playerCreationSettings->characterSettings);
+		this->physics_system = physics_system;
+		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(this->characterSettings.get(), playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, this->physics_system.get()));
+		this->camera = std::unique_ptr<CharacterCamera>(new CharacterCamera(std::move(playerCreationSettings->cameraSettings)));
 	}
 
 	Player::~Player() {

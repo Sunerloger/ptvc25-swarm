@@ -2,13 +2,14 @@
 
 #include <map>
 
-#include "GameObject.h"
-#include "simulation/objects/ManagedPhysicsEntity.h"
-#include "simulation/objects/actors/Player.h"
-#include "simulation/objects/actors/enemies/Enemy.h"
-#include "lighting/PointLight.h"
-#include "lighting/Sun.h"
-#include "ui/UIComponent.h"
+#include "../GameObject.h"
+#include "../simulation/objects/ManagedPhysicsEntity.h"
+#include "../simulation/objects/actors/Player.h"
+#include "../simulation/objects/actors/enemies/Enemy.h"
+#include "../lighting/PointLight.h"
+#include "../lighting/Sun.h"
+#include "../ui/UIComponent.h"
+#include "ISceneManagerInteraction.h"
 
 enum SceneClass {
 	PLAYER,
@@ -48,7 +49,7 @@ struct Scene {
 };
 
 // manages active scenes
-class SceneManager : public std::enable_shared_from_this<SceneManager> {
+class SceneManager : std::enable_shared_from_this<SceneManager>, public ISceneManagerInteraction {
 public:
 
 	SceneManager();
@@ -78,7 +79,7 @@ public:
 
 
 	// @return true if the game object could be found and deleted, does not delete player or sun
-	bool deleteGameObject(vk::id_t id);
+	bool deleteGameObject(vk::id_t id) override;
 
 	// @return true if the game object could be found and removed, does not remove player or sun
 	std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> removeGameObject(vk::id_t id);
@@ -102,7 +103,7 @@ public:
 	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
 	std::unique_ptr<std::pair<SceneClass,std::weak_ptr<vk::GameObject>>> getObject(vk::id_t id);
 
-	std::shared_ptr<physics::Player> getPlayer();
+	std::shared_ptr<physics::Player> getPlayer() override;
 
 	std::shared_ptr<lighting::Sun> getSun();
 
@@ -110,6 +111,8 @@ public:
 	bool isBroadPhaseOptimizationNeeded();
 
 	vk::id_t getIdFromBodyID(JPH::BodyID bodyID);
+
+	std::vector<std::weak_ptr<vk::GameObject>> getRenderObjects();
 
 private:
 

@@ -163,6 +163,16 @@ namespace vk {
                 movementController.handleMovement(window.getGLFWWindow(), *sceneManager->getPlayer());
                 movementController.handleRotation(window.getGLFWWindow(), deltaTime, *sceneManager->getPlayer());
 
+                // TODO handle clicking (raycast + damage)
+
+                for (std::weak_ptr<physics::Enemy> weak_enemy : sceneManager->getActiveEnemies()) {
+                    std::shared_ptr<physics::Enemy> enemy = weak_enemy.lock();
+                    if (!enemy) {
+                        continue;
+                    }
+                    enemy->update();
+                }
+
                 // TODO maybe read this in via a settings file and recalculate only if setting is changed via menu (performance, typically no dynamic window scaling during runtime in games)
                 float aspect = renderer.getAspectRatio();
                 // switch between orthographic and perspective projection
@@ -225,8 +235,8 @@ namespace vk {
     void FirstApp::loadGameObjects() {
 
         // inject scene manager into physics simulation
-        this->sceneManager = make_unique<SceneManager>();
-        this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager.get());
+        this->sceneManager = make_shared<SceneManager>();
+        this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager);
 
         bool usingTriangles = true;
         std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
@@ -245,27 +255,27 @@ namespace vk {
         float playerRadius = 0.3f;
         Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
-        CharacterCameraSettings cameraSettings = {};
-        cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
+        std::unique_ptr<CharacterCameraSettings> cameraSettings = std::make_unique<CharacterCameraSettings>();
+        cameraSettings->cameraOffsetFromCharacter = glm::vec3(0.0f, 0.8f, 0.0f);
 
-        physics::PlayerSettings playerSettings = {};
+        std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
 
-        CharacterSettings characterSettings = {};
-        characterSettings.mGravityFactor = 1.0f;
-        characterSettings.mFriction = 10.0f;
-        characterSettings.mShape = characterShape;
-        characterSettings.mLayer = Layers::MOVING;
-        characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
+        std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
+        characterSettings->mGravityFactor = 1.0f;
+        characterSettings->mFriction = 10.0f;
+        characterSettings->mShape = characterShape;
+        characterSettings->mLayer = Layers::MOVING;
+        characterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
 
-        physics::PlayerCreationSettings playerCreationSettings = {};
-        playerCreationSettings.characterSettings = &characterSettings;
-        playerCreationSettings.cameraSettings = &cameraSettings;
-        playerCreationSettings.playerSettings = &playerSettings;
+        std::unique_ptr<physics::PlayerCreationSettings> playerCreationSettings = std::make_unique<physics::PlayerCreationSettings>();
+        playerCreationSettings->characterSettings = std::move(characterSettings);
+        playerCreationSettings->cameraSettings = std::move(cameraSettings);
+        playerCreationSettings->playerSettings = std::move(playerSettings);
 
-        sceneManager->setPlayer(std::move(make_unique<physics::Player>(&playerCreationSettings, physicsSimulation->getPhysicsSystem())));
+        sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
 
         // add terrain to scene
-        sceneManager->addManagedPhysicsEntity(std::move(make_unique<physics::Terrain>(*physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 })));
+        sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 })));
  
         // add point lights
         sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 1.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f })));
@@ -273,26 +283,23 @@ namespace vk {
         sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 0.0f, 1.0f }, glm::vec3{ 2.0f, 0.0f, 0.0f })));
 
         // add ui
-        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(crossHairModel, glm::vec3(0.0f), true, false)));
-        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(blackScreenTextModel, glm::vec3{ -1.0f, -1.0f, 0.0f }, glm::vec3{ 30.0f, 30.0f, 30.0f }, false, true)));
-        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(closeTextModel, glm::vec3{ -0.9f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, false, true)));
-        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(toggleFullscreenTextModel, glm::vec3{ -0.5f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, false, true)));
-
-        glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager.get());
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(crossHairModel, true, false)));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(blackScreenTextModel, false, true, glm::vec3{ -1.0f, -1.0f, 0.0f }, glm::vec3{ 30.0f, 30.0f, 30.0f })));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(closeTextModel, false, true, glm::vec3{ -0.9f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f })));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(toggleFullscreenTextModel, false, true, glm::vec3{ -0.5f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f })));
 
         for (int i = 0; i < 5; ++i) {
-            auto gameObject4 = vk::GameObject::createGameObject();
-            gameObject4.model = humanModel;
-            gameObject4.transform.translation = {3.0f * i, 0.0f, 0.0f};
-            gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};
-            gameObject4.isEntity = std::make_unique<bool>(true);
-            gameObject4.isEnemy = std::make_unique<bool>(true);
-            // set bounding box with regard to translation
-            gameObject4.boundingBox = boundingBox;
-            gameObject4.boundingBox[0] += gameObject4.transform.translation;
-            gameObject4.boundingBox[1] += gameObject4.transform.translation;
-            gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
+
+            std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
+            sprinterSettings->model = humanModel;
+
+            std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
+            sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
+            sprinterCreationSettings->position = RVec3(3.0f * i, 0.0f, 0.0f);
+
+            sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
         }
 
+        glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager.get());
     }
 }

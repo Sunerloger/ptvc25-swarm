@@ -1,11 +1,11 @@
 #include "CharacterCamera.h"
 
-CharacterCamera::CharacterCamera(CharacterCameraSettings* cameraSettings) {
+CharacterCamera::CharacterCamera(std::unique_ptr<CharacterCameraSettings> cameraSettings) {
 
-	this->settings = cameraSettings;
+	this->settings = std::move(cameraSettings);
 
-	this->yaw = cameraSettings->initialYaw;
-	this->pitch = cameraSettings->initialPitch;
+	this->yaw = this->settings->initialYaw;
+	this->pitch = this->settings->initialPitch;
 }
 
 CharacterCamera::~CharacterCamera() {}

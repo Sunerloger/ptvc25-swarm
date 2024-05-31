@@ -2,7 +2,7 @@
 
 namespace physics {
 
-	Terrain::Terrain(PhysicsSystem& physics_system, glm::vec3 color, vk::Model* model, glm::vec3 position) : ManagedPhysicsEntity(physics_system), model(model) {
+	Terrain::Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position) : ManagedPhysicsEntity(physics_system), model(model) {
 
 		this->color = color;
 		glm::vec3 scale = glm::vec3{ 100.0, 1.0, 100.0 };
@@ -21,7 +21,7 @@ namespace physics {
 			Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING));
 
 		// create physics body
-		this->bodyID = physics_system.GetBodyInterface().CreateBody(*body_settings)->GetID();
+		this->bodyID = physics_system->GetBodyInterface().CreateBody(*body_settings)->GetID();
 	}
 
 	Terrain::~Terrain() {}
@@ -30,11 +30,11 @@ namespace physics {
 
 		// edits body if it was already added
 		// bodyID is never a nullptr here
-		physics_system.GetBodyInterface().AddBody(this->bodyID, EActivation::DontActivate);
+		physics_system->GetBodyInterface().AddBody(this->bodyID, EActivation::DontActivate);
 	}
 
 	glm::mat4 Terrain::computeModelMatrix() const {
-		BodyInterface& body_interface = this->physics_system.GetBodyInterface();
+		BodyInterface& body_interface = this->physics_system->GetBodyInterface();
 		RMat44 physicsWorldTransform = body_interface.GetWorldTransform(this->bodyID);
 		return RMat44ToGLM(physicsWorldTransform);
 	}
@@ -44,12 +44,12 @@ namespace physics {
 	}
 
 	glm::vec3 Terrain::getPosition() const {
-		BodyInterface& body_interface = this->physics_system.GetBodyInterface();
+		BodyInterface& body_interface = this->physics_system->GetBodyInterface();
 		RVec3 physics_position = body_interface.GetPosition(this->bodyID);
 		return RVec3ToGLM(physics_position);
 	}
 
-	vk::Model* Terrain::getModel() const {
+	std::shared_ptr<vk::Model> Terrain::getModel() const {
 		return this->model;
 	}
 

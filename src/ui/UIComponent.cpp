@@ -1,7 +1,7 @@
 #include "UIComponent.h"
 
 namespace vk {
-	UIComponent::UIComponent(Model* model, glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, bool isDrawLines, bool isEscapeMenu, glm::vec3 color) : model(model), 
+	UIComponent::UIComponent(std::shared_ptr<Model> model, bool isDrawLines, bool isEscapeMenu, glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, glm::vec3 color) : model(model),
 		position(position), scale(scale), rotation(rotation), isDrawLines(isDrawLines), isEscapeMenu(isEscapeMenu) {
 		this->color = color;
 	}
@@ -33,7 +33,7 @@ namespace vk {
 		return this->scale;
 	}
 
-	Model* UIComponent::getModel() const {
+	std::shared_ptr<Model> UIComponent::getModel() const {
 		return this->model;
 	}
 }

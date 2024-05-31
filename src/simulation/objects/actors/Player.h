@@ -28,10 +28,10 @@ namespace physics {
 		// this only rotates the physics-body
 		JPH::QuatArg rotation = JPH::Quat::sIdentity();
 
-		PlayerSettings* playerSettings;
-		CharacterCameraSettings* cameraSettings;
+		std::unique_ptr<PlayerSettings> playerSettings;
+		std::unique_ptr<CharacterCameraSettings> cameraSettings;
 
-		JPH::CharacterSettings* characterSettings;
+		std::unique_ptr<JPH::CharacterSettings> characterSettings;
 
 		JPH::uint64 inUserData = 0;
 	};
@@ -40,7 +40,7 @@ namespace physics {
 
 	public:
 
-		Player(PlayerCreationSettings* playerSettings, JPH::PhysicsSystem* physics_system);
+		Player(std::unique_ptr<PlayerCreationSettings> playerSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system);
 		virtual ~Player();
 
 		void addPhysicsBody() override;
@@ -71,17 +71,19 @@ namespace physics {
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
-		vk::Model* getModel() const override { return nullptr; }
+		std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
 
 	private:
 
 		float maxHealth = 100.0f;
 		float currentHealth = 100.0f;
 
-		PlayerSettings* settings;
-		JPH::CharacterSettings* characterSettings;
+		std::unique_ptr<PlayerSettings> settings;
+		std::unique_ptr<JPH::CharacterSettings> characterSettings;
 
 		std::unique_ptr<CharacterCamera> camera;
 		std::unique_ptr<JPH::Character> character;
+
+		std::shared_ptr<JPH::PhysicsSystem> physics_system;
 	};
 }

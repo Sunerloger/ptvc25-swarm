@@ -8,7 +8,7 @@
 #include "vk_window.h"
 #include "vk_descriptors.h"
 
-#include "SceneManager.h"
+#include "scene/SceneManager.h"
 
 #include "vk_buffer.h"
 #include "systems/simple_render_system.h"
@@ -25,6 +25,7 @@
 #include "simulation/objects/actors/Player.h"
 #include "simulation/PhysicsSimulation.h"
 #include "simulation/objects/static/Terrain.h"
+#include "simulation/objects/actors/enemies/Sprinter.h"
 
 #include "ui/UIComponent.h"
 
@@ -32,13 +33,6 @@
 #include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
-
-#include <memory>
-#include <vector>
-#include <array>
-#include <iostream>
-#include <chrono>
-#include <numeric>
 
 namespace vk {
     class FirstApp {
@@ -67,6 +61,6 @@ namespace vk {
 
         std::unique_ptr<physics::PhysicsSimulation> physicsSimulation;
 
-        unique_ptr<SceneManager> sceneManager;
+        std::shared_ptr<SceneManager> sceneManager;
     }
 ;}

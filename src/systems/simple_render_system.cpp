@@ -83,19 +83,17 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-           if(obj.isEntity == nullptr) {
+        for (std::weak_ptr<GameObject> weak_gameObject : frameInfo.sceneManager.getRenderObjects()) {
+
+            std::shared_ptr<GameObject> gameObject = weak_gameObject.lock();
+
+            if (!gameObject) {
                 continue;
-           }
-
-            //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
-            //obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());
-
+            }
 
             SimplePushConstantData push{};
-            push.modelMatrix = obj.transform.mat4();
-            push.normalMatrix = obj.transform.normalMatrix();
+            push.modelMatrix = gameObject->computeModelMatrix();
+            push.normalMatrix = gameObject->computeNormalMatrix();
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
@@ -105,24 +103,8 @@ namespace vk {
                     sizeof(SimplePushConstantData),
                     &push
             );
-            obj.model->bind(frameInfo.commandBuffer);
-            obj.model->draw(frameInfo.commandBuffer);
-        }
-    }
-
-    void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo) {
-        //move objects towards camera position
-        //also rotate objects to look towards camera
-        for (auto& enemy : frameInfo.sceneManager.getActiveEnemies()) {
-            
-            auto cameraPosition = frameInfo.sceneManager.getPlayer()->getCameraPosition();
-            auto direction = glm::normalize(cameraPosition - enemy.transform.translation);
-            enemy.transform.translation += direction * 0.01f;
-            enemy.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
-            enemy.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
-            //rotate bounding box by the same amount
-
-            // TODO write method in enemy for this (different enemy behaviour) and update in simulation step
+            gameObject->getModel()->bind(frameInfo.commandBuffer);
+            gameObject->getModel()->draw(frameInfo.commandBuffer);
         }
     }
 }

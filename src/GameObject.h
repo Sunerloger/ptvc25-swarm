@@ -1,13 +1,12 @@
 #pragma once
 
 #include "vk_model.h"
+#include "scene/ISceneManagerInteraction.h"
 
 #include <functional>
 
 namespace vk {
 
-	using id_t = unsigned int;
-	using DestroyCallback = std::function<bool(id_t)>;
 	constexpr id_t INVALID_OBJECT_ID = 0;
 
 	class GameObject {
@@ -35,10 +34,14 @@ namespace vk {
 		virtual glm::vec3 getPosition() const = 0;
 
 		// returns a nullptr if object has no model (e.g. light)
-		virtual Model* getModel() const = 0;
+		virtual std::shared_ptr<Model> getModel() const = 0;
 
-		void setDestroyCallback(DestroyCallback callback) {
-			destroyCallback = callback;
+		void setSceneManager(std::weak_ptr<ISceneManagerInteraction> sceneManager) {
+			sceneManagerInteraction = sceneManager;
+		}
+
+		void deleteSceneManager() {
+			sceneManagerInteraction.reset();
 		}
 
 		/**
@@ -49,9 +52,9 @@ namespace vk {
 		* @return true if a deletion in the scene manager happened
 		* @return false otherwise (e.g. object not in scene manager)
 		*/
-		bool destroy() {
-			if (destroyCallback) {
-				return destroyCallback(id);
+		bool destroyInScene() {
+			if (auto sceneManager = sceneManagerInteraction.lock()) {
+				return sceneManager->deleteGameObject(id);
 			}
 			return false;
 		}
@@ -64,6 +67,6 @@ namespace vk {
 
 		const id_t id;
 
-		DestroyCallback destroyCallback;
+		std::weak_ptr<ISceneManagerInteraction> sceneManagerInteraction;
 	};
 }

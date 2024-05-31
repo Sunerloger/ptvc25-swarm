@@ -10,8 +10,8 @@ namespace vk {
 
     public:
 
-        UIComponent(Model* model, glm::vec3 position, glm::vec3 scale = glm::vec3(1.0f), glm::vec3 rotation = glm::vec3(0.0f), bool isDrawLines = false, bool isEscapeMenu = false, 
-            glm::vec3 color = glm::vec3(0.0f));
+        UIComponent(std::shared_ptr<Model> model, bool isDrawLines = false, bool isEscapeMenu = false, glm::vec3 position = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f),
+            glm::vec3 rotation = glm::vec3(0.0f), glm::vec3 color = glm::vec3(0.0f));
         virtual ~UIComponent() = default;
 
         glm::mat4 computeModelMatrix() const override;
@@ -20,7 +20,7 @@ namespace vk {
 
         glm::vec3 getPosition() const override;
 
-        Model* getModel() const override;
+        std::shared_ptr<Model> getModel() const override;
 
         glm::vec3 getScale() const;
 
@@ -30,7 +30,7 @@ namespace vk {
 
     private:
 
-        Model* model;
+        std::shared_ptr<Model> model;
 
         glm::vec3 position;
         glm::vec3 scale;

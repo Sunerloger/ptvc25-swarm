@@ -7,7 +7,7 @@
 #include "GameObject.h"
 
 #include "vulkan/vulkan.h"
-#include "SceneManager.h"
+#include "scene/SceneManager.h"
 
 namespace vk {
 
@@ -33,6 +33,8 @@ namespace vk {
         VkCommandBuffer commandBuffer;
         VkDescriptorSet globalDescriptorSet;
         SceneManager& sceneManager;
+        // TODO use this for debug rendering with jolt debug renderer (implement DebugRenderer.h)
+        bool isDebugPhysics = false;
     };
 }
 

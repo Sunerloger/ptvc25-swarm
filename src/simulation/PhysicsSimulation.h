@@ -15,7 +15,7 @@
 #include <thread>
 #include <map>
 
-#include "../SceneManager.h"
+#include "../scene/SceneManager.h"
 #include "objects/ManagedPhysicsEntity.h"
 #include "objects/actors/Player.h"
 
@@ -36,10 +36,10 @@ using namespace JPH::literals;
 namespace physics {
 	class PhysicsSimulation {
 	public:
-		PhysicsSimulation(SceneManager* sceneManager);
+		PhysicsSimulation(std::weak_ptr<SceneManager> sceneManager);
 		virtual ~PhysicsSimulation();
 
-		PhysicsSystem* getPhysicsSystem();
+		std::shared_ptr<PhysicsSystem> getPhysicsSystem();
 
 		void simulate();
 
@@ -108,6 +108,6 @@ namespace physics {
 
 		uint step = 0;
 
-		SceneManager* sceneManager = nullptr;
+		std::weak_ptr<SceneManager> weak_sceneManager;
 	};
 }

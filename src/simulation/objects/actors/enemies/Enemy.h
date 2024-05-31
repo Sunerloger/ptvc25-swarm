@@ -20,7 +20,7 @@ namespace physics {
 		// may destroy the object
 		virtual void subtractHealth(float healthToSubtract) = 0;
 
-		virtual void update(std::weak_ptr<physics::Player> player) = 0;
+		virtual void update() = 0;
 
 		virtual void setViewDirection(glm::vec3 direction) = 0;
 		virtual void setViewTarget(glm::vec3 target) = 0;

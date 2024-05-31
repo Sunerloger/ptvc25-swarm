@@ -20,7 +20,7 @@ namespace physics {
 
 	public:
 
-		Terrain(PhysicsSystem& physics_system, glm::vec3 color, vk::Model* model, glm::vec3 position);
+		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position);
 		virtual ~Terrain();
 
 		void addPhysicsBody() override;
@@ -29,11 +29,11 @@ namespace physics {
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
-		vk::Model* getModel() const override;
+		std::shared_ptr<vk::Model> getModel() const override;
 
 	private:
 
-		vk::Model* model;
+		std::shared_ptr<vk::Model> model;
 
 		std::unique_ptr<BodyCreationSettings> body_settings;
 	};

@@ -2,7 +2,7 @@
 
 namespace physics {
 
-    PhysicsSimulation::PhysicsSimulation(SceneManager* sceneManager) : cPhysicsDeltaTime(1.0f / 60.0f), sceneManager(sceneManager) {
+    PhysicsSimulation::PhysicsSimulation(std::weak_ptr<SceneManager> sceneManager) : cPhysicsDeltaTime(1.0f / 60.0f), weak_sceneManager(sceneManager) {
 
         // Register allocation hook. Here just malloc / free (overrideable, see Memory.h).
         RegisterDefaultAllocator();
@@ -54,14 +54,16 @@ namespace physics {
         Factory::sInstance = nullptr;
     }
 
-    PhysicsSystem* PhysicsSimulation::getPhysicsSystem() {
-        return physics_system.get();
+    std::shared_ptr<PhysicsSystem> PhysicsSimulation::getPhysicsSystem() {
+        return physics_system;
     }
 
     void PhysicsSimulation::simulate() {
 
+        std::shared_ptr<SceneManager> sceneManager = weak_sceneManager.lock();
+
         // nothing to simulate
-        if (sceneManager == nullptr) {
+        if (!sceneManager) {
             return;
         }
 
