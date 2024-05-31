@@ -200,7 +200,7 @@ JPH::RVec3 GLMToRVec3(const glm::vec3& glmVec) {
     return JPH::RVec3(glmVec.x, glmVec.y, glmVec.z);
 }
 
-// TODO remove / restructure helper methods and classes in this file
+// TODO this file should be multiple files / classes
 
 // TODO layers for bullets, weapons, raycasting
 // TODO Override the MyShapeSettings::Create function to construct an instance of MyShape

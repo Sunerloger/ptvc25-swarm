@@ -2,17 +2,12 @@
 
 #include "vk_model.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <memory>
-#include <unordered_map>
-
 #include <functional>
 
 namespace vk {
 
 	using id_t = unsigned int;
-	using RemovalCallback = std::function<void(id_t)>;
+	using DestroyCallback = std::function<bool(id_t)>;
 	constexpr id_t INVALID_OBJECT_ID = 0;
 
 	class GameObject {
@@ -23,11 +18,8 @@ namespace vk {
 
 	public:
 
-		virtual ~GameObject() noexcept {
-			if (removalCallback) {
-				removalCallback(id);
-			}
-		}
+		// only destroy object through scene manager if registered in scene manager or through method destroy
+		virtual ~GameObject() = default;
 
 		GameObject(const GameObject&) = delete;
 		GameObject& operator=(const GameObject&) = delete;
@@ -45,8 +37,23 @@ namespace vk {
 		// returns a nullptr if object has no model (e.g. light)
 		virtual Model* getModel() const = 0;
 
-		void setRemovalCallback(RemovalCallback callback) {
-			removalCallback = callback;
+		void setDestroyCallback(DestroyCallback callback) {
+			destroyCallback = callback;
+		}
+
+		/**
+		* The object is destroyed in the scene manager - it could still be alive if shared pointers still point to it in other places.
+		* Be sure that the shared pointer that calls this method falls out of scope or is resetted,
+		* otherwise e.g. physics related objects are not removed from the simulation.
+		* Doesn't destroy player or sun.
+		* @return true if a deletion in the scene manager happened
+		* @return false otherwise (e.g. object not in scene manager)
+		*/
+		bool destroy() {
+			if (destroyCallback) {
+				return destroyCallback(id);
+			}
+			return false;
 		}
 
 		glm::vec3 color{};
@@ -57,6 +64,6 @@ namespace vk {
 
 		const id_t id;
 
-		RemovalCallback removalCallback;
+		DestroyCallback destroyCallback;
 	};
 }

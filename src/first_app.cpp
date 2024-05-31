@@ -187,7 +187,6 @@ namespace vk {
                     ubo.inverseView = glm::inverse(ubo.view);
                     ubo.aspectRatio = aspect;
                     pointLightSystem.update(frameInfo, ubo);
-                    simpleRenderSystem.update(frameInfo, ubo);
                     uboBuffers[frameIndex]->writeToBuffer(&ubo);
                     uboBuffers[frameIndex]->flush();
 

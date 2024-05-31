@@ -80,16 +80,20 @@ namespace vk {
                 frameInfo.frameTime,
                 {0.0f, -1.f, 0.f});
         int lightIndex = 0;
-        for (std::shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
+        for (std::weak_ptr<lighting::PointLight> weak_light : frameInfo.sceneManager.getLights()) {
 
-            assert(lightIndex < MAX_LIGHTS && "Too many lights in the scene");
+            std::shared_ptr<lighting::PointLight> light;
+            if (light = weak_light.lock()) {
 
-            // update light positions
-            light->setPosition(glm::vec3(rotateLight * glm::vec4(light->getPosition(), 1.0f)));
+                assert(lightIndex < MAX_LIGHTS && "Too many lights in the scene");
 
-            ubo.pointLights[lightIndex].position = glm::vec4(light->getPosition(), 1.0f);
-            ubo.pointLights[lightIndex].color = glm::vec4(light->color, light->getIntensity());
-            lightIndex += 1;
+                // update light positions
+                light->setPosition(glm::vec3(rotateLight * glm::vec4(light->getPosition(), 1.0f)));
+
+                ubo.pointLights[lightIndex].position = glm::vec4(light->getPosition(), 1.0f);
+                ubo.pointLights[lightIndex].color = glm::vec4(light->color, light->getIntensity());
+                lightIndex += 1;
+            }
         }
         ubo.numLights = lightIndex;
     }
@@ -107,20 +111,23 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (std::shared_ptr<lighting::PointLight> light: frameInfo.sceneManager.getLights()) {
+        for (std::weak_ptr<lighting::PointLight> weak_light: frameInfo.sceneManager.getLights()) {
 
-            PointLightPushConstants push{};
-            push.position = glm::vec4(light->getPosition(), 1.0f);
-            push.color = glm::vec4(light->color, light->getIntensity());
-            push.radius = light->getRadius();
+            std::shared_ptr<lighting::PointLight> light;
+            if (light = weak_light.lock()) {
+                PointLightPushConstants push{};
+                push.position = glm::vec4(light->getPosition(), 1.0f);
+                push.color = glm::vec4(light->color, light->getIntensity());
+                push.radius = light->getRadius();
 
-            vkCmdPushConstants(frameInfo.commandBuffer,
-                               pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                               0,
-                               sizeof(PointLightPushConstants),
-                               &push);
-            vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
+                vkCmdPushConstants(frameInfo.commandBuffer,
+                    pipelineLayout,
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    0,
+                    sizeof(PointLightPushConstants),
+                    &push);
+                vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
+            }
         }
     }
 }

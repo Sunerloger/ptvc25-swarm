@@ -74,17 +74,22 @@ namespace physics {
             physics_system->OptimizeBroadPhase();
         }
 
-        sceneManager->getPlayer()->printPosition(step);
+        shared_ptr<Player> player = sceneManager->getPlayer();
+
+        player->printPosition(step);
 
         // Step the world
         physics_system->Update(cPhysicsDeltaTime, cCollisionSteps, temp_allocator.get(), job_system.get());
 
         sceneManager->getPlayer()->postSimulation();
 
-        const vector<shared_ptr<Enemy>> enemies = sceneManager->getActiveEnemies();
-        for (auto& enemy : enemies)
+        const vector<weak_ptr<Enemy>> enemies = sceneManager->getActiveEnemies();
+        for (auto& weak_enemy : enemies)
         {
-            enemy->postSimulation();
+            shared_ptr<Enemy> enemy = weak_enemy.lock();
+            if (enemy) {
+                enemy->postSimulation();
+            }
         }
     }
 }

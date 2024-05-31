@@ -1,5 +1,7 @@
 #include "PointLight.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 namespace lighting {
 	
 	PointLight::PointLight(float intensity, float radius, glm::vec3 color, glm::vec3 position) : lightIntensity(intensity), radius(radius), position(position) {

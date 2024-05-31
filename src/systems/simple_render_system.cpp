@@ -113,16 +113,13 @@ namespace vk {
     void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo) {
         //move objects towards camera position
         //also rotate objects to look towards camera
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.isEnemy == nullptr) {
-                continue;
-            }
+        for (auto& enemy : frameInfo.sceneManager.getActiveEnemies()) {
+            
             auto cameraPosition = frameInfo.sceneManager.getPlayer()->getCameraPosition();
-            auto direction = glm::normalize(cameraPosition - obj.transform.translation);
-            obj.transform.translation += direction * 0.01f;
-            obj.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
-            obj.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
+            auto direction = glm::normalize(cameraPosition - enemy.transform.translation);
+            enemy.transform.translation += direction * 0.01f;
+            enemy.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
+            enemy.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
             //rotate bounding box by the same amount
 
             // TODO write method in enemy for this (different enemy behaviour) and update in simulation step
