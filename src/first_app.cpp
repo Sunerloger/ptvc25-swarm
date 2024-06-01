@@ -279,9 +279,9 @@ namespace vk {
         sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 }, glm::vec3{ 50.0f, 1.0f, 50.0f })));
  
         // add point lights
-        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 1.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f })));
-        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 1.0f, 0.0f, 0.0f })));
-        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 0.0f, 1.0f }, glm::vec3{ 2.0f, 0.0f, 0.0f })));
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 1.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f })));
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 1.0f, 1.0f, 0.0f })));
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 0.0f, 1.0f }, glm::vec3{ 2.0f, 1.0f, 0.0f })));
 
         // add ui
         sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(crossHairModel, true, false)));

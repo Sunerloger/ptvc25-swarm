@@ -54,4 +54,6 @@ private:
 
     void setYaw(float yaw);
     void setPitch(float pitch);
+
+    glm::mat4 getVulkanAxisInversionMatrix();
 };
