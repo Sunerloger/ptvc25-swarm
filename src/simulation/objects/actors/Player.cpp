@@ -83,7 +83,7 @@ namespace physics {
 		
 		JPH::RVec3 position = character->GetCenterOfMassPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Step " << iterationStep << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
+		std::cout << "Player : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
 	}
 
 	JPH::BodyID Player::getBodyID() {

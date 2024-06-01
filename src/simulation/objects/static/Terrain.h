@@ -21,7 +21,7 @@ namespace physics {
 
 	public:
 
-		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position);
+		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale = {1.0f, 1.0f, 1.0f});
 		virtual ~Terrain();
 
 		void addPhysicsBody() override;
@@ -35,6 +35,8 @@ namespace physics {
 	private:
 
 		std::shared_ptr<vk::Model> model;
+
+		glm::vec3 scale;
 
 		std::unique_ptr<BodyCreationSettings> body_settings;
 	};

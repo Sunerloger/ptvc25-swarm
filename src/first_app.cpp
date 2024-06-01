@@ -276,7 +276,7 @@ namespace vk {
         sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
 
         // add terrain to scene
-        sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 })));
+        sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 }, glm::vec3{ 50.0f, 1.0f, 50.0f })));
  
         // add point lights
         sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 1.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f })));
@@ -311,7 +311,7 @@ namespace vk {
             std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
             sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
             sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
-            sprinterCreationSettings->position = RVec3(3.0f * i, 0.0f, 0.0f);
+            sprinterCreationSettings->position = RVec3(3.0f * i, 3.0f, 0.0f);
 
             sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
         }

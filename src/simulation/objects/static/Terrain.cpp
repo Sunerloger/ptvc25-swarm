@@ -2,15 +2,18 @@
 
 namespace physics {
 
-	Terrain::Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position) : ManagedPhysicsEntity(physics_system), model(model) {
+	Terrain::Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale) : ManagedPhysicsEntity(physics_system), model(model) {
 
 		this->color = color;
-		glm::vec3 scale = glm::vec3{ 100.0, 1.0, 100.0 };
+		this->scale = scale;
+
+		// model is 2x2, but box takes in halfEdgeLength
+		glm::vec3 physicsScale = scale * glm::vec3{ 1.0, 0.5, 1.0 };
 
 		// We can create a rigid body to serve as the floor, we make a large box
 		// Create the settings for the collision volume (the shape).
 		// Note that for simple shapes (like boxes) you can also directly construct a BoxShape.
-		BoxShapeSettings floor_shape_settings(GLMToRVec3(scale));
+		BoxShapeSettings floor_shape_settings(GLMToRVec3(physicsScale));
 
 		// Create the shape
 		ShapeSettings::ShapeResult floor_shape_result = floor_shape_settings.Create();
@@ -36,6 +39,7 @@ namespace physics {
 	glm::mat4 Terrain::computeModelMatrix() const {
 		BodyInterface& body_interface = this->physics_system->GetBodyInterface();
 		RMat44 physicsWorldTransform = body_interface.GetWorldTransform(this->bodyID);
+		physicsWorldTransform = physicsWorldTransform.PreScaled(GLMToRVec3(this->scale));
 		return RMat44ToGLM(physicsWorldTransform);
 	}
 

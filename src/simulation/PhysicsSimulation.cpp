@@ -90,6 +90,7 @@ namespace physics {
         {
             shared_ptr<Enemy> enemy = weak_enemy.lock();
             if (enemy) {
+                enemy->printPosition(step);
                 enemy->postSimulation();
             }
         }

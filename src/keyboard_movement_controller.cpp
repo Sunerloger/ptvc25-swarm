@@ -50,7 +50,7 @@ namespace vk {
 
         movementDirection = movementDirection.NormalizedOr(JPH::Vec3{ 0,0,0 });
 
-        bool isJump = glfwGetKey(window, keys.moveForward) == GLFW_PRESS;
+        bool isJump = glfwGetKey(window, keys.jump) == GLFW_PRESS;
 
         // only update if something happened
         if (movementDirection != JPH::Vec3{ 0,0,0 } || isJump) {

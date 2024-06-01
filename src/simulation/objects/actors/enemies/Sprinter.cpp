@@ -129,7 +129,7 @@ namespace physics {
 
 		JPH::RVec3 position = character->GetCenterOfMassPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Enemy (Sprinter) [" << this->id <<"] : Step " << iterationStep << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
+		std::cout << "Enemy (Sprinter) [" << this->id <<"] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
 	}
 
 	float Sprinter::getMaxHealth() const {

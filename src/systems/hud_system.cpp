@@ -100,6 +100,11 @@ namespace vk {
                 continue;
             }
 
+            // TODO unite hud systems
+            if (uiElement->isDrawLines) {
+                continue;
+            }
+
             // escape menu only gets drawn if open
             if(!escapeMenuOpen && uiElement->isEscapeMenu) {
                 continue;
