@@ -49,7 +49,7 @@ struct Scene {
 };
 
 // manages active scenes
-class SceneManager : std::enable_shared_from_this<SceneManager>, public ISceneManagerInteraction {
+class SceneManager : public std::enable_shared_from_this<SceneManager>, public ISceneManagerInteraction {
 public:
 
 	SceneManager();

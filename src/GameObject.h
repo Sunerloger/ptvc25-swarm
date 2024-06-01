@@ -25,7 +25,7 @@ namespace vk {
 		GameObject(GameObject&&) = default;
 		GameObject& operator=(GameObject&&) = default;
 
-		id_t getId() const { return id; }
+		inline id_t getId() const { return id; }
 
 		virtual glm::mat4 computeModelMatrix() const = 0;
 
@@ -36,11 +36,11 @@ namespace vk {
 		// returns a nullptr if object has no model (e.g. light)
 		virtual std::shared_ptr<Model> getModel() const = 0;
 
-		void setSceneManager(std::weak_ptr<ISceneManagerInteraction> sceneManager) {
+		inline void setSceneManager(std::weak_ptr<ISceneManagerInteraction> sceneManager) {
 			sceneManagerInteraction = sceneManager;
 		}
 
-		void deleteSceneManager() {
+		inline void deleteSceneManager() {
 			sceneManagerInteraction.reset();
 		}
 
@@ -52,7 +52,7 @@ namespace vk {
 		* @return true if a deletion in the scene manager happened
 		* @return false otherwise (e.g. object not in scene manager)
 		*/
-		bool destroyInScene() {
+		inline bool destroyInScene() {
 			if (auto sceneManager = sceneManagerInteraction.lock()) {
 				return sceneManager->deleteGameObject(id);
 			}

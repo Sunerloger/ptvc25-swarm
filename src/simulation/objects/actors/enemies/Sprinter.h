@@ -27,8 +27,6 @@ namespace physics {
 		std::unique_ptr<SprinterSettings> sprinterSettings;
 
 		JPH::uint64 inUserData = 0;
-
-		float yaw = 0;
 	};
 
 	class Sprinter : public Enemy {

@@ -1,5 +1,7 @@
 #include "Sprinter.h"
 
+#include <iostream>
+
 namespace physics {
 
 	Sprinter::Sprinter(std::unique_ptr<SprinterCreationSettings> sprinterCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
@@ -30,18 +32,19 @@ namespace physics {
 		}
 
 		if (isLockedOnPlayer) {
-			JPH::Vec3 current_velocity = character->GetLinearVelocity();
-			JPH::Vec3 desired_velocity = sprinterSettings->movementSpeed * getDirectionToCharacter();
+			JPH::Vec3 currentVelocity = character->GetLinearVelocity();
+			JPH::Vec3 directionToCharacter = getDirectionToCharacter();
+			JPH::Vec3 desiredVelocity = sprinterSettings->movementSpeed * directionToCharacter;
 
-			JPH::Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
+			JPH::Vec3 newVelocity = 0.75f * currentVelocity + 0.25f * desiredVelocity;
 
-			this->character->SetLinearVelocity(new_velocity);
+			this->character->SetLinearVelocity(newVelocity);
 		}
 		
 		float t = std::clamp(this->sprinterSettings->rotationSpeed, 0.0f, 1.0f);
 		float updatedAngle = (1 - t) * currentHorizontalAngle + t * targetAngle;
 
-		JPH::RVec3Arg eulerAngles = this->character->GetRotation().GetEulerAngles();
+		JPH::Vec3Arg eulerAngles = this->character->GetRotation().GetEulerAngles();
 		eulerAngles.SetY(updatedAngle);
 
 		JPH::QuatArg quatRotation = JPH::QuatArg::sEulerAngles(eulerAngles);
@@ -61,17 +64,25 @@ namespace physics {
 		return std::atan2(playerPosition.z - enemyPosition.z, playerPosition.x - enemyPosition.x);
 	}
 
-	JPH::RVec3 Sprinter::getDirectionToCharacter() {
+	JPH::Vec3 Sprinter::getDirectionToCharacter() {
 		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
 
 		if (!sceneManager) {
-			return character->GetLinearVelocity();
+			return JPH::Vec3::sZero();
 		}
 
 		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
 
-		return GLMToRVec3(glm::normalize(enemyPosition - playerPosition));
+		glm::vec3 direction = enemyPosition - playerPosition;
+
+		if (glm::length(direction) <= 0.001) {
+			return JPH::Vec3::sZero();
+		}
+
+		JPH::Vec3 returnValue = GLMToRVec3(direction).Normalized();
+
+		return returnValue;
 	}
 
 	void Sprinter::addPhysicsBody() {

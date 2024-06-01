@@ -8,7 +8,7 @@
 #include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
-#include "../../PhysicsUtils.h"
+#include "../../PhysicsConversions.h"
 
 namespace physics {
 
@@ -52,26 +52,26 @@ namespace physics {
 		void handleRotation(float deltaYaw, float deltaPitch, float deltaTime);
 
 		const glm::vec3 getCameraPosition() const;
-		const glm::mat4 calculateViewMat() const { return camera->calculateViewMat(); }
-		const glm::mat4 getProjMat() const { return camera->getProjMat(); }
-		const glm::vec3 getFront() const { return camera->getFront(); }
+		inline const glm::mat4 calculateViewMat() const { return camera->calculateViewMat(); }
+		inline const glm::mat4 getProjMat() const { return camera->getProjMat(); }
+		inline const glm::vec3 getFront() const { return camera->getFront(); }
 
 		void printPosition(int iterationStep) const;
 
 		JPH::BodyID getBodyID() override;
 
-		void setViewDirection(glm::vec3 direction) { camera->setViewDirection(direction); }
-		void setViewTarget(glm::vec3 target) { camera->setViewTarget(target); }
+		inline void setViewDirection(glm::vec3 direction) { camera->setViewDirection(direction); }
+		inline void setViewTarget(glm::vec3 target) { camera->setViewTarget(target); }
 
-		void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) { 
+		inline void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) { 
 			camera->setOrthographicProjection(left, right, top, bottom, near, far); }
-		void setPerspectiveProjection(float fov, float aspect, float near, float far) { 
+		inline void setPerspectiveProjection(float fov, float aspect, float near, float far) { 
 			camera->setPerspectiveProjection(fov, aspect, near, far); }
 
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
-		std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
+		inline std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
 
 	private:
 

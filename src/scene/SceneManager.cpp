@@ -4,12 +4,14 @@ SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
 vk::id_t SceneManager::setPlayer(std::unique_ptr<physics::Player> newPlayer) {
 
-	this->idToClass.erase(this->scene->player->getId());
-	this->bodyIDToObjectId.erase(this->scene->player->getBodyID());
+	if (this->scene->player) {
+		this->idToClass.erase(this->scene->player->getId());
+		this->bodyIDToObjectId.erase(this->scene->player->getBodyID());
+	}
 
 	scene->player = std::move(newPlayer);
 
-	this->idToClass.emplace(this->scene->player->getId(), PLAYER);
+ 	this->idToClass.emplace(this->scene->player->getId(), PLAYER);
 	this->bodyIDToObjectId.emplace(this->scene->player->getBodyID(), this->scene->player->getId());
 
 	std::weak_ptr<SceneManager> weakThis = shared_from_this();

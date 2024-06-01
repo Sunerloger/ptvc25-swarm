@@ -39,8 +39,6 @@ namespace vk {
 
         void handleEscMenu(GLFWwindow* window);
 
-        void handleClicking(GLFWwindow* window, float deltaTime, FrameInfo& frameInfo);
-
         bool escapeMenuOpen = false;
     private:
         KeyMappings keys{};

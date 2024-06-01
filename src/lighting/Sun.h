@@ -13,7 +13,7 @@ namespace lighting {
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
-		std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
+		inline std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
 
 		glm::vec3 getDirection() const;
 

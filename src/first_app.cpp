@@ -163,8 +163,6 @@ namespace vk {
                 movementController.handleMovement(window.getGLFWWindow(), *sceneManager->getPlayer());
                 movementController.handleRotation(window.getGLFWWindow(), deltaTime, *sceneManager->getPlayer());
 
-                // TODO handle clicking (raycast + damage)
-
                 for (std::weak_ptr<physics::Enemy> weak_enemy : sceneManager->getActiveEnemies()) {
                     std::shared_ptr<physics::Enemy> enemy = weak_enemy.lock();
                     if (!enemy) {
@@ -189,7 +187,10 @@ namespace vk {
                                         commandBuffer,
                                         globalDescriptorSets[frameIndex],
                                         *sceneManager};
-                    movementController.handleClicking(window.getGLFWWindow(), deltaTime, frameInfo);
+
+                    // TODO handle clicking (raycast + damage)
+                    // movementController.handleClicking(window.getGLFWWindow(), deltaTime, frameInfo);
+
                     //update
                     GlobalUbo ubo{};
                     ubo.projection = sceneManager->getPlayer()->getProjMat();
@@ -288,13 +289,28 @@ namespace vk {
         sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(closeTextModel, false, true, glm::vec3{ -0.9f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f })));
         sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(toggleFullscreenTextModel, false, true, glm::vec3{ -0.5f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f })));
 
+        // this must fit the model
+        float enemyHullHeight = 1.25f;
+        float enemyRadius = 0.3f;
+
+        JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
+
         for (int i = 0; i < 5; ++i) {
+
+            Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
 
             std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
             sprinterSettings->model = humanModel;
 
+            std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
+            enemyCharacterSettings->mLayer = Layers::MOVING;
+            enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius); // Accept contacts that touch the lower sphere of the capsule
+            enemyCharacterSettings->mFriction = 10.0f;
+            enemyCharacterSettings->mShape = enemyShape;
+
             std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
             sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
+            sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
             sprinterCreationSettings->position = RVec3(3.0f * i, 0.0f, 0.0f);
 
             sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));

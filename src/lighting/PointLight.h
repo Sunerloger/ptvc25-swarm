@@ -15,7 +15,7 @@ namespace lighting {
 		glm::mat4 computeNormalMatrix() const override;
 
 		glm::vec3 getPosition() const override;
-		std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
+		inline std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
 
 		float getIntensity() const;
 		float getRadius() const;

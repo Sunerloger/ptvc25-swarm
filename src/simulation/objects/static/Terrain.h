@@ -8,6 +8,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 
+#include "../../PhysicsConversions.h"
 #include "../../PhysicsUtils.h"
 
 using namespace JPH;

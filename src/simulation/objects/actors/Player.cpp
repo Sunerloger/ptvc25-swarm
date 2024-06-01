@@ -1,5 +1,7 @@
 #include "Player.h"
 
+#include <iostream>
+
 namespace physics {
 
 	Player::Player(std::unique_ptr<PlayerCreationSettings> playerCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
