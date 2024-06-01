@@ -41,6 +41,7 @@ namespace physics {
 			this->character->SetLinearVelocity(newVelocity);
 		}
 		
+		// TODO correct agle wrap around
 		float t = std::clamp(this->sprinterSettings->rotationSpeed, 0.0f, 1.0f);
 		float updatedAngle = (1 - t) * currentHorizontalAngle + t * targetAngle;
 
@@ -61,7 +62,7 @@ namespace physics {
 
 		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
-		return std::atan2(playerPosition.z - enemyPosition.z, playerPosition.x - enemyPosition.x);
+		return std::atan2(enemyPosition.z - playerPosition.z, playerPosition.x - enemyPosition.x);
 	}
 
 	JPH::Vec3 Sprinter::getDirectionToCharacter() {
@@ -74,7 +75,7 @@ namespace physics {
 		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
 
-		glm::vec3 direction = enemyPosition - playerPosition;
+		glm::vec3 direction = playerPosition - enemyPosition;
 
 		if (glm::length(direction) <= 0.001) {
 			return JPH::Vec3::sZero();

@@ -262,7 +262,7 @@ namespace vk {
         std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
 
         std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-        characterSettings->mGravityFactor = 1.0f;
+        characterSettings->mGravityFactor = 0.5f;
         characterSettings->mFriction = 10.0f;
         characterSettings->mShape = characterShape;
         characterSettings->mLayer = Layers::MOVING;
