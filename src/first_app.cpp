@@ -265,7 +265,7 @@ namespace vk {
         characterSettings->mGravityFactor = 0.5f;
         characterSettings->mFriction = 10.0f;
         characterSettings->mShape = characterShape;
-        characterSettings->mLayer = Layers::MOVING;
+        characterSettings->mLayer = physics::Layers::MOVING;
         characterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
 
         std::unique_ptr<physics::PlayerCreationSettings> playerCreationSettings = std::make_unique<physics::PlayerCreationSettings>();
@@ -303,7 +303,7 @@ namespace vk {
             sprinterSettings->model = humanModel;
 
             std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
-            enemyCharacterSettings->mLayer = Layers::MOVING;
+            enemyCharacterSettings->mLayer = physics::Layers::MOVING;
             enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius); // Accept contacts that touch the lower sphere of the capsule
             enemyCharacterSettings->mFriction = 10.0f;
             enemyCharacterSettings->mShape = enemyShape;

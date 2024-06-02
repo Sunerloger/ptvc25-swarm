@@ -9,7 +9,7 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 
 #include "../../PhysicsConversions.h"
-#include "../../PhysicsUtils.h"
+#include "../../CollisionSettings.h"
 
 using namespace JPH;
 

@@ -26,3 +26,5 @@ namespace physics {
 		JPH::BodyID bodyID;
 	};
 }
+
+// (Override the MyShapeSettings::Create function to construct an instance of MyShape for custom physics bodies)

@@ -21,7 +21,7 @@ namespace physics {
 
 		// Create the settings for the body itself. Note that here you can also set other properties like the restitution / friction.
 		body_settings = std::make_unique<BodyCreationSettings>(BodyCreationSettings(floor_shape, GLMToRVec3(position),
-			Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING));
+			Quat::sIdentity(), EMotionType::Static, physics::Layers::NON_MOVING));
 
 		// create physics body
 		this->bodyID = physics_system->GetBodyInterface().CreateBody(*body_settings)->GetID();

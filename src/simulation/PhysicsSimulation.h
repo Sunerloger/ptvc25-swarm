@@ -20,6 +20,8 @@
 #include "objects/actors/Player.h"
 
 #include "PhysicsUtils.h"
+#include "CollisionSettings.h"
+#include "CollisionHandler.h"
 
 #include <map>
 
