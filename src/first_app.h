@@ -46,7 +46,7 @@ namespace vk {
         float maxFrameTime = 0.01f;
         bool debugTime = true;
         bool debugPlayer = true;
-        bool debugEnemies = false;
+        bool debugEnemies = true;
     };
 
     class FirstApp {

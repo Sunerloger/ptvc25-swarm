@@ -51,6 +51,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(JoltPhysics)
 
+FetchContent_Declare(
+	tinygltf
+	GIT_REPOSITORY "https://github.com/syoyo/tinygltf"
+	GIT_TAG "v2.9.5"
+	GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(tinygltf)
+
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -177,10 +185,10 @@ message(LINK_LIBRARIES=${LINK_LIBRARIES})
 # Enable link time optimization in Release and Distribution mode if requested and available
 SET_INTERPROCEDURAL_OPTIMIZATION()
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES} "src/simulation/objects/actors/enemies/Enemy.cpp")
 add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} ${tinygltf_SOURCE_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES} Jolt)
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
