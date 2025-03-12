@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <queue>
 
 #include "../GameObject.h"
 #include "../simulation/objects/ManagedPhysicsEntity.h"
@@ -46,6 +47,9 @@ struct Scene {
 
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::Enemy>> passiveEnemies = {};
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::ManagedPhysicsEntity>> passivePhysicsObjects = {};
+
+	// objects scheduled for deletion from scene manager
+	std::queue<vk::id_t> staleQueue = {};
 };
 
 // manages active scenes
@@ -78,11 +82,17 @@ public:
 	vk::id_t addLight(std::unique_ptr<lighting::PointLight> light);
 
 
-	// @return true if the game object could be found and deleted, does not delete player or sun
-	bool deleteGameObject(vk::id_t id) override;
+	// @return true if the game object could be found and added to queue for deletion, does not delete player or sun
+	bool addToStaleQueue(vk::id_t id);
 
 	// @return true if the game object could be found and removed, does not remove player or sun
 	std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> removeGameObject(vk::id_t id);
+
+	// delete objects in staleQueue
+	void removeStaleObjects();
+
+	// update step of all active enemies according to their behaviour
+	void updateEnemies();
 
 
 	// activates detached bodies (added to simulation again)
@@ -91,7 +101,7 @@ public:
 	// removes bodies of scene from simulation but doesn't delete them (preserves state)
 	bool detachPhysicsObject(vk::id_t id);
 
-	// TODO edits should happen via returned pointers/references and to physics objects only via locks
+
 
 	// only change returned enemies with a lock (otherwise not thread safe)
 	std::vector<std::weak_ptr<physics::Enemy>> getActiveEnemies() const;

@@ -1,6 +1,6 @@
 #include "keyboard_movement_controller.h"
 
-namespace vk {
+namespace controls {
 
     void KeyboardMovementController::handleRotation(GLFWwindow* window,
                                                    float deltaTime,
@@ -30,32 +30,32 @@ namespace vk {
         }
     }
 
-    void KeyboardMovementController::handleMovement(GLFWwindow* window,
-                                                   physics::Player& player) {
+    MovementIntent KeyboardMovementController::getMovementIntent(GLFWwindow* window) {
 
-        JPH::Vec3 movementDirection = JPH::RVec3::sZero();
+        glm::vec3 movementDirection = glm::vec3();
 
         if (glfwGetKey(window, keys.moveForward) == GLFW_PRESS) {
-            movementDirection += JPH::Vec3{ 0,0,-1 };
+            movementDirection += glm::vec3{ 0,0,-1 };
         }
         if (glfwGetKey(window, keys.moveBackward) == GLFW_PRESS) {
-            movementDirection += JPH::Vec3{ 0,0,1 };
+            movementDirection += glm::vec3{ 0,0,1 };
         }
         if (glfwGetKey(window, keys.moveLeft) == GLFW_PRESS) {
-            movementDirection += JPH::Vec3{ -1,0,0 };
+            movementDirection += glm::vec3{ -1,0,0 };
         }
         if (glfwGetKey(window, keys.moveRight) == GLFW_PRESS) {
-            movementDirection += JPH::Vec3{ 1,0,0 };
+            movementDirection += glm::vec3{ 1,0,0 };
         }
 
-        movementDirection = movementDirection.NormalizedOr(JPH::Vec3{ 0,0,0 });
+        float length = glm::length(movementDirection);
+
+        if (length > 0.0f) {
+            movementDirection /= length;
+        }
 
         bool isJump = glfwGetKey(window, keys.jump) == GLFW_PRESS;
 
-        // only update if something happened
-        if (movementDirection != JPH::Vec3{ 0,0,0 } || isJump) {
-            player.handleMovement(movementDirection, isJump);
-        }
+        return { movementDirection, isJump };
     }
 
     void KeyboardMovementController::handleEscMenu(GLFWwindow *window) {

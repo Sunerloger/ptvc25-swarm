@@ -45,7 +45,7 @@ namespace physics {
 		float t = std::clamp(this->sprinterSettings->rotationSpeed, 0.0f, 1.0f);
 		float updatedAngle = (1 - t) * currentHorizontalAngle + t * targetAngle;
 
-		JPH::Vec3Arg eulerAngles = this->character->GetRotation().GetEulerAngles();
+		JPH::Vec3 eulerAngles = this->character->GetRotation().GetEulerAngles();
 		eulerAngles.SetY(updatedAngle);
 
 		JPH::QuatArg quatRotation = JPH::QuatArg::sEulerAngles(eulerAngles);
@@ -110,7 +110,7 @@ namespace physics {
 		this->currentHealth -= healthToSubtract;
 
 		if (this->currentHealth <= 0) {
-			this->destroyInScene();
+			this->markForDeletion();
 			return true;
 		}
 		return false;
@@ -124,13 +124,13 @@ namespace physics {
 		return this->character->GetBodyID();
 	}
 
-	void Sprinter::printPosition(int iterationStep) const {
+	void Sprinter::printInfo(int iterationStep) const {
 
 		// Output current position and velocity of the enemy
 
 		JPH::RVec3 position = character->GetCenterOfMassPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Enemy (Sprinter) [" << this->id <<"] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
+		std::cout << "Enemy (Sprinter) [" << this->id <<"] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << getMaxHealth() << std::endl;
 	}
 
 	float Sprinter::getMaxHealth() const {

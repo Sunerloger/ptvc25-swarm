@@ -17,6 +17,6 @@ public:
 
 	virtual std::shared_ptr<physics::Player> getPlayer() = 0;
 
-	// @return true if the game object could be found and deleted, does not delete player or sun
-	virtual bool deleteGameObject(vk::id_t id) = 0;
+	// @return true if the game object could be found and added to queue of objects to delete, does not delete player or sun
+	virtual bool addToStaleQueue(vk::id_t id) = 0;
 };

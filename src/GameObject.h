@@ -45,16 +45,14 @@ namespace vk {
 		}
 
 		/**
-		* The object is destroyed in the scene manager - it could still be alive if shared pointers still point to it in other places.
-		* Be sure that the shared pointer that calls this method falls out of scope or is resetted,
-		* otherwise e.g. physics related objects are not removed from the simulation.
+		* The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
 		* Doesn't destroy player or sun.
-		* @return true if a deletion in the scene manager happened
+		* @return true if a deletion assignment in the scene manager happened
 		* @return false otherwise (e.g. object not in scene manager)
 		*/
-		inline bool destroyInScene() {
+		inline bool markForDeletion() {
 			if (auto sceneManager = sceneManagerInteraction.lock()) {
-				return sceneManager->deleteGameObject(id);
+				return sceneManager->addToStaleQueue(id);
 			}
 			return false;
 		}

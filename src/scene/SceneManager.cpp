@@ -128,7 +128,7 @@ vk::id_t SceneManager::addManagedPhysicsEntity(std::unique_ptr<physics::ManagedP
 
 	if (result.second) {
 		result.first->second->addPhysicsBody();
-		this->idToClass.emplace(id, ENEMY);
+		this->idToClass.emplace(id, PHYSICS_OBJECT);
 		this->bodyIDToObjectId.emplace(bodyID, id);
 		this->physicsSceneIsChanged = true;
 		return id;
@@ -137,7 +137,7 @@ vk::id_t SceneManager::addManagedPhysicsEntity(std::unique_ptr<physics::ManagedP
 	return vk::INVALID_OBJECT_ID;
 }
 
-bool SceneManager::deleteGameObject(vk::id_t id) {
+bool SceneManager::addToStaleQueue(vk::id_t id) {
 
 	SceneClass sceneClass;
 
@@ -148,46 +148,7 @@ bool SceneManager::deleteGameObject(vk::id_t id) {
 		return false;
 	}
 
-	JPH::BodyID bodyID;
-
 	switch (sceneClass) {
-
-	case SPECTRAL_OBJECT:
-		scene->spectralObjects.erase(id);
-		this->idToClass.erase(id);
-		return true;
-
-	case UI_COMPONENT:
-		scene->uiObjects.erase(id);
-		this->idToClass.erase(id);
-		return true;
-
-	case LIGHT:
-		scene->lights.erase(id);
-		this->idToClass.erase(id);
-		return true;
-
-	case ENEMY:
-		// one of the maps contains the enemy
-		scene->enemies.erase(id);
-		scene->passiveEnemies.erase(id);
-
-		this->idToClass.erase(id);
-		bodyID = scene->enemies.at(id)->getBodyID();
-		this->bodyIDToObjectId.erase(bodyID);
-		this->physicsSceneIsChanged = true;
-		return true;
-
-	case PHYSICS_OBJECT:
-		// one of the maps contains the physics object
-		scene->physicsObjects.erase(id);
-		scene->passivePhysicsObjects.erase(id);
-
-		this->idToClass.erase(id);
-		bodyID = scene->physicsObjects.at(id)->getBodyID();
-		this->bodyIDToObjectId.erase(bodyID);
-		this->physicsSceneIsChanged = true;
-		return true;
 
 	case PLAYER:
 		return false;
@@ -196,7 +157,90 @@ bool SceneManager::deleteGameObject(vk::id_t id) {
 		return false;
 
 	default:
-		return false;
+		scene->staleQueue.push(id);
+		return true;
+	}
+}
+
+void SceneManager::removeStaleObjects() {
+	
+	vk::id_t id;
+	SceneClass sceneClass;
+
+	while (!scene->staleQueue.empty()) {
+		id = scene->staleQueue.front();
+		scene->staleQueue.pop();
+
+		try {
+			sceneClass = this->idToClass.at(id);
+		}
+		catch (std::out_of_range& e) {
+			continue;
+		}
+
+		JPH::BodyID bodyID;
+
+		switch (sceneClass) {
+
+		case SPECTRAL_OBJECT:
+			scene->spectralObjects.erase(id);
+			this->idToClass.erase(id);
+			continue;
+
+		case UI_COMPONENT:
+			scene->uiObjects.erase(id);
+			this->idToClass.erase(id);
+			continue;
+
+		case LIGHT:
+			scene->lights.erase(id);
+			this->idToClass.erase(id);
+			continue;
+
+		case ENEMY:
+
+			// one of the maps contains the enemy
+			if (scene->enemies.count(id)) {
+				bodyID = scene->enemies.at(id)->getBodyID();
+				scene->enemies.erase(id);
+			}
+			else {
+				bodyID = scene->passiveEnemies.at(id)->getBodyID();
+				scene->passiveEnemies.erase(id);
+			}
+
+			this->idToClass.erase(id);
+			this->bodyIDToObjectId.erase(bodyID);
+			this->physicsSceneIsChanged = true;
+			continue;
+
+		case PHYSICS_OBJECT:
+
+			// one of the maps contains the physics object
+			if (scene->physicsObjects.count(id)) {
+				bodyID = scene->physicsObjects.at(id)->getBodyID();
+				scene->physicsObjects.erase(id);
+			}
+			else {
+				bodyID = scene->passivePhysicsObjects.at(id)->getBodyID();
+				scene->passivePhysicsObjects.erase(id);
+			}
+
+			this->idToClass.erase(id);
+			this->bodyIDToObjectId.erase(bodyID);
+			this->physicsSceneIsChanged = true;
+			continue;
+
+		default:
+			continue;
+		}
+	}
+}
+
+void SceneManager::updateEnemies() {
+	for (auto& pair : this->scene->enemies) {
+		std::shared_ptr<physics::Enemy> enemy = pair.second;
+		enemy->update();
 	}
 }
 
@@ -460,12 +504,11 @@ bool SceneManager::isBroadPhaseOptimizationNeeded() {
 }
 
 vk::id_t SceneManager::getIdFromBodyID(JPH::BodyID bodyID) {
-	try {
+
+	if (this->bodyIDToObjectId.count(bodyID)) {
 		return this->bodyIDToObjectId.at(bodyID);
 	}
-	catch (std::out_of_range& e) {
-		return vk::INVALID_OBJECT_ID;
-	}
+	return vk::INVALID_OBJECT_ID;
 }
 
 std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getRenderObjects() {

@@ -22,7 +22,7 @@ namespace physics {
 
 		virtual void update() = 0;
 
-		virtual void printPosition(int iterationStep) const = 0;
+		virtual void printInfo(int iterationStep) const = 0;
 	};
 }
 

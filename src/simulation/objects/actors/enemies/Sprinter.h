@@ -21,7 +21,7 @@ namespace physics {
 	};
 
 	struct SprinterCreationSettings {
-		JPH::RVec3Arg position = JPH::RVec3::sZero();
+		JPH::RVec3 position = JPH::RVec3::sZero();
 
 		std::unique_ptr<JPH::CharacterSettings> characterSettings;
 		std::unique_ptr<SprinterSettings> sprinterSettings;
@@ -56,7 +56,7 @@ namespace physics {
 
 		void update() override;
 
-		void printPosition(int iterationStep) const override;
+		void printInfo(int iterationStep) const override;
 
 	private:
 

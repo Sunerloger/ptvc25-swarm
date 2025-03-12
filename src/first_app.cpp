@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
-
 #include "first_app.h"
 
 namespace vk {
@@ -73,10 +69,21 @@ namespace vk {
 
     FirstApp::FirstApp() {
 
-        globalPool = DescriptorPool::Builder(device)
-                .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-                .build();
+        // TODO load settings from a file and store in applicationSettings -> if settings change during runtime (menu), change local settings struct and write back to ini file
+
+        window = std::make_unique<Window>(applicationSettings.windowWidth, applicationSettings.windowHeight, "Swarm");
+        device = std::make_unique<Device>(*window);
+        renderer = std::make_unique<Renderer>(*window, *device);
+
+        globalPool = DescriptorPool::Builder(*device)
+            .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
+            .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+            .build();
+
+        // inject scene manager into physics simulation
+        this->sceneManager = make_shared<SceneManager>();
+        this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager, engineSettings.cPhysicsDeltaTime);
+
         loadGameObjects();
 
     }
@@ -88,7 +95,7 @@ namespace vk {
 
         std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
         for (int i = 0; i < uboBuffers.size(); i++) {
-            uboBuffers[i] = std::make_unique<Buffer>(device,
+            uboBuffers[i] = std::make_unique<Buffer>(*device,
                                                      sizeof(GlobalUbo),
                                                      1,
                                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -96,7 +103,7 @@ namespace vk {
             uboBuffers[i]->map();
         }
 
-        auto globalSetLayout = DescriptorSetLayout::Builder(device)
+        auto globalSetLayout = DescriptorSetLayout::Builder(*device)
                 .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
                 .build();
 
@@ -108,25 +115,25 @@ namespace vk {
                     .build(globalDescriptorSets[i]);
         }
 
-        SimpleRenderSystem simpleRenderSystem{device,
-                                              renderer.getSwapChainRenderPass(),
+        SimpleRenderSystem simpleRenderSystem{*device,
+                                              renderer->getSwapChainRenderPass(),
                                               globalSetLayout->getDescriptorSetLayout()};
 
-        PointLightSystem pointLightSystem{device,
-                                          renderer.getSwapChainRenderPass(),
+        PointLightSystem pointLightSystem{*device,
+                                          renderer->getSwapChainRenderPass(),
                                           globalSetLayout->getDescriptorSetLayout()};
 
-        CrossHairSystem crossHairSystem{device,
-                                        renderer.getSwapChainRenderPass(),
+        CrossHairSystem crossHairSystem{*device,
+                                        renderer->getSwapChainRenderPass(),
                                         globalSetLayout->getDescriptorSetLayout()};
 
-        HudSystem hudSystem{device,
-                            renderer.getSwapChainRenderPass(),
+        HudSystem hudSystem{*device,
+                            renderer->getSwapChainRenderPass(),
                             globalSetLayout->getDescriptorSetLayout()};
 
 
-        glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        KeyboardMovementController movementController{ WIDTH, HEIGHT };
+        glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        controls::KeyboardMovementController movementController{ applicationSettings.windowWidth, applicationSettings.windowHeight};
 
 
         auto startTime = std::chrono::high_resolution_clock::now();
@@ -134,20 +141,23 @@ namespace vk {
 
         int currentSecond = 0;
         float gameTimer = 0;
-        
-        while (!window.shouldClose()) {
-            glfwPollEvents();
 
-            // TODO callbacks for jumping, shooting and menu for better responsiveness
+        float physicsTimeAccumulator = 0.0f;
+        
+        while (!window->shouldClose()) {
 
             auto newTime = std::chrono::high_resolution_clock::now();
             float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
             currentTime = newTime;
 
-            deltaTime = std::min(deltaTime, MAX_FRAME_TIME);
+            deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
 
-            movementController.handleEscMenu(window.getGLFWWindow());
+            physicsTimeAccumulator += deltaTime;
 
+            glfwPollEvents();
+            movementController.handleEscMenu(window->getGLFWWindow());
+
+            // TODO callbacks for jumping, shooting and menu for better responsiveness
 
             if (!movementController.escapeMenuOpen) {
 
@@ -155,34 +165,40 @@ namespace vk {
 
                 // debug timer output
                 int newSecond = static_cast<int>(gameTimer);
-                if (newSecond > currentSecond) {
+                if (engineSettings.debugTime && newSecond > currentSecond) {
                     currentSecond = newSecond;
                     std::cout << "Time since start: " << currentSecond << "s" << std::endl;
                 }
 
-                movementController.handleMovement(window.getGLFWWindow(), *sceneManager->getPlayer());
-                movementController.handleRotation(window.getGLFWWindow(), deltaTime, *sceneManager->getPlayer());
+                MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
 
-                for (std::weak_ptr<physics::Enemy> weak_enemy : sceneManager->getActiveEnemies()) {
-                    std::shared_ptr<physics::Enemy> enemy = weak_enemy.lock();
-                    if (!enemy) {
-                        continue;
-                    }
-                    enemy->update();
+                movementController.handleRotation(window->getGLFWWindow(), deltaTime, *sceneManager->getPlayer());
+
+                physicsSimulation->preSimulation(movementIntent);
+
+                // TODO multithreading instead of accumulator would be better
+                while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
+                    
+                    // simulate physics step
+                    physicsSimulation->simulate();
+
+                    physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
                 }
 
+                physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
+
+                // TODO can be used to smooth rendering if rendering runs at a higher framerate than physics
+                float interpolationAlpha = physicsTimeAccumulator / engineSettings.cPhysicsDeltaTime;
+
                 // TODO maybe read this in via a settings file and recalculate only if setting is changed via menu (performance, typically no dynamic window scaling during runtime in games)
-                float aspect = renderer.getAspectRatio();
+                float aspect = renderer->getAspectRatio();
                 // switch between orthographic and perspective projection
                 // camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
                 sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f,
                                                 100.0f); // objects further away than 100 are clipped
 
-                // simulate physics step
-                physicsSimulation->simulate();
-
-                if (auto commandBuffer = renderer.beginFrame()) {
-                    int frameIndex = renderer.getFrameIndex();
+                if (auto commandBuffer = renderer->beginFrame()) {
+                    int frameIndex = renderer->getFrameIndex();
                     FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
                                         globalDescriptorSets[frameIndex],
@@ -202,52 +218,48 @@ namespace vk {
                     uboBuffers[frameIndex]->flush();
 
                     //render
-                    renderer.beginSwapChainRenderPass(commandBuffer);
+                    renderer->beginSwapChainRenderPass(commandBuffer);
                     simpleRenderSystem.renderGameObjects(frameInfo);
                     pointLightSystem.render(frameInfo);
                     crossHairSystem.renderGameObjects(frameInfo);
                     hudSystem.renderGameObjects(frameInfo, movementController.escapeMenuOpen);
-                    renderer.endSwapChainRenderPass(commandBuffer);
-                    renderer.endFrame();
+                    renderer->endSwapChainRenderPass(commandBuffer);
+                    renderer->endFrame();
                 }
             } else {
 
-                if (auto commandBuffer = renderer.beginFrame()) {
-                    int frameIndex = renderer.getFrameIndex();
+                if (auto commandBuffer = renderer->beginFrame()) {
+                    int frameIndex = renderer->getFrameIndex();
                     FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
                                         globalDescriptorSets[frameIndex],
                                         *sceneManager};
 
                     //render
-                    renderer.beginSwapChainRenderPass(commandBuffer);
+                    renderer->beginSwapChainRenderPass(commandBuffer);
                     simpleRenderSystem.renderGameObjects(frameInfo);
                     pointLightSystem.render(frameInfo);
                     crossHairSystem.renderGameObjects(frameInfo);
                     hudSystem.renderGameObjects(frameInfo, movementController.escapeMenuOpen);
-                    renderer.endSwapChainRenderPass(commandBuffer);
-                    renderer.endFrame();
+                    renderer->endSwapChainRenderPass(commandBuffer);
+                    renderer->endFrame();
                 }
             }
-            vkDeviceWaitIdle(device.device());
+            vkDeviceWaitIdle(device->device());
         }
     }
 
     void FirstApp::loadGameObjects() {
 
-        // inject scene manager into physics simulation
-        this->sceneManager = make_shared<SceneManager>();
-        this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager);
-
         bool usingTriangles = true;
-        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
-        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
-        std::shared_ptr<Model> floorModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
-        std::shared_ptr<Model> humanModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
-        std::shared_ptr<Model> crossHairModel = Model::createModelFromFile(!usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/crosshair.obj");
-        std::shared_ptr<Model> closeTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/CloseText.obj");
-        std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/ToggleFullScreenText.obj");
-        std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/BlackScreen.obj");
+        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
+        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
+        std::shared_ptr<Model> floorModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
+        std::shared_ptr<Model> humanModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
+        std::shared_ptr<Model> crossHairModel = Model::createModelFromFile(!usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/crosshair.obj");
+        std::shared_ptr<Model> closeTextModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/CloseText.obj");
+        std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/ToggleFullScreenText.obj");
+        std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/BlackScreen.obj");
         glm::mat2x3 boundingBox = loadBoundingBoxFromFile(std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
 
 
@@ -262,7 +274,7 @@ namespace vk {
         std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
 
         std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-        characterSettings->mGravityFactor = 0.5f;
+        characterSettings->mGravityFactor = 1.0f;
         characterSettings->mFriction = 10.0f;
         characterSettings->mShape = characterShape;
         characterSettings->mLayer = physics::Layers::MOVING;
@@ -307,6 +319,7 @@ namespace vk {
             enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius); // Accept contacts that touch the lower sphere of the capsule
             enemyCharacterSettings->mFriction = 10.0f;
             enemyCharacterSettings->mShape = enemyShape;
+            enemyCharacterSettings->mGravityFactor = 1.0f;
 
             std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
             sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
@@ -316,6 +329,6 @@ namespace vk {
             sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
         }
 
-        glfwSetWindowUserPointer(window.getGLFWWindow(), sceneManager.get());
+        glfwSetWindowUserPointer(window->getGLFWWindow(), sceneManager.get());
     }
 }

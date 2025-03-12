@@ -35,11 +35,22 @@
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 namespace vk {
+
+    struct ApplicationSettings {
+        int windowWidth = 800;
+        int windowHeight = 600;
+    };
+
+    struct EngineSettings {
+        float cPhysicsDeltaTime = 1.0f / 60.0f;
+        float maxFrameTime = 0.01f;
+        bool debugTime = true;
+        bool debugPlayer = true;
+        bool debugEnemies = false;
+    };
+
     class FirstApp {
     public:
-        static constexpr int WIDTH = 800;
-        static constexpr int HEIGHT = 600;
-        static constexpr float MAX_FRAME_TIME = 0.01f;
 
         FirstApp();
         ~FirstApp();
@@ -53,14 +64,17 @@ namespace vk {
         void loadGameObjects();
         glm::mat2x3 loadBoundingBoxFromFile(const std::string& filename);
 
-        Window window{WIDTH, HEIGHT, "Swarm"};
-        Device device{window};
-        Renderer renderer{window, device};
+        std::unique_ptr<Window> window;
+        std::unique_ptr<Device> device;
+        std::unique_ptr<Renderer> renderer;
 
         std::unique_ptr<DescriptorPool> globalPool{};
 
         std::unique_ptr<physics::PhysicsSimulation> physicsSimulation;
 
         std::shared_ptr<SceneManager> sceneManager;
+
+        ApplicationSettings applicationSettings = {};
+        EngineSettings engineSettings = {};
     }
 ;}

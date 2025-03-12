@@ -20,8 +20,11 @@
 #include "objects/actors/Player.h"
 
 #include "PhysicsUtils.h"
+#include "PhysicsConversions.h"
 #include "CollisionSettings.h"
 #include "CollisionHandler.h"
+
+#include "../movement_controller_utils.h"
 
 #include <map>
 
@@ -38,12 +41,14 @@ using namespace JPH::literals;
 namespace physics {
 	class PhysicsSimulation {
 	public:
-		PhysicsSimulation(std::weak_ptr<SceneManager> sceneManager);
+		PhysicsSimulation(std::shared_ptr<SceneManager> sceneManager, float cPhysicsDeltaTime);
 		virtual ~PhysicsSimulation();
 
 		std::shared_ptr<PhysicsSystem> getPhysicsSystem();
 
 		void simulate();
+		void preSimulation(MovementIntent movementIntent);
+		void postSimulation(bool debugPlayer = false, bool debugEnemies = false);
 
 	private:
 
@@ -110,6 +115,6 @@ namespace physics {
 
 		uint step = 0;
 
-		std::weak_ptr<SceneManager> weak_sceneManager;
+		std::shared_ptr<SceneManager> sceneManager;
 	};
 }

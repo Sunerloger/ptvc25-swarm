@@ -38,9 +38,12 @@ namespace physics {
 		if (ground_state == JPH::Character::EGroundState::OnSteepGround || ground_state == JPH::Character::EGroundState::NotSupported) {
 			JPH::Vec3 normal = character->GetGroundNormal();
 			normal.SetY(0.0f);
-			float dot = normal.Dot(movementDirectionWorld);
-			if (dot < 0.0f) {
-				movementDirectionWorld -= (dot * normal) / normal.LengthSq();
+			float normal_length_sq = normal.LengthSq();
+			if (normal_length_sq > 0.0f) {
+				float dot = normal.Dot(movementDirectionWorld);
+				if (dot < 0.0f) {
+					movementDirectionWorld -= (dot * normal) / normal_length_sq;
+				}
 			}
 		}
 
@@ -54,7 +57,7 @@ namespace physics {
 
 			// Jump - OnGround also means you have friction
 			if (isJump && ground_state == JPH::Character::EGroundState::OnGround) {
-				new_velocity += JPH::Vec3(0, std::sqrt(2 * settings->jumpHeight * characterSettings->mGravityFactor * 9.81f), 0);
+				new_velocity.SetY(std::sqrt(2 * settings->jumpHeight * characterSettings->mGravityFactor * 9.81f));
 			}
 
 			// Update the velocity
@@ -77,13 +80,13 @@ namespace physics {
 		return camera->getPosition();
 	}
 
-	void Player::printPosition(int iterationStep) const {
+	void Player::printInfo(int iterationStep) const {
 
 		// Output current position and velocity of the player
 		
 		JPH::RVec3 position = character->GetCenterOfMassPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Player : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
+		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
 	}
 
 	JPH::BodyID Player::getBodyID() {

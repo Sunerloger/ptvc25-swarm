@@ -40,6 +40,11 @@ namespace physics {
 
 	public:
 
+		float maxHealth = 100.0f;
+		float currentHealth = 100.0f;
+
+		std::unique_ptr<PlayerSettings> settings;
+
 		Player(std::unique_ptr<PlayerCreationSettings> playerSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system);
 		virtual ~Player();
 
@@ -56,7 +61,7 @@ namespace physics {
 		inline const glm::mat4 getProjMat() const { return camera->getProjMat(); }
 		inline const glm::vec3 getFront() const { return camera->getFront(); }
 
-		void printPosition(int iterationStep) const;
+		void printInfo(int iterationStep) const;
 
 		JPH::BodyID getBodyID() override;
 
@@ -65,7 +70,7 @@ namespace physics {
 
 		inline void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) { 
 			camera->setOrthographicProjection(left, right, top, bottom, near, far); }
-		inline void setPerspectiveProjection(float fov, float aspect, float near, float far) { 
+		inline void setPerspectiveProjection(float fov, float aspect, float near, float far) {
 			camera->setPerspectiveProjection(fov, aspect, near, far); }
 
 		glm::mat4 computeModelMatrix() const override;
@@ -75,10 +80,6 @@ namespace physics {
 
 	private:
 
-		float maxHealth = 100.0f;
-		float currentHealth = 100.0f;
-
-		std::unique_ptr<PlayerSettings> settings;
 		std::unique_ptr<JPH::CharacterSettings> characterSettings;
 
 		std::unique_ptr<CharacterCamera> camera;

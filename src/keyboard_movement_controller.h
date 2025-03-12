@@ -11,8 +11,9 @@
 
 #include <iostream>
 #include "simulation/objects/actors/Player.h"
+#include "movement_controller_utils.h"
 
-namespace vk {
+namespace controls {
     class KeyboardMovementController {
     public:
 
@@ -30,8 +31,7 @@ namespace vk {
             int jump = GLFW_KEY_SPACE;
         };
 
-        void handleMovement(GLFWwindow* window,
-                           physics::Player& player);
+        MovementIntent getMovementIntent(GLFWwindow* window);
 
         void handleRotation(GLFWwindow* window,
                            float deltaTime,
