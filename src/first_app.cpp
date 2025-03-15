@@ -2,71 +2,6 @@
 
 namespace vk {
 
-    glm::mat2x3 FirstApp::loadBoundingBoxFromFile(const std::string& filename) {
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
-
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str())) {
-            throw std::runtime_error(warn + err);
-        }
-
-        std::vector<Model::Vertex> vertices;
-        std::vector<uint32_t> indices;
-
-        for (const auto& shape : shapes) {
-            for (const auto& index : shape.mesh.indices) {
-                Model::Vertex vertex{};
-
-                if (index.vertex_index >= 0) {
-                    vertex.position = {
-                            attrib.vertices[3 * index.vertex_index + 0],
-                            attrib.vertices[3 * index.vertex_index + 1],
-                            attrib.vertices[3 * index.vertex_index + 2]
-                    };
-
-                    vertex.color = {
-                            attrib.colors[3 * index.vertex_index + 0],
-                            attrib.colors[3 * index.vertex_index + 1],
-                            attrib.colors[3 * index.vertex_index + 2]
-                    };
-                }
-
-                if (index.normal_index >= 0) {
-                    vertex.normal = {
-                            attrib.normals[3 * index.normal_index + 0],
-                            attrib.normals[3 * index.normal_index + 1],
-                            attrib.normals[3 * index.normal_index + 2]
-                    };
-                }
-
-                if (index.texcoord_index >= 0) {
-                    vertex.uv = {
-                            attrib.texcoords[2 * index.normal_index + 0],
-                            attrib.texcoords[2 * index.normal_index + 1],
-                    };
-                }
-
-                vertices.push_back(vertex);
-                indices.push_back(vertices.size() - 1);
-
-            }
-        }
-
-        //calculate bounding box
-        glm::vec3 currentMin = glm::vec3(std::numeric_limits<float>::max());
-        glm::vec3 currentMax = glm::vec3(std::numeric_limits<float>::min());
-        for (auto& vertex : vertices) {
-            currentMin = glm::min(currentMin, vertex.position);
-            currentMax = glm::max(currentMax, vertex.position);
-        }
-
-        return glm::mat2x3(currentMin, currentMax);
-    }
-
-
-
     FirstApp::FirstApp() {
 
         // TODO load settings from a file and store in applicationSettings -> if settings change during runtime (menu), change local settings struct and write back to ini file
@@ -252,15 +187,14 @@ namespace vk {
     void FirstApp::loadGameObjects() {
 
         bool usingTriangles = true;
-        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
-        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
-        std::shared_ptr<Model> floorModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
-        std::shared_ptr<Model> humanModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
-        std::shared_ptr<Model> crossHairModel = Model::createModelFromFile(!usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/crosshair.obj");
-        std::shared_ptr<Model> closeTextModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/CloseText.obj");
-        std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/ToggleFullScreenText.obj");
-        std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, *device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/BlackScreen.obj");
-        glm::mat2x3 boundingBox = loadBoundingBoxFromFile(std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
+        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, *device, "models:flat_vase.obj");
+        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, *device, "models:smooth_vase.obj");
+        std::shared_ptr<Model> floorModel = Model::createModelFromFile(usingTriangles, *device, "models:quad.obj");
+        std::shared_ptr<Model> humanModel = Model::createModelFromFile(usingTriangles, *device, "models:Char_Base.obj");
+        std::shared_ptr<Model> crossHairModel = Model::createModelFromFile(!usingTriangles, *device, "models:crosshair.obj");
+        std::shared_ptr<Model> closeTextModel = Model::createModelFromFile(usingTriangles, *device, "models:CloseText.obj");
+        std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, *device, "models:ToggleFullScreenText.obj");
+        std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, *device, "models:BlackScreen.obj");
 
 
         // 2m player
@@ -324,7 +258,7 @@ namespace vk {
             std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
             sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
             sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
-            sprinterCreationSettings->position = RVec3(3.0f * i, 3.0f, 0.0f);
+            sprinterCreationSettings->position = RVec3(3.0f * i + 3.0f, 3.0f, 0.0f);
 
             sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
         }

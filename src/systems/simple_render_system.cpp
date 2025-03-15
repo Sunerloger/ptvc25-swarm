@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #include "simple_render_system.h"
 #include "../vk_renderer.h"
 
@@ -62,11 +58,13 @@ namespace vk {
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        // output the current directoy;
-        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/simple_shader.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/simple_shader.frag.spv",
-                                              pipelineConfig);
+        
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "simple_shader.vert",
+            "simple_shader.frag",
+            pipelineConfig
+        );
     }
 
 

@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 03.04.24.
-//
-
 #pragma once
 
 #include "../vk_device.h"

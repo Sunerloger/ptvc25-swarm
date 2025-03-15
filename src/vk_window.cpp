@@ -1,6 +1,3 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
 #include "vk_window.h"
 #include "stdexcept"
 

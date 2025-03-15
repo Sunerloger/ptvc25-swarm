@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #include "cross_hair_system.h"
 #include "../vk_renderer.h"
 
@@ -68,9 +64,12 @@ namespace vk {
         pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
         pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
 
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.frag.spv",
-                                              pipelineConfig);
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "hud.vert",
+            "hud.frag",
+            pipelineConfig
+        );
     }
 
     // here are the push constants (for rotation or translation of the object)

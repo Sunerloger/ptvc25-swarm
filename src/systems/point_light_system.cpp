@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #include "point_light_system.h"
 #include "../vk_renderer.h"
 
@@ -66,11 +62,13 @@ namespace vk {
         pipelineConfig.bindingDescriptions.clear();
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        // output the current directoy;
-        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/point_light.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/point_light.frag.spv",
-                                              pipelineConfig);
+        
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "point_light.vert",
+            "point_light.frag",
+            pipelineConfig
+        );
     }
 
     void PointLightSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo) {

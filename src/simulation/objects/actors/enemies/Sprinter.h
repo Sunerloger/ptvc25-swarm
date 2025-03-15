@@ -9,10 +9,10 @@ namespace physics {
 		float movementSpeed = 6.0f;
 
 		// in [0, 1], 0 = doesn't rotate, 1 = front is always facing player
-		float rotationSpeed = 0.01f;
+		float rotationSpeed = 0.1f;
 
 		// how much can the player not be directly in front of the enemy for it to still charge (in radians)
-		float movementAngle = 0.37f;
+		float movementAngle = 0.5f;
 
 		float maxFloorSeparationDistance = 0.05f;
 		float maxHealth = 100.0f;

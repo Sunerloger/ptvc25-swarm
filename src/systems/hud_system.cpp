@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 03.04.24.
-//
-
 #include "hud_system.h"
 #include "../vk_renderer.h"
 
@@ -75,9 +71,12 @@ namespace vk {
         pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
         pipelineConfig.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // Apply blending to all color channels
 
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.frag.spv",
-                                              pipelineConfig);
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "hud.vert",
+            "hud.frag",
+            pipelineConfig
+        );
     }
 
     // here are the push constants (for rotation or translation of the object)

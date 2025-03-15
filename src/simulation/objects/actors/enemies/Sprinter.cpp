@@ -20,35 +20,68 @@ namespace physics {
 	// doesn't move if the enemy doesn't approximately face the player
 	void Sprinter::update() {
 
-		// deltaTime is handled by the physics system
-
-		bool isLockedOnPlayer = false;
+		// TODO deltaTime is handled by the physics system ?
 
 		float targetAngle = calculateTargetAngle();
-		float currentHorizontalAngle = this->character->GetRotation().GetEulerAngles().GetY();
+		float currentHorizontalAngle = this->character->GetRotation().GetRotationAngle({0,1,0});
 
-		if (std::fabs(currentHorizontalAngle - targetAngle) <= this->sprinterSettings->movementAngle) {
-			isLockedOnPlayer = true;
-		}
+		// std::cout << "Enemy [" << this->id << "] currentAngle=" << currentHorizontalAngle
+		//	 	<< " targetAngle=" << targetAngle
+		//		<< " rotationSpeed=" << this->sprinterSettings->rotationSpeed
+		//	 	<< " movementAngle=" << this->sprinterSettings->movementAngle
+		//		<< std::endl;
+
+		// Normalize angles to [0, 2*pi]
+		while (targetAngle > 2 * glm::pi<float>()) targetAngle -= 2 * glm::pi<float>();
+		while (targetAngle < 0) targetAngle += 2 * glm::pi<float>();
+		while (currentHorizontalAngle > 2 * glm::pi<float>()) currentHorizontalAngle -= 2 * glm::pi<float>();
+		while (currentHorizontalAngle < 0) currentHorizontalAngle += 2 * glm::pi<float>();
+
+		float angleDiff = targetAngle - currentHorizontalAngle;
+
+		// Find shortest angleDiff [-pi,pi]
+		while (angleDiff > glm::pi<float>()) angleDiff -= 2.0f * glm::pi<float>();
+		while (angleDiff < -glm::pi<float>()) angleDiff += 2.0f * glm::pi<float>();
+
+		// std::cout << "  normalized angles: current=" << currentHorizontalAngle
+		// 		<< " target=" << targetAngle
+		// 		<< " diff=" << angleDiff
+		// 		<< std::endl;
+
+		bool isLockedOnPlayer = std::fabs(angleDiff) <= this->sprinterSettings->movementAngle;
+
+		// std::cout << "  isLockedOnPlayer=" << (isLockedOnPlayer ? "true" : "false") << std::endl;
 
 		if (isLockedOnPlayer) {
 			JPH::Vec3 currentVelocity = character->GetLinearVelocity();
 			JPH::Vec3 directionToCharacter = getDirectionToCharacter();
 			JPH::Vec3 desiredVelocity = sprinterSettings->movementSpeed * directionToCharacter;
 
-			JPH::Vec3 newVelocity = 0.75f * currentVelocity + 0.25f * desiredVelocity;
+			// std::cout << "  directionToCharacter=("
+			// 		<< directionToCharacter.GetX() << ", "
+			// 		<< directionToCharacter.GetY() << ", "
+			// 		<< directionToCharacter.GetZ() << ")" << std::endl;
+			// 
+			// std::cout << "  desiredVelocity=("
+			//		<< desiredVelocity.GetX() << ", "
+			// 		<< desiredVelocity.GetY() << ", "
+			// 		<< desiredVelocity.GetZ() << ")" << std::endl;
+
+			JPH::Vec3 newVelocity = 0.2f * currentVelocity + 0.8f * desiredVelocity;
 
 			this->character->SetLinearVelocity(newVelocity);
 		}
-		
-		// TODO correct agle wrap around
+
 		float t = std::clamp(this->sprinterSettings->rotationSpeed, 0.0f, 1.0f);
-		float updatedAngle = (1 - t) * currentHorizontalAngle + t * targetAngle;
+		float updatedAngle = currentHorizontalAngle + t * angleDiff;
 
-		JPH::Vec3 eulerAngles = this->character->GetRotation().GetEulerAngles();
-		eulerAngles.SetY(updatedAngle);
+		// Normalize to [-pi, pi]
+		while (updatedAngle > glm::pi<float>()) updatedAngle -= 2.0f * glm::pi<float>();
+		while (updatedAngle < -glm::pi<float>()) updatedAngle += 2.0f * glm::pi<float>();
 
-		JPH::QuatArg quatRotation = JPH::QuatArg::sEulerAngles(eulerAngles);
+		// std::cout << "  updatedAngle=" << updatedAngle << std::endl;
+
+		JPH::Quat quatRotation = JPH::Quat::sRotation(JPH::Vec3(0,1,0), updatedAngle);
 		
 		this->character->SetRotation(quatRotation);
 	}
@@ -57,7 +90,7 @@ namespace physics {
 		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
 
 		if (!sceneManager) {
-			return this->character->GetRotation().GetEulerAngles().GetY();
+			return this->character->GetRotation().GetRotationAngle({0,1,0});
 		}
 
 		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
