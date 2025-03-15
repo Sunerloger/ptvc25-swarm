@@ -87,8 +87,6 @@ namespace vk {
 
             deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
 
-            physicsTimeAccumulator += deltaTime;
-
             glfwPollEvents();
             movementController.handleEscMenu(window->getGLFWWindow());
 
@@ -96,6 +94,7 @@ namespace vk {
 
             if (!movementController.escapeMenuOpen) {
 
+                physicsTimeAccumulator += deltaTime;
                 gameTimer += deltaTime;
 
                 // debug timer output
