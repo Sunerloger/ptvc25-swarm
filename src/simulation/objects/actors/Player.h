@@ -54,7 +54,7 @@ namespace physics {
 		void postSimulation();
 
 		void handleMovement(JPH::Vec3 movementDirectionWorld, bool isJump, float cPhysicsDeltaTime);
-		void handleRotation(float deltaYaw, float deltaPitch, float deltaTime);
+		void handleRotation(float deltaYaw, float deltaPitch);
 
 		const glm::vec3 getCameraPosition() const;
 		inline const glm::mat4 calculateViewMat() const { return camera->calculateViewMat(); }

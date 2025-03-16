@@ -66,8 +66,8 @@ namespace physics {
 		// TODO test different speeds for different directions, double jump, different movement speed in air
 	}
 
-	void Player::handleRotation(float deltaYaw, float deltaPitch, float deltaTime) {
-		camera->addRotation(deltaYaw, deltaPitch, deltaTime);
+	void Player::handleRotation(float deltaYaw, float deltaPitch) {
+		camera->addRotation(deltaYaw, deltaPitch);
 	}
 
 	void Player::postSimulation() {

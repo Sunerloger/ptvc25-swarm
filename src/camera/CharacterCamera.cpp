@@ -28,7 +28,7 @@ void CharacterCamera::setPhysicsPosition(JPH::Vec3 physicsPosition) {
 	this->position += settings->cameraOffsetFromCharacter;
 }
 
-void CharacterCamera::addRotation(float deltaYaw, float deltaPitch, float deltaTime) {
+void CharacterCamera::addRotation(float deltaYaw, float deltaPitch) {
 	setYaw(this->yaw + deltaYaw * settings->cameraSpeed);
 	setPitch(this->pitch + deltaPitch * settings->cameraSpeed);
 }

@@ -76,6 +76,9 @@ namespace physics {
 
         shared_ptr<Player> player = sceneManager->getPlayer();
 
+        // TODO handle clicking (raycast + damage)
+        // sceneManager->removeStaleObjects();
+
         JPH::Vec3 movementDirection = GLMToRVec3(movementIntent.direction);
 
         // only update if something happened
@@ -100,7 +103,7 @@ namespace physics {
 
         sceneManager->getPlayer()->postSimulation();
 
-        if (debugPlayer && step > lastDebugOutputStep) {
+        if (debugPlayer) {
             player->printInfo(step);
         }
 
@@ -110,7 +113,7 @@ namespace physics {
             shared_ptr<Enemy> enemy = weak_enemy.lock();
             if (enemy) {
                 enemy->postSimulation();
-                if (debugEnemies && step > lastDebugOutputStep) {
+                if (debugEnemies) {
                     enemy->printInfo(step);
                 }
             }
@@ -118,7 +121,5 @@ namespace physics {
 
         // TODO Draw bodies
         // physics_system->DrawBodies(this->debugSettings, this->debugRenderer, nullptr);
-
-        lastDebugOutputStep = step;
     }
 }

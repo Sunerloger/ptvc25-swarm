@@ -29,8 +29,8 @@ namespace controls {
 
         MovementIntent getMovementIntent(GLFWwindow* window);
 
+        // Mouse input since last frame inherently contains deltaTime
         void handleRotation(GLFWwindow* window,
-                           float deltaTime,
                            physics::Player& player);
 
         void handleEscMenu(GLFWwindow* window);

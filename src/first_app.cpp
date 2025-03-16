@@ -104,25 +104,28 @@ namespace vk {
                     std::cout << "Time since start: " << currentSecond << "s" << std::endl;
                 }
 
+                movementController.handleRotation(window->getGLFWWindow(), *sceneManager->getPlayer());
+
+                // same intent for all physics steps in this frame
                 MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
-
-                movementController.handleRotation(window->getGLFWWindow(), deltaTime, *sceneManager->getPlayer());
-
-                physicsSimulation->preSimulation(movementIntent);
+                // TODO bool isClick = movementController.handleClicking(window->getGLFWWindow());
 
                 // TODO multithreading instead of accumulator would be better
                 while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
+
+                    physicsSimulation->preSimulation(movementIntent);
                     
                     // simulate physics step
                     physicsSimulation->simulate();
 
+                    physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
+
                     physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
                 }
 
-                physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
-
-                // TODO can be used to smooth rendering if rendering runs at a higher framerate than physics
+                // Used to smooth rendering if rendering runs at a higher framerate than physics
                 float interpolationAlpha = physicsTimeAccumulator / engineSettings.cPhysicsDeltaTime;
+                // TODO sceneManager->interpolateAllPhysicsObjects(interpolationAlpha);
 
                 // TODO maybe read this in via a settings file and recalculate only if setting is changed via menu (performance, typically no dynamic window scaling during runtime in games)
                 float aspect = renderer->getAspectRatio();
@@ -137,9 +140,7 @@ namespace vk {
                                         commandBuffer,
                                         globalDescriptorSets[frameIndex],
                                         *sceneManager};
-
-                    // TODO handle clicking (raycast + damage)
-                    // movementController.handleClicking(window.getGLFWWindow(), deltaTime, frameInfo);
+                    
 
                     //update
                     GlobalUbo ubo{};

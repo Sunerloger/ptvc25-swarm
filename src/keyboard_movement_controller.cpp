@@ -3,7 +3,6 @@
 namespace controls {
 
     void KeyboardMovementController::handleRotation(GLFWwindow* window,
-                                                   float deltaTime,
                                                    physics::Player& player) {
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
@@ -26,7 +25,7 @@ namespace controls {
         // check if rotation is significant enough for processing
         if (std::numeric_limits<float>::epsilon() < glm::abs(glm::radians(xOffset)) ||
             std::numeric_limits<float>::epsilon() < glm::abs(glm::radians(yOffset))) {
-            player.handleRotation(xOffset, yOffset, deltaTime);
+            player.handleRotation(xOffset, yOffset);
         }
     }
 

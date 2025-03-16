@@ -27,7 +27,7 @@ public:
 
     void setPhysicsPosition(JPH::Vec3 physicsPosition);
 
-    void addRotation(float deltaYaw, float deltaPitch, float deltaTime);
+    void addRotation(float deltaYaw, float deltaPitch);
 
     const glm::vec3 getFront() const;
 
