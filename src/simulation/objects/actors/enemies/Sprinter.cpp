@@ -18,7 +18,7 @@ namespace physics {
 	}
 
 	// doesn't move if the enemy doesn't approximately face the player
-	void Sprinter::update() {
+	void Sprinter::update(float cPhysicsDeltaTime) {
 
 		// TODO deltaTime is handled by the physics system ?
 
@@ -55,25 +55,36 @@ namespace physics {
 		if (isLockedOnPlayer) {
 			JPH::Vec3 currentVelocity = character->GetLinearVelocity();
 			JPH::Vec3 directionToCharacter = getDirectionToCharacter();
-			JPH::Vec3 desiredVelocity = sprinterSettings->movementSpeed * directionToCharacter;
 
 			// std::cout << "  directionToCharacter=("
 			// 		<< directionToCharacter.GetX() << ", "
 			// 		<< directionToCharacter.GetY() << ", "
 			// 		<< directionToCharacter.GetZ() << ")" << std::endl;
-			// 
-			// std::cout << "  desiredVelocity=("
-			//		<< desiredVelocity.GetX() << ", "
-			// 		<< desiredVelocity.GetY() << ", "
-			// 		<< desiredVelocity.GetZ() << ")" << std::endl;
 
-			JPH::Vec3 newVelocity = 0.2f * currentVelocity + 0.8f * desiredVelocity;
+			// v = v0 + t * a
+			JPH::Vec3 newVelocity = currentVelocity + cPhysicsDeltaTime * this->sprinterSettings->accelerationToMaxSpeed * directionToCharacter;
+			
+			if (newVelocity.Length() > sprinterSettings->maxMovementSpeed) {
+				newVelocity = directionToCharacter * sprinterSettings->maxMovementSpeed;
+			}
 
 			this->character->SetLinearVelocity(newVelocity);
 		}
 
-		float t = std::clamp(this->sprinterSettings->rotationSpeed, 0.0f, 1.0f);
-		float updatedAngle = currentHorizontalAngle + t * angleDiff;
+		// rad/s
+		float rotationSpeed = glm::pi<float>() * sprinterSettings->rotationTime;
+
+		float updatedAngle;
+
+		// s = s0 + t * v
+		if (angleDiff >= 0) {
+			updatedAngle = currentHorizontalAngle + cPhysicsDeltaTime * rotationSpeed;
+			if (updatedAngle > targetAngle) { updatedAngle = targetAngle; }
+		}
+		else { // angleDiff < 0
+			updatedAngle = currentHorizontalAngle - cPhysicsDeltaTime * rotationSpeed;
+			if (updatedAngle < targetAngle) { updatedAngle = targetAngle; }
+		}
 
 		// Normalize to [-pi, pi]
 		while (updatedAngle > glm::pi<float>()) updatedAngle -= 2.0f * glm::pi<float>();

@@ -24,9 +24,9 @@ namespace physics {
 		character->RemoveFromPhysicsSystem();
 	}
 
-	void Player::handleMovement(JPH::Vec3 movementDirectionCharacter, bool isJump) {
+	void Player::handleMovement(JPH::Vec3 movementDirectionCharacter, bool isJump, float cPhysicsDeltaTime) {
 
-		// deltaTime is handled by the physics system
+		// deltaTime can be used for e.g. setting a fixed time it should take for the character to reach max velocity
 
 		float yaw = glm::radians(camera->getYaw());
 		JPH::RMat44 rotation_matrix = JPH::RMat44::sIdentity().sRotationY(yaw);

@@ -92,7 +92,7 @@ public:
 	void removeStaleObjects();
 
 	// update step of all active enemies according to their behaviour
-	void updateEnemies();
+	void updateEnemies(float cPhysicsDeltaTime);
 
 
 	// activates detached bodies (added to simulation again)

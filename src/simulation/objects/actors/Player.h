@@ -15,8 +15,8 @@ namespace physics {
 	struct PlayerSettings {
 
 		// update per second
-		float movementSpeed = 5.0f;
-		float jumpHeight = 2.0f;
+		float movementSpeed = 4.5f;
+		float jumpHeight = 1.0f;
 		float maxFloorSeparationDistance = 0.05f;
 		bool controlMovementDuringJump = true;
 	};
@@ -53,7 +53,7 @@ namespace physics {
 
 		void postSimulation();
 
-		void handleMovement(JPH::Vec3 movementDirectionWorld, bool isJump);
+		void handleMovement(JPH::Vec3 movementDirectionWorld, bool isJump, float cPhysicsDeltaTime);
 		void handleRotation(float deltaYaw, float deltaPitch, float deltaTime);
 
 		const glm::vec3 getCameraPosition() const;

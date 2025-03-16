@@ -237,10 +237,10 @@ void SceneManager::removeStaleObjects() {
 	}
 }
 
-void SceneManager::updateEnemies() {
+void SceneManager::updateEnemies(float cPhysicsDeltaTime) {
 	for (auto& pair : this->scene->enemies) {
 		std::shared_ptr<physics::Enemy> enemy = pair.second;
-		enemy->update();
+		enemy->update(cPhysicsDeltaTime);
 	}
 }
 

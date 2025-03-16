@@ -11,8 +11,8 @@ struct CharacterCameraSettings {
     float initialPitch = 0.0f;
     glm::vec3 cameraOffsetFromCharacter = glm::vec3(0);
 
-    // update per second
-    float cameraSpeed = 20;
+    // rad/s but it gets scaled by mouse delta, so keep small
+    float cameraSpeed = 0.07f;
 };
 
 class CharacterCamera {

@@ -20,7 +20,7 @@ namespace physics {
 		// @return true if enemy gets destroyed
 		virtual bool subtractHealth(float healthToSubtract) = 0;
 
-		virtual void update() = 0;
+		virtual void update(float cPhysicsDeltaTime) = 0;
 
 		virtual void printInfo(int iterationStep) const = 0;
 	};

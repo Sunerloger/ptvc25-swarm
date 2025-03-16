@@ -26,8 +26,6 @@
 
 #include "../movement_controller_utils.h"
 
-#include <map>
-
 // Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
 JPH_SUPPRESS_WARNINGS
 
@@ -114,7 +112,14 @@ namespace physics {
 		const int cCollisionSteps = 1;
 
 		uint step = 0;
+		uint lastDebugOutputStep = 0;
 
 		std::shared_ptr<SceneManager> sceneManager;
+
+		// TODO implement this by overwriting JPH::DebugRenderer to get visual output for physics bodies
+		// std::unique_ptr<VulkanJoltDebugRenderer> debugRenderer;
+		// BodyManager::DrawSettings debugSettings;
+		// optional:
+		// std::unique_ptr<BodyFilter> debugFilter;
 	};
 }

@@ -5,11 +5,14 @@
 namespace physics {
 
 	struct SprinterSettings {
-		// update per second
-		float movementSpeed = 6.0f;
+		// m/s
+		float maxMovementSpeed = 7.0f;
 
-		// in [0, 1], 0 = doesn't rotate, 1 = front is always facing player
-		float rotationSpeed = 0.1f;
+		// m/s^2
+		float accelerationToMaxSpeed = 3.5f;
+
+		// seconds to turn around 180 degrees 
+		float rotationTime = 3.0f;
 
 		// how much can the player not be directly in front of the enemy for it to still charge (in radians)
 		float movementAngle = 0.5f;
@@ -54,7 +57,7 @@ namespace physics {
 		// @return true if enemy gets destroyed
 		bool subtractHealth(float healthToSubtract) override;
 
-		void update() override;
+		void update(float cPhysicsDeltaTime) override;
 
 		void printInfo(int iterationStep) const override;
 

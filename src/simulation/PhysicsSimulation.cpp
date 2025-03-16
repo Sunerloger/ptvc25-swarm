@@ -40,6 +40,9 @@ namespace physics {
         // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
         // variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
         BodyInterface& body_interface = this->physics_system->GetBodyInterface();
+
+        // debugSettings.mDrawShape = true;
+        // debugSettings.mDrawVelocity = true;
     }
 
     PhysicsSimulation::~PhysicsSimulation() {
@@ -59,6 +62,9 @@ namespace physics {
     }
 
     void PhysicsSimulation::simulate() {
+
+        ++step;
+
         physics_system->Update(cPhysicsDeltaTime, cCollisionSteps, temp_allocator.get(), job_system.get());
 
         // objects are not removed in callbacks but after the physics step to prevent deadlocks
@@ -74,10 +80,10 @@ namespace physics {
 
         // only update if something happened
         if (movementDirection != JPH::Vec3{ 0,0,0 } || movementIntent.jump) {
-            player->handleMovement(movementDirection, movementIntent.jump);
+            player->handleMovement(movementDirection, movementIntent.jump, cPhysicsDeltaTime);
         }
 
-        sceneManager->updateEnemies();
+        sceneManager->updateEnemies(cPhysicsDeltaTime);
 
         if (sceneManager->isBroadPhaseOptimizationNeeded()) {
             // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance for many objects.
@@ -90,13 +96,11 @@ namespace physics {
     // edits should happen via returned pointers/references of scene manager and to physics objects only via locks outside of physics update
     void PhysicsSimulation::postSimulation(bool debugPlayer, bool debugEnemies) {
 
-        ++step;
-
         shared_ptr<Player> player = sceneManager->getPlayer();
 
         sceneManager->getPlayer()->postSimulation();
 
-        if (debugPlayer) {
+        if (debugPlayer && step > lastDebugOutputStep) {
             player->printInfo(step);
         }
 
@@ -106,10 +110,15 @@ namespace physics {
             shared_ptr<Enemy> enemy = weak_enemy.lock();
             if (enemy) {
                 enemy->postSimulation();
-                if (debugEnemies) {
+                if (debugEnemies && step > lastDebugOutputStep) {
                     enemy->printInfo(step);
                 }
             }
         }
+
+        // TODO Draw bodies
+        // physics_system->DrawBodies(this->debugSettings, this->debugRenderer, nullptr);
+
+        lastDebugOutputStep = step;
     }
 }

@@ -29,8 +29,8 @@ void CharacterCamera::setPhysicsPosition(JPH::Vec3 physicsPosition) {
 }
 
 void CharacterCamera::addRotation(float deltaYaw, float deltaPitch, float deltaTime) {
-	setYaw(this->yaw + deltaYaw * settings->cameraSpeed * deltaTime);
-	setPitch(this->pitch + deltaPitch * settings->cameraSpeed * deltaTime);
+	setYaw(this->yaw + deltaYaw * settings->cameraSpeed);
+	setPitch(this->pitch + deltaPitch * settings->cameraSpeed);
 }
 
 const glm::vec3 CharacterCamera::getFront() const {
