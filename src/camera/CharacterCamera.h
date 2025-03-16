@@ -9,7 +9,9 @@
 struct CharacterCameraSettings {
     float initialYaw = 0.0f;
     float initialPitch = 0.0f;
-    glm::vec3 cameraOffsetFromCharacter = glm::vec3(0);
+
+    // offset from the point touching the ground
+    glm::vec3 cameraOffsetFromCharacter = glm::vec3(0.0f,1.0f,0.0f);
 
     // rad/s but it gets scaled by mouse delta, so keep small
     float cameraSpeed = 0.07f;

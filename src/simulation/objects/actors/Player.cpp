@@ -73,7 +73,7 @@ namespace physics {
 	void Player::postSimulation() {
 		character->PostSimulation(settings->maxFloorSeparationDistance);
 
-		camera->setPhysicsPosition(character->GetCenterOfMassPosition());
+		camera->setPhysicsPosition(character->GetPosition());
 	}
 
 	const glm::vec3 Player::getCameraPosition() const {
@@ -84,7 +84,7 @@ namespace physics {
 
 		// Output current position and velocity of the player
 		
-		JPH::RVec3 position = character->GetCenterOfMassPosition();
+		JPH::RVec3 position = character->GetPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
 		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
 	}

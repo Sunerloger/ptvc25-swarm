@@ -12,13 +12,6 @@
 #include "../ui/UIComponent.h"
 #include "ISceneManagerInteraction.h"
 
-// TODO use for rendering interpolation of physics states to smooth movement
-struct PhysicsState {
-	JPH::Vec3 position;
-	JPH::Vec3 velocity;
-	JPH::Quat rotation;
-};
-
 enum SceneClass {
 	PLAYER,
 	SUN,
