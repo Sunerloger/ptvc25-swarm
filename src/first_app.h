@@ -1,13 +1,13 @@
 #pragma once
 
-#include "vk_device.h"
-#include "vk_renderer.h"
-#include "vk_window.h"
-#include "vk_descriptors.h"
+#include "vk/vk_device.h"
+#include "vk/vk_renderer.h"
+#include "vk/vk_window.h"
+#include "vk/vk_descriptors.h"
 
 #include "scene/SceneManager.h"
 
-#include "vk_buffer.h"
+#include "vk/vk_buffer.h"
 #include "systems/simple_render_system.h"
 #include "systems/point_light_system.h"
 #include "systems/cross_hair_system.h"
@@ -33,45 +33,44 @@
 
 namespace vk {
 
-    struct ApplicationSettings {
-        int windowWidth = 1600;
-        int windowHeight = 900;
-    };
+	struct ApplicationSettings {
+		int windowWidth = 1600;
+		int windowHeight = 900;
+	};
 
-    struct EngineSettings {
-        float cPhysicsDeltaTime = 1.0f / 60.0f;
-        float maxFrameTime = 0.01f;
-        bool debugTime = true;
-        bool debugPlayer = true;
-        bool debugEnemies = true;
-    };
+	struct EngineSettings {
+		float cPhysicsDeltaTime = 1.0f / 60.0f;
+		float maxFrameTime = 0.01f;
+		bool debugTime = true;
+		bool debugPlayer = true;
+		bool debugEnemies = true;
+	};
 
-    class FirstApp {
-    public:
+	class FirstApp {
+	   public:
+		FirstApp();
+		~FirstApp();
 
-        FirstApp();
-        ~FirstApp();
+		FirstApp(const FirstApp&) = delete;
+		FirstApp& operator=(const FirstApp&) = delete;
 
-        FirstApp(const FirstApp&) = delete;
-        FirstApp& operator=(const FirstApp&) = delete;
+		void run();
 
-        void run();
+	   private:
+		void loadGameObjects();
+		glm::mat2x3 loadBoundingBoxFromFile(const std::string& filename);
 
-    private:
-        void loadGameObjects();
-        glm::mat2x3 loadBoundingBoxFromFile(const std::string& filename);
+		std::unique_ptr<Window> window;
+		std::unique_ptr<Device> device;
+		std::unique_ptr<Renderer> renderer;
 
-        std::unique_ptr<Window> window;
-        std::unique_ptr<Device> device;
-        std::unique_ptr<Renderer> renderer;
+		std::unique_ptr<DescriptorPool> globalPool{};
 
-        std::unique_ptr<DescriptorPool> globalPool{};
+		std::unique_ptr<physics::PhysicsSimulation> physicsSimulation;
 
-        std::unique_ptr<physics::PhysicsSimulation> physicsSimulation;
+		std::shared_ptr<SceneManager> sceneManager;
 
-        std::shared_ptr<SceneManager> sceneManager;
-
-        ApplicationSettings applicationSettings = {};
-        EngineSettings engineSettings = {};
-    }
-;}
+		ApplicationSettings applicationSettings = {};
+		EngineSettings engineSettings = {};
+	};
+}

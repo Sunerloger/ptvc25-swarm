@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vk_model.h"
+#include "vk/vk_model.h"
 #include "scene/ISceneManagerInteraction.h"
 
 #include <functional>
@@ -10,13 +10,10 @@ namespace vk {
 	constexpr id_t INVALID_OBJECT_ID = 0;
 
 	class GameObject {
-
-	private:
-
+	   private:
 		static inline id_t nextID = 1;
 
-	public:
-
+	   public:
 		// only destroy object through scene manager if registered in scene manager or through method destroy
 		virtual ~GameObject() = default;
 
@@ -25,7 +22,9 @@ namespace vk {
 		GameObject(GameObject&&) = default;
 		GameObject& operator=(GameObject&&) = default;
 
-		inline id_t getId() const { return id; }
+		inline id_t getId() const {
+			return id;
+		}
 
 		virtual glm::mat4 computeModelMatrix() const = 0;
 
@@ -45,11 +44,11 @@ namespace vk {
 		}
 
 		/**
-		* The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
-		* Doesn't destroy player or sun.
-		* @return true if a deletion assignment in the scene manager happened
-		* @return false otherwise (e.g. object not in scene manager)
-		*/
+		 * The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
+		 * Doesn't destroy player or sun.
+		 * @return true if a deletion assignment in the scene manager happened
+		 * @return false otherwise (e.g. object not in scene manager)
+		 */
 		inline bool markForDeletion() {
 			if (auto sceneManager = sceneManagerInteraction.lock()) {
 				return sceneManager->addToStaleQueue(id);
@@ -59,8 +58,7 @@ namespace vk {
 
 		glm::vec3 color{};
 
-	protected:
-
+	   protected:
 		GameObject() : id(nextID++) {}
 
 		const id_t id;

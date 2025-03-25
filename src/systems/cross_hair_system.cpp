@@ -1,5 +1,5 @@
 #include "cross_hair_system.h"
-#include "../vk_renderer.h"
+#include "../vk/vk_renderer.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -14,99 +14,94 @@
 
 namespace vk {
 
-    struct PushConstantData {
-        alignas(16) float scale{1.0f};
-        alignas(16) glm::vec3 translation{0.0f};
-    };
+	struct PushConstantData {
+		alignas(16) float scale{1.0f};
+		alignas(16) glm::vec3 translation{0.0f};
+	};
 
-    CrossHairSystem::CrossHairSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
-        createPipelineLayout(globalSetLayout);
-        createPipeline(renderPass);
-    }
+	CrossHairSystem::CrossHairSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device{device} {
+		createPipelineLayout(globalSetLayout);
+		createPipeline(renderPass);
+	}
 
-    CrossHairSystem::~CrossHairSystem() {
-        vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
-    }
+	CrossHairSystem::~CrossHairSystem() {
+		vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
+	}
 
+	void CrossHairSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(PushConstantData);
 
-    void CrossHairSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+		VkDescriptorSetLayout layout = globalSetLayout;
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {globalSetLayout};
 
-        VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(PushConstantData);
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+		pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+		pipelineLayoutInfo.pushConstantRangeCount = 1;
+		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        VkDescriptorSetLayout layout = globalSetLayout;
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {globalSetLayout};
+		if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
+			VK_SUCCESS) {
+			throw std::runtime_error("Failed to create pipeline layout!");
+		}
+	}
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-        pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 1;
-        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+	void CrossHairSystem::createPipeline(VkRenderPass renderPass) {
+		assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
-        if(vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
-           VK_SUCCESS) {
-            throw std::runtime_error("Failed to create pipeline layout!");
-        }
-    }
+		PipelineConfigInfo pipelineConfig{};
+		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+		pipelineConfig.renderPass = renderPass;
+		pipelineConfig.pipelineLayout = pipelineLayout;
+		pipelineConfig.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		pipelineConfig.attributeDescriptions = std::vector<VkVertexInputAttributeDescription>(2);
+		pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
+		pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
 
-    void CrossHairSystem::createPipeline(VkRenderPass renderPass) {
-        assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+		pipeline = std::make_unique<Pipeline>(
+			device,
+			"hud.vert",
+			"hud.frag",
+			pipelineConfig);
+	}
 
-        PipelineConfigInfo pipelineConfig{};
-        Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-        pipelineConfig.renderPass = renderPass;
-        pipelineConfig.pipelineLayout = pipelineLayout;
-        pipelineConfig.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        pipelineConfig.attributeDescriptions = std::vector<VkVertexInputAttributeDescription>(2);
-        pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
-        pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
+	// here are the push constants (for rotation or translation of the object)
+	void CrossHairSystem::renderGameObjects(FrameInfo& frameInfo) {
+		pipeline->bind(frameInfo.commandBuffer);
 
-        pipeline = std::make_unique<Pipeline>(
-            device,
-            "hud.vert",
-            "hud.frag",
-            pipelineConfig
-        );
-    }
+		vkCmdBindDescriptorSets(frameInfo.commandBuffer,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout,
+			0,
+			1,
+			&frameInfo.globalDescriptorSet,
+			0,
+			nullptr);
 
-    // here are the push constants (for rotation or translation of the object)
-    void CrossHairSystem::renderGameObjects(FrameInfo& frameInfo) {
-        pipeline->bind(frameInfo.commandBuffer);
+		for (std::weak_ptr<vk::UIComponent> weak_uiElement : frameInfo.sceneManager.getUIObjects()) {
+			std::shared_ptr<vk::UIComponent> uiElement = weak_uiElement.lock();
+			if (!uiElement || !uiElement->isDrawLines) {
+				continue;
+			}
 
-        vkCmdBindDescriptorSets(frameInfo.commandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout,
-                                0,
-                                1,
-                                &frameInfo.globalDescriptorSet,
-                                0,
-                                nullptr);
+			PushConstantData push{};
+			push.scale = uiElement->getScale().x;
+			push.translation = uiElement->getPosition();
 
-        for (std::weak_ptr<vk::UIComponent> weak_uiElement : frameInfo.sceneManager.getUIObjects()) {
+			vkCmdPushConstants(
+				frameInfo.commandBuffer,
+				pipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+				0,
+				sizeof(PushConstantData),
+				&push);
 
-            std::shared_ptr<vk::UIComponent> uiElement = weak_uiElement.lock();
-            if(!uiElement || !uiElement->isDrawLines) {
-                continue;
-            }
-            
-            PushConstantData push{};
-            push.scale = uiElement->getScale().x;
-            push.translation = uiElement->getPosition();
-
-            vkCmdPushConstants(
-                    frameInfo.commandBuffer,
-                    pipelineLayout,
-                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                    0,
-                    sizeof(PushConstantData),
-                    &push
-            );
-
-            uiElement->getModel()->bind(frameInfo.commandBuffer);
-            uiElement->getModel()->draw(frameInfo.commandBuffer);
-        }
-    }
+			uiElement->getModel()->bind(frameInfo.commandBuffer);
+			uiElement->getModel()->draw(frameInfo.commandBuffer);
+		}
+	}
 }

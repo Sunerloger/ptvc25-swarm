@@ -1,53 +1,53 @@
 #pragma once
 
-#include "vk_window.h"
-#include "vk_frame_info.h"
+#include "vk/vk_window.h"
+#include "vk/vk_frame_info.h"
 
-#include "vk_model.h"
+#include "vk/vk_model.h"
 
 #include <iostream>
 #include "simulation/objects/actors/Player.h"
 #include "movement_controller_utils.h"
 
 namespace controls {
-    class KeyboardMovementController {
-    public:
+	class KeyboardMovementController {
+	   public:
+		KeyboardMovementController(int WIDTH,
+			int HEIGHT) {
+			lastMouseX = WIDTH / 2;
+			lastMouseY = HEIGHT / 2;
+		}
 
-        KeyboardMovementController(int WIDTH,
-                                   int HEIGHT) {
-            lastMouseX = WIDTH / 2;
-            lastMouseY = HEIGHT / 2;
-        }
+		struct KeyMappings {
+			int moveLeft = GLFW_KEY_A;
+			int moveRight = GLFW_KEY_D;
+			int moveForward = GLFW_KEY_W;
+			int moveBackward = GLFW_KEY_S;
+			int jump = GLFW_KEY_SPACE;
+		};
 
-        struct KeyMappings {
-            int moveLeft = GLFW_KEY_A;
-            int moveRight = GLFW_KEY_D;
-            int moveForward = GLFW_KEY_W;
-            int moveBackward = GLFW_KEY_S;
-            int jump = GLFW_KEY_SPACE;
-        };
+		MovementIntent getMovementIntent(GLFWwindow* window);
 
-        MovementIntent getMovementIntent(GLFWwindow* window);
+		// Mouse input since last frame inherently contains deltaTime
+		void handleRotation(GLFWwindow* window,
+			physics::Player& player);
 
-        // Mouse input since last frame inherently contains deltaTime
-        void handleRotation(GLFWwindow* window,
-                           physics::Player& player);
+		void handleEscMenu(GLFWwindow* window);
 
-        void handleEscMenu(GLFWwindow* window);
+		bool escapeMenuOpen = false;
 
-        bool escapeMenuOpen = false;
-    private:
-        KeyMappings keys{};
+	   private:
+		KeyMappings keys{};
 
-        double lastMouseX = 0;
-        double lastMouseY = {0};
-        bool firstMouse = true;
+		double lastMouseX = 0;
+		double lastMouseY = {0};
+		bool firstMouse = true;
 
-        bool escKeyPressedLastFrame = false;
-        bool f2KeyPressedLastFrame = false;
-        bool fullScreen = false;
-        int xPos, yPos, width, height, refreshRate;
-        double lastCursorPosX, lastCursorPosY;
-    };
+		bool escKeyPressedLastFrame = false;
+		bool f2KeyPressedLastFrame = false;
+		bool fullScreen = false;
+		int xPos, yPos, width, height, refreshRate;
+		double lastCursorPosX, lastCursorPosY;
+	};
 
 }
