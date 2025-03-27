@@ -1,6 +1,8 @@
 #include "vk_model.h"
 #include "vk_utils.hpp"
 #include "vk_buffer.h"
+#include "vk_descriptors.h"
+
 #include "../asset_utils/AssetManager.h"
 
 #define TINYGLTF_IMPLEMENTATION
@@ -28,13 +30,57 @@ namespace std {
 	};
 }
 
+namespace {
+	std::unique_ptr<vk::DescriptorSetLayout> textureLayoutHolder = nullptr;
+
+	void createTextureDescriptorSetLayoutIfNeeded(vk::Device& device) {
+		if (vk::Model::textureDescriptorSetLayout == VK_NULL_HANDLE) {
+			textureLayoutHolder = vk::DescriptorSetLayout::Builder(device)
+									  .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+									  .build();
+			vk::Model::textureDescriptorSetLayout = textureLayoutHolder->getDescriptorSetLayout();
+			vk::Model::textureDescriptorPool = vk::DescriptorPool::Builder(device)
+												   .setMaxSets(100)
+												   .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
+												   .build();
+		}
+	}
+}
+
 namespace vk {
-	Model::Model(Device& device, const Model::Builder& builder) : device(device) {
+	Model::Model(Device& device, const Builder& builder) : device(device) {
 		createVertexBuffers(builder.vertices);
 		createIndexBuffers(builder.indices);
+		if (builder.textureMaterialIndex >= 0) {
+			createTextureDescriptorSetLayoutIfNeeded(device);
+			createTextureResources(builder.gltfModelData, builder.textureMaterialIndex, AssetManager::getInstance().resolvePath(""));
+		}
 	}
 
-	Model::~Model() {}
+	Model::~Model() {
+		if (_hasTexture) {
+			vkDestroySampler(device.device(), textureSampler, nullptr);
+			vkDestroyImageView(device.device(), textureImageView, nullptr);
+			vkDestroyImage(device.device(), textureImage, nullptr);
+			vkFreeMemory(device.device(), textureImageMemory, nullptr);
+		}
+	}
+
+	VkDescriptorSetLayout Model::textureDescriptorSetLayout = VK_NULL_HANDLE;
+	std::unique_ptr<DescriptorPool> Model::textureDescriptorPool = nullptr;
+
+	static void createTextureDescriptorSetLayoutIfNeeded(Device& device) {
+		if (Model::textureDescriptorSetLayout == VK_NULL_HANDLE) {
+			auto layout = DescriptorSetLayout::Builder(device)
+							  .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+							  .build();
+			Model::textureDescriptorSetLayout = layout->getDescriptorSetLayout();
+			Model::textureDescriptorPool = DescriptorPool::Builder(device)
+											   .setMaxSets(100)
+											   .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
+											   .build();
+		}
+	}
 
 	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename) {
 		Builder builder{};
@@ -144,45 +190,6 @@ namespace vk {
 		return attributeDescriptions;
 	}
 
-	void Model::Builder::loadModelWithoutTinyObjLoader(const std::string& filename) {
-		vertices.clear();
-		indices.clear();
-
-		std::string resolvedPath = AssetManager::getInstance().resolvePath(filename);
-
-		std::ifstream file(resolvedPath);
-		if (!file.is_open()) {
-			throw std::runtime_error("Failed to open file: " + resolvedPath);
-		}
-
-		std::string line;
-		while (getline(file, line)) {
-			std::istringstream iss(line);
-			std::string prefix;
-			iss >> prefix;
-
-			if (prefix == "v") {  // Vertex position and color
-				glm::vec3 vertex;
-				glm::vec3 color;
-				iss >> vertex.x >> vertex.y >> vertex.z;
-				iss >> color.r >> color.g >> color.b;  // Assuming color values are provided after vertex positions
-				vertices.push_back({vertex, color, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)});
-			} else if (prefix == "l") {	 // Line index
-				uint32_t index1, index2;
-				iss >> index1 >> index2;
-
-				// OBJ file indices start from 1, but we need them to start from 0
-				index1 -= 1;
-				index2 -= 1;
-
-				indices.push_back(index1);
-				indices.push_back(index2);
-			}
-		}
-
-		std::cout << "Loaded model with " << vertices.size() << " vertices and " << indices.size() << " indices (from lines)" << std::endl;
-	}
-
 	void Model::Builder::loadModel(const std::string& filename) {
 		vertices.clear();
 		indices.clear();
@@ -204,15 +211,14 @@ namespace vk {
 		if (!ret) {
 			throw std::runtime_error("Failed to load glTF model: " + resolvedPath);
 		}
-
 		if (gltfModel.meshes.empty()) {
 			throw std::runtime_error("No mesh found in glTF file: " + resolvedPath);
 		}
 
-		// For simplicity, we load only the first mesh and iterate its primitives.
 		const tinygltf::Mesh& mesh = gltfModel.meshes[0];
+		int materialIndex = -1;
 		for (const auto& primitive : mesh.primitives) {
-			// Load indices if provided.
+			// Load indices.
 			if (primitive.indices >= 0) {
 				const tinygltf::Accessor& indexAccessor = gltfModel.accessors[primitive.indices];
 				const tinygltf::BufferView& bufferView = gltfModel.bufferViews[indexAccessor.bufferView];
@@ -233,7 +239,7 @@ namespace vk {
 				}
 			}
 
-			// Retrieve POSITION attribute (required)
+			// POSITION attribute.
 			if (primitive.attributes.find("POSITION") == primitive.attributes.end())
 				throw std::runtime_error("No POSITION attribute found in glTF primitive");
 			const tinygltf::Accessor& posAccessor = gltfModel.accessors.at(primitive.attributes.find("POSITION")->second);
@@ -241,7 +247,7 @@ namespace vk {
 			const tinygltf::Buffer& posBuffer = gltfModel.buffers[posBufferView.buffer];
 			const unsigned char* posData = posBuffer.data.data() + posBufferView.byteOffset + posAccessor.byteOffset;
 
-			// Retrieve NORMAL attribute if available
+			// NORMAL attribute.
 			const tinygltf::Accessor* normAccessor = nullptr;
 			const unsigned char* normData = nullptr;
 			if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
@@ -251,7 +257,7 @@ namespace vk {
 				normData = normBuffer.data.data() + normBufferView.byteOffset + normAccessor->byteOffset;
 			}
 
-			// Retrieve TEXCOORD_0 attribute if available
+			// TEXCOORD_0 attribute.
 			const tinygltf::Accessor* uvAccessor = nullptr;
 			const unsigned char* uvData = nullptr;
 			if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
@@ -261,7 +267,7 @@ namespace vk {
 				uvData = uvBuffer.data.data() + uvBufferView.byteOffset + uvAccessor->byteOffset;
 			}
 
-			// Retrieve COLOR_0 attribute if available
+			// COLOR_0 attribute.
 			const tinygltf::Accessor* colorAccessor = nullptr;
 			const unsigned char* colorData = nullptr;
 			if (primitive.attributes.find("COLOR_0") != primitive.attributes.end()) {
@@ -271,40 +277,131 @@ namespace vk {
 				colorData = colorBuffer.data.data() + colorBufferView.byteOffset + colorAccessor->byteOffset;
 			}
 
-			// For each vertex in POSITION accessor, build our vertex structure.
-			// Note: this simple implementation does not de-duplicate vertices based on indices.
+			// Build vertex for each element.
 			for (size_t i = 0; i < posAccessor.count; i++) {
 				Vertex vertex{};
 				const float* pos = reinterpret_cast<const float*>(posData + i * 3 * sizeof(float));
 				vertex.position = {pos[0], pos[1], pos[2]};
-
 				if (colorAccessor) {
-					// Assume COLOR_0 is a vec3 (or vec4; we ignore alpha here)
 					int comps = (colorAccessor->type == TINYGLTF_TYPE_VEC3 ? 3 : 4);
 					const float* col = reinterpret_cast<const float*>(colorData + i * comps * sizeof(float));
 					vertex.color = {col[0], col[1], col[2]};
 				} else {
 					vertex.color = {1.0f, 1.0f, 1.0f};
 				}
-
 				if (normAccessor) {
 					const float* norm = reinterpret_cast<const float*>(normData + i * 3 * sizeof(float));
 					vertex.normal = {norm[0], norm[1], norm[2]};
 				} else {
 					vertex.normal = {0.0f, 0.0f, 0.0f};
 				}
-
 				if (uvAccessor) {
 					const float* uv = reinterpret_cast<const float*>(uvData + i * 2 * sizeof(float));
 					vertex.uv = {uv[0], uv[1]};
 				} else {
 					vertex.uv = {0.0f, 0.0f};
 				}
-
 				vertices.push_back(vertex);
+			}
+			// Use the material index from the first primitive that specifies one.
+			if (primitive.material >= 0 && materialIndex == -1) {
+				materialIndex = primitive.material;
 			}
 		}
 		std::cout << "Loaded glTF model with " << vertices.size() << " vertices and " << indices.size() << " indices" << std::endl;
+
+		// Store glTF data and material index in builder for later texture creation.
+		gltfModelData = gltfModel;
+		textureMaterialIndex = materialIndex;
+	}
+
+	void Model::createTextureResources(const tinygltf::Model& gltfModel, int materialIndex, const std::string& /*modelPath*/) {
+		const tinygltf::Material& material = gltfModel.materials[materialIndex];
+		int textureIndex = material.pbrMetallicRoughness.baseColorTexture.index;
+		if (textureIndex < 0 || textureIndex >= gltfModel.textures.size()) {
+			return;
+		}
+		const tinygltf::Texture& gltfTexture = gltfModel.textures[textureIndex];
+		int imageIndex = gltfTexture.source;
+		if (imageIndex < 0 || imageIndex >= gltfModel.images.size()) {
+			return;
+		}
+		const tinygltf::Image& gltfImage = gltfModel.images[imageIndex];
+
+		VkDeviceSize imageSize = gltfImage.image.size();
+		Buffer stagingBuffer{
+			device,
+			4,	// assume 4 bytes per pixel (RGBA)
+			static_cast<uint32_t>(imageSize / 4),
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
+		stagingBuffer.map();
+		stagingBuffer.writeToBuffer((void*) gltfImage.image.data(), imageSize);
+
+		VkImageCreateInfo imageInfo{};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.extent.width = gltfImage.width;
+		imageInfo.extent.height = gltfImage.height;
+		imageInfo.extent.depth = 1;
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = 1;
+		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		if (vkCreateImage(device.device(), &imageInfo, nullptr, &textureImage) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create texture image!");
+		}
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(device.device(), textureImage, &memRequirements);
+
+		VkMemoryAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = memRequirements.size;
+		allocInfo.memoryTypeIndex = device.findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		if (vkAllocateMemory(device.device(), &allocInfo, nullptr, &textureImageMemory) != VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate texture image memory!");
+		}
+		vkBindImageMemory(device.device(), textureImage, textureImageMemory, 0);
+
+		device.transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		device.copyBufferToImage(stagingBuffer.getBuffer(), textureImage,
+			static_cast<uint32_t>(gltfImage.width),
+			static_cast<uint32_t>(gltfImage.height), 1);
+		device.transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		textureImageView = device.createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+		textureSampler = device.createTextureSampler();
+		_hasTexture = true;
+
+		VkDescriptorSetAllocateInfo allocInfoDS{};
+		allocInfoDS.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfoDS.descriptorPool = textureDescriptorPool->getPool();
+		allocInfoDS.descriptorSetCount = 1;
+		allocInfoDS.pSetLayouts = &textureDescriptorSetLayout;
+		if (vkAllocateDescriptorSets(device.device(), &allocInfoDS, &textureDescriptorSet) != VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate texture descriptor set!");
+		}
+		VkDescriptorImageInfo imageInfoDS{};
+		imageInfoDS.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfoDS.imageView = textureImageView;
+		imageInfoDS.sampler = textureSampler;
+
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = textureDescriptorSet;
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pImageInfo = &imageInfoDS;
+		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
 	}
 
 	// Helper function to check file extension remains unchanged.

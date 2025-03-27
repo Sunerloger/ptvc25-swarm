@@ -4,13 +4,14 @@
 #include "vk/vk_renderer.h"
 #include "vk/vk_window.h"
 #include "vk/vk_descriptors.h"
+#include "vk/vk_buffer.h"
 
 #include "scene/SceneManager.h"
 
-#include "vk/vk_buffer.h"
 #include "systems/simple_render_system.h"
 #include "systems/point_light_system.h"
-#include "systems/cross_hair_system.h"
+#include "systems/texture_render_system.h"
+
 #include "keyboard_movement_controller.h"
 
 #define GLM_FORCE_RADIANS
@@ -57,7 +58,6 @@ namespace vk {
 
 	   private:
 		void loadGameObjects();
-		glm::mat2x3 loadBoundingBoxFromFile(const std::string& filename);
 
 		std::unique_ptr<Window> window;
 		std::unique_ptr<Device> device;

@@ -9,8 +9,6 @@
 namespace vk {
 
 	FirstApp::FirstApp() {
-		// TODO load settings from a file and store in applicationSettings -> if settings change during runtime (menu), change local settings struct and write back to ini file
-
 		window = std::make_unique<Window>(applicationSettings.windowWidth, applicationSettings.windowHeight, "Swarm");
 		device = std::make_unique<Device>(*window);
 		renderer = std::make_unique<Renderer>(*window, *device);
@@ -20,7 +18,6 @@ namespace vk {
 						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .build();
 
-		// inject scene manager into physics simulation
 		this->sceneManager = make_shared<SceneManager>();
 		this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager, engineSettings.cPhysicsDeltaTime);
 
@@ -52,15 +49,15 @@ namespace vk {
 				.build(globalDescriptorSets[i]);
 		}
 
+		// Create render systems.
 		SimpleRenderSystem simpleRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
-
-		PointLightSystem pointLightSystem{*device,
+		TextureRenderSystem textureRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout()};
-
-		CrossHairSystem crossHairSystem{*device,
+			globalSetLayout->getDescriptorSetLayout(),
+			Model::textureDescriptorSetLayout};
+		PointLightSystem pointLightSystem{*device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
 
@@ -69,72 +66,42 @@ namespace vk {
 
 		auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = startTime;
-
 		int currentSecond = 0;
 		float gameTimer = 0;
-
 		float physicsTimeAccumulator = 0.0f;
 
 		while (!window->shouldClose()) {
 			auto newTime = std::chrono::high_resolution_clock::now();
 			float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
 			currentTime = newTime;
-
 			deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
 
 			glfwPollEvents();
 			movementController.handleEscMenu(window->getGLFWWindow());
 
-			// TODO callbacks for jumping, shooting and menu for better responsiveness
-
 			if (!movementController.escapeMenuOpen) {
 				physicsTimeAccumulator += deltaTime;
 				gameTimer += deltaTime;
-
-				// debug timer output
 				int newSecond = static_cast<int>(gameTimer);
 				if (engineSettings.debugTime && newSecond > currentSecond) {
 					currentSecond = newSecond;
 					std::cout << "Time since start: " << currentSecond << "s" << std::endl;
 				}
-
 				movementController.handleRotation(window->getGLFWWindow(), *sceneManager->getPlayer());
-
-				// same intent for all physics steps in this frame
 				MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
-				// TODO bool isClick = movementController.handleClicking(window->getGLFWWindow());
-
-				// TODO multithreading instead of accumulator would be better
 				while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
 					physicsSimulation->preSimulation(movementIntent);
-
-					// simulate physics step
 					physicsSimulation->simulate();
-
 					physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
-
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
 				}
-
-				// Used to smooth rendering if rendering runs at a higher framerate than physics
-				float interpolationAlpha = physicsTimeAccumulator / engineSettings.cPhysicsDeltaTime;
-				// TODO sceneManager->interpolateAllPhysicsObjects(interpolationAlpha);
-
-				// TODO maybe read this in via a settings file and recalculate only if setting is changed via menu (performance, typically no dynamic window scaling during runtime in games)
 				float aspect = renderer->getAspectRatio();
-				// switch between orthographic and perspective projection
-				// camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
-				sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f,
-					100.0f);  // objects further away than 100 are clipped
+				sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 100.0f);
 
 				if (auto commandBuffer = renderer->beginFrame()) {
 					int frameIndex = renderer->getFrameIndex();
-					FrameInfo frameInfo{deltaTime,
-						commandBuffer,
-						globalDescriptorSets[frameIndex],
-						*sceneManager};
+					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
 
-					// update
 					GlobalUbo ubo{};
 					ubo.projection = sceneManager->getPlayer()->getProjMat();
 					ubo.view = sceneManager->getPlayer()->calculateViewMat();
@@ -144,27 +111,20 @@ namespace vk {
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
 
-					// render
 					renderer->beginSwapChainRenderPass(commandBuffer);
-					simpleRenderSystem.renderGameObjects(frameInfo);
+					// Render textured objects (the TextureRenderSystem binds each model’s own texture)
+					textureRenderSystem.renderGameObjects(frameInfo);
 					pointLightSystem.render(frameInfo);
-					crossHairSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
 			} else {
 				if (auto commandBuffer = renderer->beginFrame()) {
 					int frameIndex = renderer->getFrameIndex();
-					FrameInfo frameInfo{deltaTime,
-						commandBuffer,
-						globalDescriptorSets[frameIndex],
-						*sceneManager};
-
-					// render
+					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
 					renderer->beginSwapChainRenderPass(commandBuffer);
 					simpleRenderSystem.renderGameObjects(frameInfo);
 					pointLightSystem.render(frameInfo);
-					crossHairSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
