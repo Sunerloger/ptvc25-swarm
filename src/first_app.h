@@ -11,7 +11,6 @@
 #include "systems/simple_render_system.h"
 #include "systems/point_light_system.h"
 #include "systems/cross_hair_system.h"
-#include "systems/hud_system.h"
 #include "keyboard_movement_controller.h"
 
 #define GLM_FORCE_RADIANS

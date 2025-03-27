@@ -84,3 +84,6 @@ Tools/**/*.cache
 **/.vscode
 all_code.txt
 .clang-format
+code.txt
+.gitignore
+vk_abstraction.txt

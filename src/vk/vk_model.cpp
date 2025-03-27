@@ -3,8 +3,8 @@
 #include "vk_buffer.h"
 #include "../asset_utils/AssetManager.h"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.h"
+#define TINYGLTF_IMPLEMENTATION
+#include "tiny_gltf.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
@@ -36,13 +36,9 @@ namespace vk {
 
 	Model::~Model() {}
 
-	std::unique_ptr<Model> Model::createModelFromFile(bool useTinyObjLoader, Device& device, const std::string& filename) {
+	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename) {
 		Builder builder{};
-		if (useTinyObjLoader) {
-			builder.loadModel(filename);
-		} else {
-			builder.loadModelWithoutTinyObjLoader(filename);
-		}
+		builder.loadModel(filename);
 		return std::make_unique<Model>(device, builder);
 	}
 
@@ -188,51 +184,132 @@ namespace vk {
 	}
 
 	void Model::Builder::loadModel(const std::string& filename) {
-		tinyobj::attrib_t attrib;
-		std::vector<tinyobj::shape_t> shapes;
-		std::vector<tinyobj::material_t> materials;
-
-		if (!AssetManager::getInstance().loadOBJModel(filename, attrib, shapes, materials)) {
-			throw std::runtime_error("Failed to load OBJ model: " + filename);
-		}
-
 		vertices.clear();
 		indices.clear();
 
-		std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+		std::string resolvedPath = AssetManager::getInstance().resolvePath(filename);
 
-		for (const auto& shape : shapes) {
-			for (const auto& index : shape.mesh.indices) {
+		tinygltf::TinyGLTF loader;
+		tinygltf::Model gltfModel;
+		std::string err;
+		std::string warn;
+		bool ret = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, resolvedPath);
+
+		if (!warn.empty()) {
+			std::cout << "Warning: " << warn << std::endl;
+		}
+		if (!err.empty()) {
+			std::cerr << "Error: " << err << std::endl;
+		}
+		if (!ret) {
+			throw std::runtime_error("Failed to load glTF model: " + resolvedPath);
+		}
+
+		if (gltfModel.meshes.empty()) {
+			throw std::runtime_error("No mesh found in glTF file: " + resolvedPath);
+		}
+
+		// For simplicity, we load only the first mesh and iterate its primitives.
+		const tinygltf::Mesh& mesh = gltfModel.meshes[0];
+		for (const auto& primitive : mesh.primitives) {
+			// Load indices if provided.
+			if (primitive.indices >= 0) {
+				const tinygltf::Accessor& indexAccessor = gltfModel.accessors[primitive.indices];
+				const tinygltf::BufferView& bufferView = gltfModel.bufferViews[indexAccessor.bufferView];
+				const tinygltf::Buffer& buffer = gltfModel.buffers[bufferView.buffer];
+				const unsigned char* dataPtr = buffer.data.data() + bufferView.byteOffset + indexAccessor.byteOffset;
+				if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+					const uint32_t* buf = reinterpret_cast<const uint32_t*>(dataPtr);
+					for (size_t i = 0; i < indexAccessor.count; i++) {
+						indices.push_back(buf[i]);
+					}
+				} else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+					const uint16_t* buf = reinterpret_cast<const uint16_t*>(dataPtr);
+					for (size_t i = 0; i < indexAccessor.count; i++) {
+						indices.push_back(buf[i]);
+					}
+				} else {
+					throw std::runtime_error("Unsupported index component type in glTF");
+				}
+			}
+
+			// Retrieve POSITION attribute (required)
+			if (primitive.attributes.find("POSITION") == primitive.attributes.end())
+				throw std::runtime_error("No POSITION attribute found in glTF primitive");
+			const tinygltf::Accessor& posAccessor = gltfModel.accessors.at(primitive.attributes.find("POSITION")->second);
+			const tinygltf::BufferView& posBufferView = gltfModel.bufferViews[posAccessor.bufferView];
+			const tinygltf::Buffer& posBuffer = gltfModel.buffers[posBufferView.buffer];
+			const unsigned char* posData = posBuffer.data.data() + posBufferView.byteOffset + posAccessor.byteOffset;
+
+			// Retrieve NORMAL attribute if available
+			const tinygltf::Accessor* normAccessor = nullptr;
+			const unsigned char* normData = nullptr;
+			if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
+				normAccessor = &gltfModel.accessors.at(primitive.attributes.find("NORMAL")->second);
+				const tinygltf::BufferView& normBufferView = gltfModel.bufferViews[normAccessor->bufferView];
+				const tinygltf::Buffer& normBuffer = gltfModel.buffers[normBufferView.buffer];
+				normData = normBuffer.data.data() + normBufferView.byteOffset + normAccessor->byteOffset;
+			}
+
+			// Retrieve TEXCOORD_0 attribute if available
+			const tinygltf::Accessor* uvAccessor = nullptr;
+			const unsigned char* uvData = nullptr;
+			if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
+				uvAccessor = &gltfModel.accessors.at(primitive.attributes.find("TEXCOORD_0")->second);
+				const tinygltf::BufferView& uvBufferView = gltfModel.bufferViews[uvAccessor->bufferView];
+				const tinygltf::Buffer& uvBuffer = gltfModel.buffers[uvBufferView.buffer];
+				uvData = uvBuffer.data.data() + uvBufferView.byteOffset + uvAccessor->byteOffset;
+			}
+
+			// Retrieve COLOR_0 attribute if available
+			const tinygltf::Accessor* colorAccessor = nullptr;
+			const unsigned char* colorData = nullptr;
+			if (primitive.attributes.find("COLOR_0") != primitive.attributes.end()) {
+				colorAccessor = &gltfModel.accessors.at(primitive.attributes.find("COLOR_0")->second);
+				const tinygltf::BufferView& colorBufferView = gltfModel.bufferViews[colorAccessor->bufferView];
+				const tinygltf::Buffer& colorBuffer = gltfModel.buffers[colorBufferView.buffer];
+				colorData = colorBuffer.data.data() + colorBufferView.byteOffset + colorAccessor->byteOffset;
+			}
+
+			// For each vertex in POSITION accessor, build our vertex structure.
+			// Note: this simple implementation does not de-duplicate vertices based on indices.
+			for (size_t i = 0; i < posAccessor.count; i++) {
 				Vertex vertex{};
+				const float* pos = reinterpret_cast<const float*>(posData + i * 3 * sizeof(float));
+				vertex.position = {pos[0], pos[1], pos[2]};
 
-				if (index.vertex_index >= 0) {
-					vertex.position = {
-						attrib.vertices[3 * index.vertex_index + 0],
-						attrib.vertices[3 * index.vertex_index + 1],
-						attrib.vertices[3 * index.vertex_index + 2]};
+				if (colorAccessor) {
+					// Assume COLOR_0 is a vec3 (or vec4; we ignore alpha here)
+					int comps = (colorAccessor->type == TINYGLTF_TYPE_VEC3 ? 3 : 4);
+					const float* col = reinterpret_cast<const float*>(colorData + i * comps * sizeof(float));
+					vertex.color = {col[0], col[1], col[2]};
+				} else {
+					vertex.color = {1.0f, 1.0f, 1.0f};
 				}
 
-				if (index.normal_index >= 0) {
-					vertex.normal = {
-						attrib.normals[3 * index.normal_index + 0],
-						attrib.normals[3 * index.normal_index + 1],
-						attrib.normals[3 * index.normal_index + 2]};
+				if (normAccessor) {
+					const float* norm = reinterpret_cast<const float*>(normData + i * 3 * sizeof(float));
+					vertex.normal = {norm[0], norm[1], norm[2]};
+				} else {
+					vertex.normal = {0.0f, 0.0f, 0.0f};
 				}
 
-				if (index.texcoord_index >= 0) {
-					vertex.uv = {
-						attrib.texcoords[2 * index.texcoord_index + 0],
-						attrib.texcoords[2 * index.texcoord_index + 1],
-					};
+				if (uvAccessor) {
+					const float* uv = reinterpret_cast<const float*>(uvData + i * 2 * sizeof(float));
+					vertex.uv = {uv[0], uv[1]};
+				} else {
+					vertex.uv = {0.0f, 0.0f};
 				}
 
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-					vertices.push_back(vertex);
-				}
-				indices.push_back(uniqueVertices[vertex]);
+				vertices.push_back(vertex);
 			}
 		}
-		std::cout << "Loaded model with " << vertices.size() << " vertices and " << indices.size() << " indices" << std::endl;
+		std::cout << "Loaded glTF model with " << vertices.size() << " vertices and " << indices.size() << " indices" << std::endl;
+	}
+
+	// Helper function to check file extension remains unchanged.
+	bool EndsWith(const std::string& str, const std::string& suffix) {
+		return str.size() >= suffix.size() &&
+			   0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 	}
 }
