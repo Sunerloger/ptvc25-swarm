@@ -101,16 +101,13 @@ namespace vk {
 
 					GlobalUbo ubo{};
 					ubo.projection = sceneManager->getPlayer()->getProjMat();
-					// std::cout << "Projection matrix: " << glm::to_string(ubo.projection) << std::endl;
 					ubo.view = sceneManager->getPlayer()->calculateViewMat();
-					std::cout << "View matrix: " << glm::to_string(ubo.view) << std::endl;
 					ubo.inverseView = glm::inverse(ubo.view);
 					ubo.aspectRatio = aspect;
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
 
 					renderer->beginSwapChainRenderPass(commandBuffer);
-					// Render textured objects (the TextureRenderSystem binds each model’s own texture)
 					textureRenderSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
@@ -143,7 +140,7 @@ namespace vk {
 		std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
 
 		std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-		characterSettings->mGravityFactor = 1.0f;
+		characterSettings->mGravityFactor = 0.0f;
 		characterSettings->mFriction = 10.0f;
 		characterSettings->mShape = characterShape;
 		characterSettings->mLayer = physics::Layers::MOVING;
@@ -157,6 +154,7 @@ namespace vk {
 		sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
 
 		// add terrain to scene
+		// rotate the model to match the terrain
 		sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f})));
 
 		glfwSetWindowUserPointer(window->getGLFWWindow(), sceneManager.get());
