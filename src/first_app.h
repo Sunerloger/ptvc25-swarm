@@ -8,8 +8,6 @@
 
 #include "scene/SceneManager.h"
 
-#include "systems/simple_render_system.h"
-#include "systems/point_light_system.h"
 #include "systems/texture_render_system.h"
 
 #include "keyboard_movement_controller.h"

@@ -11,14 +11,14 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     vec4 ambientLightColor;
 } ubo;
 
-layout(push_constant) uniform PushConstants {
+layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
-} pushConstants;
+} push;
 
 layout(location = 0) out vec2 fragUV;
 
 void main() {
-    gl_Position = ubo.projection * ubo.view * pushConstants.modelMatrix * vec4(position, 1.0);
+    gl_Position = ubo.projection * ubo.view * push.modelMatrix * vec4(position, 1.0);
     fragUV = uv;
 }

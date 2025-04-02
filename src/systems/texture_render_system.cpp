@@ -1,6 +1,8 @@
 #include "texture_render_system.h"
 #include <stdexcept>
 #include <array>
+#include <glm/gtx/string_cast.hpp>
+#include <iostream>
 
 namespace vk {
 
@@ -89,6 +91,7 @@ namespace vk {
 
 			SimplePushConstantData push{};
 			push.modelMatrix = gameObject->computeModelMatrix();
+			// std::cout << "Model matrix: " << glm::to_string(push.modelMatrix) << std::endl;
 			push.normalMatrix = gameObject->computeNormalMatrix();
 			vkCmdPushConstants(frameInfo.commandBuffer,
 				pipelineLayout,

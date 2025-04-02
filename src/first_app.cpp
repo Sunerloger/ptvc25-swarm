@@ -5,6 +5,7 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#include <glm/gtx/string_cast.hpp>
 
 namespace vk {
 
@@ -24,7 +25,9 @@ namespace vk {
 		loadGameObjects();
 	}
 
-	FirstApp::~FirstApp() {}
+	FirstApp::~FirstApp() {
+		Model::cleanupTextureResources(*device);
+	}
 
 	void FirstApp::run() {
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -50,16 +53,10 @@ namespace vk {
 		}
 
 		// Create render systems.
-		SimpleRenderSystem simpleRenderSystem{*device,
-			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout()};
 		TextureRenderSystem textureRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout(),
 			Model::textureDescriptorSetLayout};
-		PointLightSystem pointLightSystem{*device,
-			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout()};
 
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
@@ -85,7 +82,7 @@ namespace vk {
 				int newSecond = static_cast<int>(gameTimer);
 				if (engineSettings.debugTime && newSecond > currentSecond) {
 					currentSecond = newSecond;
-					std::cout << "Time since start: " << currentSecond << "s" << std::endl;
+					// Debug: std::cout << "Time since start: " << currentSecond << "s" << std::endl;
 				}
 				movementController.handleRotation(window->getGLFWWindow(), *sceneManager->getPlayer());
 				MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
@@ -104,17 +101,17 @@ namespace vk {
 
 					GlobalUbo ubo{};
 					ubo.projection = sceneManager->getPlayer()->getProjMat();
+					// std::cout << "Projection matrix: " << glm::to_string(ubo.projection) << std::endl;
 					ubo.view = sceneManager->getPlayer()->calculateViewMat();
+					std::cout << "View matrix: " << glm::to_string(ubo.view) << std::endl;
 					ubo.inverseView = glm::inverse(ubo.view);
 					ubo.aspectRatio = aspect;
-					pointLightSystem.update(frameInfo, ubo);
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
 
 					renderer->beginSwapChainRenderPass(commandBuffer);
 					// Render textured objects (the TextureRenderSystem binds each model’s own texture)
 					textureRenderSystem.renderGameObjects(frameInfo);
-					pointLightSystem.render(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
@@ -123,8 +120,7 @@ namespace vk {
 					int frameIndex = renderer->getFrameIndex();
 					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
 					renderer->beginSwapChainRenderPass(commandBuffer);
-					simpleRenderSystem.renderGameObjects(frameInfo);
-					pointLightSystem.render(frameInfo);
+					textureRenderSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
@@ -135,7 +131,6 @@ namespace vk {
 
 	void FirstApp::loadGameObjects() {
 		std::shared_ptr<Model> floorModel = Model::createModelFromFile(*device, "models:BoxTextured.glb");
-		std::shared_ptr<Model> humanModel = Model::createModelFromFile(*device, "models:CesiumMan.glb");
 
 		// 2m player
 		float playerHeight = 1.40f;
@@ -162,39 +157,7 @@ namespace vk {
 		sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
 
 		// add terrain to scene
-		sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{50.0f, 1.0f, 50.0f})));
-
-		// add point lights
-		sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f})));
-		sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 0.0f})));
-		sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{2.0f, 1.0f, 0.0f})));
-
-		// add ui
-
-		// this must fit the model
-		float enemyHullHeight = 1.25f;
-		float enemyRadius = 0.3f;
-
-		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
-
-		for (int i = 0; i < 5; ++i) {
-			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
-
-			std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
-			sprinterSettings->model = humanModel;
-
-			std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
-			enemyCharacterSettings->mLayer = physics::Layers::MOVING;
-			enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // Accept contacts that touch the lower sphere of the capsule
-			enemyCharacterSettings->mFriction = 10.0f;
-			enemyCharacterSettings->mShape = enemyShape;
-			enemyCharacterSettings->mGravityFactor = 1.0f;
-
-			std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
-			sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
-			sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
-			sprinterCreationSettings->position = RVec3(3.0f * i + 3.0f, 3.0f, 0.0f);
-		}
+		sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f})));
 
 		glfwSetWindowUserPointer(window->getGLFWWindow(), sceneManager.get());
 	}

@@ -18,9 +18,7 @@ using namespace JPH::literals;
 
 namespace physics {
 	class Terrain : public ManagedPhysicsEntity {
-
-	public:
-
+	   public:
 		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale = {1.0f, 1.0f, 1.0f});
 		virtual ~Terrain();
 
@@ -32,8 +30,7 @@ namespace physics {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
 
-	private:
-
+	   private:
 		std::shared_ptr<vk::Model> model;
 
 		glm::vec3 scale;

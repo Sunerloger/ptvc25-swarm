@@ -69,19 +69,6 @@ namespace vk {
 	VkDescriptorSetLayout Model::textureDescriptorSetLayout = VK_NULL_HANDLE;
 	std::unique_ptr<DescriptorPool> Model::textureDescriptorPool = nullptr;
 
-	static void createTextureDescriptorSetLayoutIfNeeded(Device& device) {
-		if (Model::textureDescriptorSetLayout == VK_NULL_HANDLE) {
-			auto layout = DescriptorSetLayout::Builder(device)
-							  .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-							  .build();
-			Model::textureDescriptorSetLayout = layout->getDescriptorSetLayout();
-			Model::textureDescriptorPool = DescriptorPool::Builder(device)
-											   .setMaxSets(100)
-											   .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
-											   .build();
-		}
-	}
-
 	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename) {
 		Builder builder{};
 		builder.loadModel(filename);
@@ -402,6 +389,18 @@ namespace vk {
 		descriptorWrite.descriptorCount = 1;
 		descriptorWrite.pImageInfo = &imageInfoDS;
 		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
+	}
+
+	void Model::cleanupTextureResources(Device& device) {
+		if (textureDescriptorPool) {
+			textureDescriptorPool->resetPool();
+			textureDescriptorPool.reset();
+		}
+		if (textureDescriptorSetLayout != VK_NULL_HANDLE) {
+			vkDestroyDescriptorSetLayout(device.device(), textureDescriptorSetLayout, nullptr);
+			textureDescriptorSetLayout = VK_NULL_HANDLE;
+		}
+		textureLayoutHolder.reset();
 	}
 
 	// Helper function to check file extension remains unchanged.

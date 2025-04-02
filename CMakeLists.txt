@@ -8,7 +8,6 @@ project(Swarm)
 
 if(APPLE)
   add_compile_options("-isysroot" "${CMAKE_OSX_SYSROOT}")
-  add_compile_options(-Wno-pessimizing-move -Wno-defaulted-function-deleted -Wno-inconsistent-missing-override)
   add_link_options("-isysroot" "${CMAKE_OSX_SYSROOT}")
 endif()
 

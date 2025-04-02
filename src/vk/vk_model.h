@@ -61,6 +61,8 @@ namespace vk {
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);
 
+		static void cleanupTextureResources(Device& device);
+
 	   private:
 		void createVertexBuffers(const std::vector<Vertex>& vertices);
 		void createIndexBuffers(const std::vector<uint32_t>& indices);
