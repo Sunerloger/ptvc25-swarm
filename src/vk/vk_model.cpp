@@ -396,10 +396,6 @@ namespace vk {
 			textureDescriptorPool->resetPool();
 			textureDescriptorPool.reset();
 		}
-		if (textureDescriptorSetLayout != VK_NULL_HANDLE) {
-			vkDestroyDescriptorSetLayout(device.device(), textureDescriptorSetLayout, nullptr);
-			textureDescriptorSetLayout = VK_NULL_HANDLE;
-		}
 		textureLayoutHolder.reset();
 	}
 
