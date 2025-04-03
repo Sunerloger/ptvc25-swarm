@@ -90,7 +90,7 @@ namespace vk {
 				continue;
 
 			SimplePushConstantData push{};
-			push.modelMatrix = glm::transpose(gameObject->computeModelMatrix());
+			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
 			vkCmdPushConstants(frameInfo.commandBuffer,
 				pipelineLayout,
