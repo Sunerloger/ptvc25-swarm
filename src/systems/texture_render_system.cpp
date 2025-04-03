@@ -9,25 +9,20 @@ namespace vk {
 		VkDescriptorSetLayout globalSetLayout,
 		VkDescriptorSetLayout textureSetLayout)
 		: device{device} {
-		// Create pipeline layout using the global set layout and the texture set layout from Model.
 		createPipelineLayout(globalSetLayout, Model::textureDescriptorSetLayout);
 
-		// Create the graphics pipeline.
 		PipelineConfigInfo pipelineConfig{};
 		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
 		pipelineConfig.renderPass = renderPass;
 		pipelineConfig.pipelineLayout = pipelineLayout;
 		pipeline = std::make_unique<Pipeline>(device, "texture_shader.vert", "texture_shader.frag", pipelineConfig);
 
-		// Create a default texture descriptor set (a 1×1 white texture) from Model's texture descriptor pool.
-		// It must be created after the device and the descriptor set layout (Model::textureDescriptorSetLayout) are ready.
 		if (Model::textureDescriptorPool) {
 			createDefaultTexture(Model::textureDescriptorPool->getPool(), Model::textureDescriptorSetLayout);
 		}
 	}
 
 	TextureRenderSystem::~TextureRenderSystem() {
-		// Clean up default texture resources if they were created.
 		if (defaultTextureSampler != VK_NULL_HANDLE) {
 			vkDestroySampler(device.device(), defaultTextureSampler, nullptr);
 		}
@@ -183,6 +178,7 @@ namespace vk {
 			SimplePushConstantData push{};
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
+			push.hasTexture = gameObject->getModel()->hasTexture() ? 1 : 0;
 			vkCmdPushConstants(frameInfo.commandBuffer,
 				pipelineLayout,
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -190,7 +186,6 @@ namespace vk {
 				sizeof(SimplePushConstantData),
 				&push);
 
-			// Bind the model's texture descriptor set if available; otherwise, use the default texture.
 			VkDescriptorSet textureDS = VK_NULL_HANDLE;
 			if (gameObject->getModel()->hasTexture()) {
 				textureDS = gameObject->getModel()->getTextureDescriptorSet();

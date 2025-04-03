@@ -273,6 +273,18 @@ namespace vk {
 					int comps = (colorAccessor->type == TINYGLTF_TYPE_VEC3 ? 3 : 4);
 					const float* col = reinterpret_cast<const float*>(colorData + i * comps * sizeof(float));
 					vertex.color = {col[0], col[1], col[2]};
+				} else if (primitive.material >= 0) {
+					const tinygltf::Material& material = gltfModel.materials[primitive.material];
+					if (material.values.find("baseColorFactor") != material.values.end()) {
+						const auto& factor = material.values.at("baseColorFactor").ColorFactor();
+						if (factor.size() >= 3) {
+							vertex.color = {static_cast<float>(factor[0]), static_cast<float>(factor[1]), static_cast<float>(factor[2])};
+						} else {
+							vertex.color = {1.0f, 1.0f, 1.0f};
+						}
+					} else {
+						vertex.color = {1.0f, 1.0f, 1.0f};
+					}
 				} else {
 					vertex.color = {1.0f, 1.0f, 1.0f};
 				}

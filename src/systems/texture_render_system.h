@@ -16,6 +16,7 @@ namespace vk {
 	struct SimplePushConstantData {
 		glm::mat4 modelMatrix{1.0f};
 		glm::mat4 normalMatrix{1.0f};
+		int hasTexture = 0;
 	};
 
 	class TextureRenderSystem {
