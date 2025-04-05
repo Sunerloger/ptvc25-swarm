@@ -1,12 +1,3 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
-
-#ifndef GCGPROJECT_VK_MODEL_H
-#define GCGPROJECT_VK_MODEL_H
-
-#endif //GCGPROJECT_VK_MODEL_H
-
 #pragma once
 
 #include "vk_device.h"

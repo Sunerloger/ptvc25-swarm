@@ -1,13 +1,9 @@
-//
-// Created by Vlad Dancea on 30.03.24.
-//
-
 #pragma once
 
-#include "vk_camera.h"
-#include "vk_game_object.h"
+#include "GameObject.h"
 
 #include "vulkan/vulkan.h"
+#include "scene/SceneManager.h"
 
 namespace vk {
 
@@ -31,9 +27,10 @@ namespace vk {
     struct FrameInfo {
         float frameTime;
         VkCommandBuffer commandBuffer;
-        Camera &camera;
         VkDescriptorSet globalDescriptorSet;
-        GameObject::Map &gameObjects;
+        SceneManager& sceneManager;
+        // TODO use this for debug rendering with jolt debug renderer (implement DebugRenderer.h)
+        bool isDebugPhysics = false;
     };
 }
 

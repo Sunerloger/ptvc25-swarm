@@ -1,12 +1,7 @@
-//
-// Created by Vlad Dancea on 30.03.24.
-//
-
 #pragma once
 
 #include "vk_device.h"
 
-// std
 #include <memory>
 #include <unordered_map>
 #include <vector>

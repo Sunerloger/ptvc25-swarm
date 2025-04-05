@@ -1,10 +1,5 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
-
-#ifndef GCGPROJECT_VK_PIPELINE_H
-#define GCGPROJECT_VK_PIPELINE_H
 #pragma once
+
 #include "string"
 #include "vector"
 #include "vk_device.h"
@@ -62,5 +57,3 @@ namespace vk {
         VkShaderModule fragShaderModule;
     };
 }
-
-#endif //GCGPROJECT_VK_PIPELINE_H

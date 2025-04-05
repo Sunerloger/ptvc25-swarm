@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #include "point_light_system.h"
 #include "../vk_renderer.h"
 
@@ -66,11 +62,13 @@ namespace vk {
         pipelineConfig.bindingDescriptions.clear();
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        // output the current directoy;
-        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/point_light.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/point_light.frag.spv",
-                                              pipelineConfig);
+        
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "point_light.vert",
+            "point_light.frag",
+            pipelineConfig
+        );
     }
 
     void PointLightSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo) {
@@ -80,20 +78,20 @@ namespace vk {
                 frameInfo.frameTime,
                 {0.0f, -1.f, 0.f});
         int lightIndex = 0;
-        for (auto& kv: frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.pointLight == nullptr) {
-                continue;
+        for (std::weak_ptr<lighting::PointLight> weak_light : frameInfo.sceneManager.getLights()) {
+
+            std::shared_ptr<lighting::PointLight> light;
+            if (light = weak_light.lock()) {
+
+                assert(lightIndex < MAX_LIGHTS && "Too many lights in the scene");
+
+                // update light positions
+                light->setPosition(glm::vec3(rotateLight * glm::vec4(light->getPosition(), 1.0f)));
+
+                ubo.pointLights[lightIndex].position = glm::vec4(light->getPosition(), 1.0f);
+                ubo.pointLights[lightIndex].color = glm::vec4(light->color, light->getIntensity());
+                lightIndex += 1;
             }
-
-            assert(lightIndex < MAX_LIGHTS && "Too many lights in the scene");
-
-            // update light positions
-            obj.transform.translation = glm::vec3(rotateLight * glm::vec4(obj.transform.translation, 1.0f));
-
-            ubo.pointLights[lightIndex].position = glm::vec4(obj.transform.translation, 1.0f);
-            ubo.pointLights[lightIndex].color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
-            lightIndex += 1;
         }
         ubo.numLights = lightIndex;
     }
@@ -111,24 +109,23 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv: frameInfo.gameObjects) {
-            auto &obj = kv.second;
-            if (obj.pointLight == nullptr) {
-                continue;
+        for (std::weak_ptr<lighting::PointLight> weak_light: frameInfo.sceneManager.getLights()) {
+
+            std::shared_ptr<lighting::PointLight> light;
+            if (light = weak_light.lock()) {
+                PointLightPushConstants push{};
+                push.position = glm::vec4(light->getPosition(), 1.0f);
+                push.color = glm::vec4(light->color, light->getIntensity());
+                push.radius = light->getRadius();
+
+                vkCmdPushConstants(frameInfo.commandBuffer,
+                    pipelineLayout,
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    0,
+                    sizeof(PointLightPushConstants),
+                    &push);
+                vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
             }
-
-            PointLightPushConstants push{};
-            push.position = glm::vec4(obj.transform.translation, 1.0f);
-            push.color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
-            push.radius = obj.transform.scale.x;
-
-            vkCmdPushConstants(frameInfo.commandBuffer,
-                               pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                               0,
-                               sizeof(PointLightPushConstants),
-                               &push);
-        vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
         }
     }
 }

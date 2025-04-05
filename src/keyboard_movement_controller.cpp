@@ -1,19 +1,12 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #include "keyboard_movement_controller.h"
-#include "vk_model.h"
 
-#include <iostream>
+namespace controls {
 
-namespace vk {
-
-    void KeyboardMovementController::lookInPlaneXY(GLFWwindow *window,
-                                                   float dt,
-                                                   vk::GameObject &gameObject) {
+    void KeyboardMovementController::handleRotation(GLFWwindow* window,
+                                                   physics::Player& player) {
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
+
 
         if (firstMouse) {
             lastMouseX = mouseX;
@@ -21,79 +14,51 @@ namespace vk {
             firstMouse = false;
         }
 
-        double xOffset = (mouseX - lastMouseX) * lookSpeed;
-        double yOffset = (lastMouseY - mouseY) * lookSpeed;
+        // right = negative rotation around y axis
+        double xOffset = lastMouseX - mouseX;
+        // down = negative rotation around x axis
+        double yOffset = lastMouseY - mouseY;
 
         lastMouseX = mouseX;
         lastMouseY = mouseY;
 
+        // check if rotation is significant enough for processing
         if (std::numeric_limits<float>::epsilon() < glm::abs(glm::radians(xOffset)) ||
             std::numeric_limits<float>::epsilon() < glm::abs(glm::radians(yOffset))) {
-            gameObject.transform.rotation.y += xOffset * dt;
-            gameObject.transform.rotation.x += yOffset * dt;
+            player.handleRotation(xOffset, yOffset);
         }
-
-        // limit pitch values between +//- 85ish degrees
-        gameObject.transform.rotation.x = glm::clamp(gameObject.transform.rotation.x, -1.5f, 1.5f);
-        gameObject.transform.rotation.y = glm::mod(gameObject.transform.rotation.y, glm::two_pi<float>());
     }
 
-    void KeyboardMovementController::moveInPlaneXZ(GLFWwindow *window,
-                                                   float dt,
-                                                   GameObject &gameObject) {
-        glm::vec3 rotate{0};
-        if (glfwGetKey(window, keys.lookRight) == GLFW_PRESS) {
-            rotate.y += 1.f;
-        }
-        if (glfwGetKey(window, keys.lookLeft) == GLFW_PRESS) {
-            rotate.y -= 1.f;
-        }
-        if (glfwGetKey(window, keys.lookUp) == GLFW_PRESS) {
-            rotate.x += 1.f;
-        }
-        if (glfwGetKey(window, keys.lookDown) == GLFW_PRESS) {
-            rotate.x -= 1.f;
-        }
+    MovementIntent KeyboardMovementController::getMovementIntent(GLFWwindow* window) {
 
-        if (glm::dot(rotate, rotate) > std::numeric_limits<float>::epsilon()) {
-            gameObject.transform.rotation += lookSpeed * dt * glm::normalize(rotate);
-        }
+        glm::vec3 movementDirection = glm::vec3();
 
-        // limit pitch values between +//- 85ish degrees
-        gameObject.transform.rotation.x = glm::clamp(gameObject.transform.rotation.x, -1.5f, 1.5f);
-        gameObject.transform.rotation.y = glm::mod(gameObject.transform.rotation.y, glm::two_pi<float>());
-
-        float yaw = gameObject.transform.rotation.y;
-        const glm::vec3 forwardDir{sin(yaw), 0.f, cos(yaw)};
-        const glm::vec3 rightDir{forwardDir.z, 0.f, -forwardDir.x};
-        const glm::vec3 upDir{0.f, 1.f, 0.f};
-
-        glm::vec3 moveDir{0.f};
         if (glfwGetKey(window, keys.moveForward) == GLFW_PRESS) {
-            moveDir += forwardDir;
+            movementDirection += glm::vec3{ 0,0,-1 };
         }
         if (glfwGetKey(window, keys.moveBackward) == GLFW_PRESS) {
-            moveDir -= forwardDir;
-        }
-        if (glfwGetKey(window, keys.moveRight) == GLFW_PRESS) {
-            moveDir += rightDir;
+            movementDirection += glm::vec3{ 0,0,1 };
         }
         if (glfwGetKey(window, keys.moveLeft) == GLFW_PRESS) {
-            moveDir -= rightDir;
+            movementDirection += glm::vec3{ -1,0,0 };
         }
-        if (glfwGetKey(window, keys.moveUp) == GLFW_PRESS) {
-            moveDir += upDir;
-        }
-        if (glfwGetKey(window, keys.moveDown) == GLFW_PRESS) {
-            moveDir -= upDir;
+        if (glfwGetKey(window, keys.moveRight) == GLFW_PRESS) {
+            movementDirection += glm::vec3{ 1,0,0 };
         }
 
-        if (glm::dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon()) {
-            gameObject.transform.translation += moveSpeed * dt * glm::normalize(moveDir);
+        float length = glm::length(movementDirection);
+
+        if (length > 0.0f) {
+            movementDirection /= length;
         }
+
+        bool isJump = glfwGetKey(window, keys.jump) == GLFW_PRESS;
+
+        return { movementDirection, isJump };
     }
 
     void KeyboardMovementController::handleEscMenu(GLFWwindow *window) {
+
         bool escKeyPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
         bool f2KeyPressed = glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS;
 
@@ -147,67 +112,4 @@ namespace vk {
         escKeyPressedLastFrame = escKeyPressed;
         f2KeyPressedLastFrame = f2KeyPressed;
     }
-
-    void KeyboardMovementController::handleClicking(GLFWwindow *window, float dt, Camera &camera, FrameInfo &frameInfo) {
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            glm::vec3 cameraForward = camera.getDirection();
-            glm::vec3 cameraPosition = camera.getPosition();
-
-            for (auto it = frameInfo.gameObjects.begin(); it != frameInfo.gameObjects.end(); ) {
-                auto& obj = it->second;
-                if(obj.isEnemy == nullptr) {
-                    ++it;
-                    continue;
-                }
-
-                glm::mat2x3 boundingBox = obj.boundingBox;
-                glm::vec3 min = boundingBox[0];
-                glm::vec3 max = boundingBox[1];
-
-                // Simple AABB ray intersection check
-                // Note: This is a very basic form of intersection testing and might not be accurate for all cases.
-                float tMin = (min.x - cameraPosition.x) / cameraForward.x;
-                float tMax = (max.x - cameraPosition.x) / cameraForward.x;
-
-                if (tMin > tMax) std::swap(tMin, tMax);
-
-                float tyMin = (min.y - cameraPosition.y) / cameraForward.y;
-                float tyMax = (max.y - cameraPosition.y) / cameraForward.y;
-
-                if (tyMin > tyMax) std::swap(tyMin, tyMax);
-
-                if ((tMin > tyMax) || (tyMin > tMax)) {
-                    it++;
-                    continue;
-                }
-
-
-                if (tyMin > tMin)
-                    tMin = tyMin;
-
-                if (tyMax < tMax)
-                    tMax = tyMax;
-
-                float tzMin = (min.z - cameraPosition.z) / cameraForward.z;
-                float tzMax = (max.z - cameraPosition.z) / cameraForward.z;
-
-                if (tzMin > tzMax) std::swap(tzMin, tzMax);
-
-                if ((tMin > tzMax) || (tzMin > tMax)) {
-                    it++;
-                    continue;
-                }
-                if (tzMin > tMin)
-                    tMin = tzMin;
-
-                if (tzMax < tMax)
-                    tMax = tzMax;
-
-                // If we reach here, there was an intersection
-                std::cout << "Hit detected with enemy object" << std::endl;
-                it = frameInfo.gameObjects.erase(it);
-            }
-        }
-    }
-
 }

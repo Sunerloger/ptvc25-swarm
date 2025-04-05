@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
-
 #ifndef GCGPROJECT_VK_WINDOW_H
 #define GCGPROJECT_VK_WINDOW_H
 #define GLFW_INCLUDE_VULKAN

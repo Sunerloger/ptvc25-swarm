@@ -1,10 +1,5 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #include "simple_render_system.h"
 #include "../vk_renderer.h"
-#include "../vk_camera.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -63,11 +58,13 @@ namespace vk {
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        // output the current directoy;
-        std::cout << "Current directory is: " << std::filesystem::current_path() << std::endl;
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/simple_shader.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/simple_shader.frag.spv",
-                                              pipelineConfig);
+        
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "simple_shader.vert",
+            "simple_shader.frag",
+            pipelineConfig
+        );
     }
 
 
@@ -84,19 +81,17 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-           if(obj.isEntity == nullptr) {
+        for (std::weak_ptr<GameObject> weak_gameObject : frameInfo.sceneManager.getRenderObjects()) {
+
+            std::shared_ptr<GameObject> gameObject = weak_gameObject.lock();
+
+            if (!gameObject) {
                 continue;
-           }
-
-            //obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
-            //obj.transform.rotation.x = glm::mod(obj.transform.rotation.x + 0.005f, glm::two_pi<float>());
-
+            }
 
             SimplePushConstantData push{};
-            push.modelMatrix = obj.transform.mat4();
-            push.normalMatrix = obj.transform.normalMatrix();
+            push.modelMatrix = gameObject->computeModelMatrix();
+            push.normalMatrix = gameObject->computeNormalMatrix();
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
@@ -106,26 +101,8 @@ namespace vk {
                     sizeof(SimplePushConstantData),
                     &push
             );
-            obj.model->bind(frameInfo.commandBuffer);
-            obj.model->draw(frameInfo.commandBuffer);
-        }
-    }
-
-    void SimpleRenderSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo, Camera& camera) {
-        //move objects towards camera position
-        //also rotate objects to look towards camera
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.isEnemy == nullptr) {
-                continue;
-            }
-            auto cameraPosition = camera.getPosition();
-            auto direction = glm::normalize(cameraPosition - obj.transform.translation);
-            obj.transform.translation += direction * 0.01f;
-            obj.boundingBox[0]= obj.boundingBox[0] + direction * 0.01f;
-            obj.boundingBox[1]= obj.boundingBox[1] + direction * 0.01f;
-            //rotate bounding box by the same amount
-
+            gameObject->getModel()->bind(frameInfo.commandBuffer);
+            gameObject->getModel()->draw(frameInfo.commandBuffer);
         }
     }
 }

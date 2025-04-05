@@ -1,10 +1,5 @@
-//
-// Created by Vlad Dancea on 30.03.24.
-//
-
 #include "vk_descriptors.h"
 
-// std
 #include <cassert>
 #include <stdexcept>
 

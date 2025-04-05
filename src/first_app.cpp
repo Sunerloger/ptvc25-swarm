@@ -1,99 +1,24 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
-
 #include "first_app.h"
-
-#include "vk_buffer.h"
-#include "vk_camera.h"
-#include "systems/simple_render_system.h"
-#include "systems/point_light_system.h"
-#include "systems/cross_hair_system.h"
-#include "systems/hud_system.h"
-#include "vk_device.h"
-#include "keyboard_movement_controller.h"
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "tiny_obj_loader.h"
-
-#include <array>
-#include <iostream>
-#include <chrono>
-#include <memory>
-#include <numeric>
 
 namespace vk {
 
-    glm::mat2x3 FirstApp::loadBoundingBoxFromFile(const std::string &filename) {
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
-
-        if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str())){
-            throw std::runtime_error(warn + err);
-        }
-
-        std::vector<Model::Vertex> vertices;
-        std::vector<uint32_t> indices;
-
-        for(const auto& shape : shapes){
-            for(const auto& index : shape.mesh.indices){
-                Model::Vertex vertex{};
-
-                if(index.vertex_index >= 0) {
-                    vertex.position = {
-                            attrib.vertices[3 * index.vertex_index + 0],
-                            attrib.vertices[3 * index.vertex_index + 1],
-                            attrib.vertices[3 * index.vertex_index + 2]
-                    };
-
-                    vertex.color = {
-                            attrib.colors[3 * index.vertex_index + 0],
-                            attrib.colors[3 * index.vertex_index + 1],
-                            attrib.colors[3 * index.vertex_index + 2]
-                    };
-                }
-
-                if(index.normal_index >= 0) {
-                    vertex.normal = {
-                            attrib.normals[3 * index.normal_index + 0],
-                            attrib.normals[3 * index.normal_index + 1],
-                            attrib.normals[3 * index.normal_index + 2]
-                    };
-                }
-
-                if(index.texcoord_index >= 0) {
-                    vertex.uv = {
-                            attrib.texcoords[2 * index.normal_index + 0],
-                            attrib.texcoords[2 * index.normal_index + 1],
-                    };
-                }
-
-                vertices.push_back(vertex);
-                indices.push_back(vertices.size() - 1);
-
-            }
-        }
-
-        //calculate bounding box
-        glm::vec3 currentMin = glm::vec3(std::numeric_limits<float>::max());
-        glm::vec3 currentMax = glm::vec3(std::numeric_limits<float>::min());
-        for (auto& vertex : vertices) {
-            currentMin = glm::min(currentMin, vertex.position);
-            currentMax = glm::max(currentMax, vertex.position);
-        }
-
-        return glm::mat2x3(currentMin, currentMax);
-    }
-
     FirstApp::FirstApp() {
-        globalPool = DescriptorPool::Builder(device)
-                .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-                .build();
+
+        // TODO load settings from a file and store in applicationSettings -> if settings change during runtime (menu), change local settings struct and write back to ini file
+
+        window = std::make_unique<Window>(applicationSettings.windowWidth, applicationSettings.windowHeight, "Swarm");
+        device = std::make_unique<Device>(*window);
+        renderer = std::make_unique<Renderer>(*window, *device);
+
+        globalPool = DescriptorPool::Builder(*device)
+            .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
+            .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+            .build();
+
+        // inject scene manager into physics simulation
+        this->sceneManager = make_shared<SceneManager>();
+        this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager, engineSettings.cPhysicsDeltaTime);
+
         loadGameObjects();
 
     }
@@ -105,7 +30,7 @@ namespace vk {
 
         std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
         for (int i = 0; i < uboBuffers.size(); i++) {
-            uboBuffers[i] = std::make_unique<Buffer>(device,
+            uboBuffers[i] = std::make_unique<Buffer>(*device,
                                                      sizeof(GlobalUbo),
                                                      1,
                                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -113,7 +38,7 @@ namespace vk {
             uboBuffers[i]->map();
         }
 
-        auto globalSetLayout = DescriptorSetLayout::Builder(device)
+        auto globalSetLayout = DescriptorSetLayout::Builder(*device)
                 .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
                 .build();
 
@@ -125,216 +50,219 @@ namespace vk {
                     .build(globalDescriptorSets[i]);
         }
 
-        SimpleRenderSystem simpleRenderSystem{device,
-                                              renderer.getSwapChainRenderPass(),
+        SimpleRenderSystem simpleRenderSystem{*device,
+                                              renderer->getSwapChainRenderPass(),
                                               globalSetLayout->getDescriptorSetLayout()};
 
-        PointLightSystem pointLightSystem{device,
-                                          renderer.getSwapChainRenderPass(),
+        PointLightSystem pointLightSystem{*device,
+                                          renderer->getSwapChainRenderPass(),
                                           globalSetLayout->getDescriptorSetLayout()};
 
-        CrossHairSystem crossHairSystem{device,
-                                        renderer.getSwapChainRenderPass(),
+        CrossHairSystem crossHairSystem{*device,
+                                        renderer->getSwapChainRenderPass(),
                                         globalSetLayout->getDescriptorSetLayout()};
 
-        HudSystem hudSystem{device,
-                            renderer.getSwapChainRenderPass(),
+        HudSystem hudSystem{*device,
+                            renderer->getSwapChainRenderPass(),
                             globalSetLayout->getDescriptorSetLayout()};
 
-        Camera camera{};
 
-        // switch between looking at a position and looking in a direction
-        //camera.setViewDirection(glm::vec3{0.0f}, glm::vec3{0.5f, 0.0f, 1.0f});
-        camera.setViewTarget(glm::vec3(-1.0f, -2.0f, -2.0f), glm::vec3{0.0f, 0.0f, 2.5f});
+        glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        controls::KeyboardMovementController movementController{ applicationSettings.windowWidth, applicationSettings.windowHeight};
 
-        auto viewerObject = GameObject::createGameObject();
-        // move camera
-        viewerObject.transform.translation.z = -2.5f;
-        glfwSetWindowUserPointer(window.getGLFWWindow(), &viewerObject);
-        glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        KeyboardMovementController cameraController{WIDTH, HEIGHT};
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto startTime = std::chrono::high_resolution_clock::now();
+        auto currentTime = startTime;
+
         int currentSecond = 0;
+        float gameTimer = 0;
 
-        auto startTime = currentTime;
-        while (!window.shouldClose()) {
-            glfwPollEvents();
-
+        float physicsTimeAccumulator = 0.0f;
+        
+        while (!window->shouldClose()) {
 
             auto newTime = std::chrono::high_resolution_clock::now();
-            float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
             currentTime = newTime;
 
-            auto timeSinceStart = std::chrono::duration<float, std::chrono::seconds::period>(
-                    currentTime - startTime).count();
-            auto timeSinceStartInt = static_cast<int>(timeSinceStart);
-            if (timeSinceStartInt > currentSecond) {
-                currentSecond = timeSinceStartInt;
-                std::cout << "Time since start: " << currentSecond << "s" << std::endl;
-            }
+            deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
 
-            frameTime = std::min(frameTime, MAX_FRANE_TIME);
+            glfwPollEvents();
+            movementController.handleEscMenu(window->getGLFWWindow());
 
+            // TODO callbacks for jumping, shooting and menu for better responsiveness
 
-            cameraController.handleEscMenu(window.getGLFWWindow());
+            if (!movementController.escapeMenuOpen) {
 
+                physicsTimeAccumulator += deltaTime;
+                gameTimer += deltaTime;
 
-            if (!cameraController.escapeMenuOpen) {
-                cameraController.moveInPlaneXZ(window.getGLFWWindow(), frameTime, viewerObject);
-                cameraController.lookInPlaneXY(window.getGLFWWindow(), frameTime, viewerObject);
-                camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
+                // debug timer output
+                int newSecond = static_cast<int>(gameTimer);
+                if (engineSettings.debugTime && newSecond > currentSecond) {
+                    currentSecond = newSecond;
+                    std::cout << "Time since start: " << currentSecond << "s" << std::endl;
+                }
 
-                float aspect = renderer.getAspectRatio();
+                movementController.handleRotation(window->getGLFWWindow(), *sceneManager->getPlayer());
+
+                // same intent for all physics steps in this frame
+                MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
+                // TODO bool isClick = movementController.handleClicking(window->getGLFWWindow());
+
+                // TODO multithreading instead of accumulator would be better
+                while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
+
+                    physicsSimulation->preSimulation(movementIntent);
+                    
+                    // simulate physics step
+                    physicsSimulation->simulate();
+
+                    physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
+
+                    physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
+                }
+
+                // Used to smooth rendering if rendering runs at a higher framerate than physics
+                float interpolationAlpha = physicsTimeAccumulator / engineSettings.cPhysicsDeltaTime;
+                // TODO sceneManager->interpolateAllPhysicsObjects(interpolationAlpha);
+
+                // TODO maybe read this in via a settings file and recalculate only if setting is changed via menu (performance, typically no dynamic window scaling during runtime in games)
+                float aspect = renderer->getAspectRatio();
                 // switch between orthographic and perspective projection
-                //camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
-                camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f,
+                // camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
+                sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f,
                                                 100.0f); // objects further away than 100 are clipped
 
-                if (auto commandBuffer = renderer.beginFrame()) {
-                    int frameIndex = renderer.getFrameIndex();
-                    FrameInfo frameInfo{frameTime,
+                if (auto commandBuffer = renderer->beginFrame()) {
+                    int frameIndex = renderer->getFrameIndex();
+                    FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
-                                        camera,
                                         globalDescriptorSets[frameIndex],
-                                        gameObjects};
-                    cameraController.handleClicking(window.getGLFWWindow(), frameTime, camera, frameInfo);
+                                        *sceneManager};
+                    
+
                     //update
                     GlobalUbo ubo{};
-                    ubo.projection = camera.getProjection();
-                    ubo.view = camera.getView();
-                    ubo.inverseView = camera.getInverseView();
+                    ubo.projection = sceneManager->getPlayer()->getProjMat();
+                    ubo.view = sceneManager->getPlayer()->calculateViewMat();
+                    ubo.inverseView = glm::inverse(ubo.view);
                     ubo.aspectRatio = aspect;
                     pointLightSystem.update(frameInfo, ubo);
-                    simpleRenderSystem.update(frameInfo, ubo, camera);
                     uboBuffers[frameIndex]->writeToBuffer(&ubo);
                     uboBuffers[frameIndex]->flush();
 
                     //render
-                    renderer.beginSwapChainRenderPass(commandBuffer);
+                    renderer->beginSwapChainRenderPass(commandBuffer);
                     simpleRenderSystem.renderGameObjects(frameInfo);
                     pointLightSystem.render(frameInfo);
                     crossHairSystem.renderGameObjects(frameInfo);
-                    hudSystem.renderGameObjects(frameInfo, cameraController.escapeMenuOpen);
-                    renderer.endSwapChainRenderPass(commandBuffer);
-                    renderer.endFrame();
+                    hudSystem.renderGameObjects(frameInfo, movementController.escapeMenuOpen);
+                    renderer->endSwapChainRenderPass(commandBuffer);
+                    renderer->endFrame();
                 }
             } else {
 
-                if (auto commandBuffer = renderer.beginFrame()) {
-                    int frameIndex = renderer.getFrameIndex();
-                    FrameInfo frameInfo{frameTime,
+                if (auto commandBuffer = renderer->beginFrame()) {
+                    int frameIndex = renderer->getFrameIndex();
+                    FrameInfo frameInfo{deltaTime,
                                         commandBuffer,
-                                        camera,
                                         globalDescriptorSets[frameIndex],
-                                        gameObjects};
+                                        *sceneManager};
 
                     //render
-                    renderer.beginSwapChainRenderPass(commandBuffer);
+                    renderer->beginSwapChainRenderPass(commandBuffer);
                     simpleRenderSystem.renderGameObjects(frameInfo);
                     pointLightSystem.render(frameInfo);
                     crossHairSystem.renderGameObjects(frameInfo);
-                    hudSystem.renderGameObjects(frameInfo, cameraController.escapeMenuOpen);
-                    renderer.endSwapChainRenderPass(commandBuffer);
-                    renderer.endFrame();
+                    hudSystem.renderGameObjects(frameInfo, movementController.escapeMenuOpen);
+                    renderer->endSwapChainRenderPass(commandBuffer);
+                    renderer->endFrame();
                 }
             }
-            vkDeviceWaitIdle(device.device());
+            vkDeviceWaitIdle(device->device());
         }
     }
 
     void FirstApp::loadGameObjects() {
+
         bool usingTriangles = true;
-        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/flat_vase.obj");
-        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/smooth_vase.obj");
-        std::shared_ptr<Model> floorModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/quad.obj");
-        std::shared_ptr<Model> humanModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
-        std::shared_ptr<Model> crossHairModel = Model::createModelFromFile(!usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/crosshair.obj");
-        std::shared_ptr<Model> closeTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/CloseText.obj");
-        std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/ToggleFullScreenText.obj");
-        std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, device, std::string(PROJECT_SOURCE_DIR) + "/assets/models/BlackScreen.obj");
-        glm::mat2x3 boundingBox = loadBoundingBoxFromFile(std::string(PROJECT_SOURCE_DIR) + "/assets/models/Char_Base.obj");
+        std::shared_ptr<Model> flatVaseModel = Model::createModelFromFile(usingTriangles, *device, "models:flat_vase.obj");
+        std::shared_ptr<Model> smoothVaseModel = Model::createModelFromFile(usingTriangles, *device, "models:smooth_vase.obj");
+        std::shared_ptr<Model> floorModel = Model::createModelFromFile(usingTriangles, *device, "models:quad.obj");
+        std::shared_ptr<Model> humanModel = Model::createModelFromFile(usingTriangles, *device, "models:Char_Base.obj");
+        std::shared_ptr<Model> crossHairModel = Model::createModelFromFile(!usingTriangles, *device, "models:crosshair.obj");
+        std::shared_ptr<Model> closeTextModel = Model::createModelFromFile(usingTriangles, *device, "models:CloseText.obj");
+        std::shared_ptr<Model> toggleFullscreenTextModel = Model::createModelFromFile(usingTriangles, *device, "models:ToggleFullScreenText.obj");
+        std::shared_ptr<Model> blackScreenTextModel = Model::createModelFromFile(usingTriangles, *device, "models:BlackScreen.obj");
 
-        auto gameObject1 = GameObject::createGameObject();
-        gameObject1.model = flatVaseModel;
-        gameObject1.transform.translation = {-0.5f, 0.5f, 0.0f};
-        gameObject1.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObject1.isEntity = std::make_unique<bool>(true);
-        gameObjects.emplace(gameObject1.getId(), std::move(gameObject1));
 
-        auto gameObject2 = GameObject::createGameObject();
-        gameObject2.model = smoothVaseModel;
-        gameObject2.transform.translation = {0.5f, 0.5f, 0.0f};
-        gameObject2.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObject2.isEntity = std::make_unique<bool>(true);
-        gameObjects.emplace(gameObject2.getId(), std::move(gameObject2));
+        // 2m player
+        float playerHeight = 1.40f;
+        float playerRadius = 0.3f;
+        Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
-        auto gameObject3 = GameObject::createGameObject();
-        gameObject3.model = floorModel;
-        gameObject3.transform.translation = {0.0f, 0.5f, 0.0f};
-        gameObject3.transform.scale = {3.0f, 1.0f, 3.0f};
-        gameObject3.isEntity = std::make_unique<bool>(true);
-        gameObjects.emplace(gameObject3.getId(), std::move(gameObject3));
+        std::unique_ptr<CharacterCameraSettings> cameraSettings = std::make_unique<CharacterCameraSettings>();
+        cameraSettings->cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
+
+        std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
+
+        std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
+        characterSettings->mGravityFactor = 1.0f;
+        characterSettings->mFriction = 10.0f;
+        characterSettings->mShape = characterShape;
+        characterSettings->mLayer = physics::Layers::MOVING;
+        characterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius); // Accept contacts that touch the lower sphere of the capsule
+
+        std::unique_ptr<physics::PlayerCreationSettings> playerCreationSettings = std::make_unique<physics::PlayerCreationSettings>();
+        playerCreationSettings->characterSettings = std::move(characterSettings);
+        playerCreationSettings->cameraSettings = std::move(cameraSettings);
+        playerCreationSettings->playerSettings = std::move(playerSettings);
+
+        sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
+
+        // add terrain to scene
+        sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{ 0.569, 0.29, 0 }, floorModel, glm::vec3{ 0.0, -1.0, 0.0 }, glm::vec3{ 50.0f, 1.0f, 50.0f })));
+ 
+        // add point lights
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 1.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f })));
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 1.0f, 1.0f, 0.0f })));
+        sceneManager->addLight(std::move(make_unique<lighting::PointLight>(1.2f, 0.1f, glm::vec3{ 0.0f, 0.0f, 1.0f }, glm::vec3{ 2.0f, 1.0f, 0.0f })));
+
+        // add ui
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(crossHairModel, true, false)));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(blackScreenTextModel, false, true, glm::vec3{ -1.0f, -1.0f, 0.0f }, glm::vec3{ 30.0f, 30.0f, 30.0f })));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(closeTextModel, false, true, glm::vec3{ -0.9f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f })));
+        sceneManager->addUIObject(std::move(make_unique<vk::UIComponent>(toggleFullscreenTextModel, false, true, glm::vec3{ -0.5f, 0.9f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f })));
+
+        // this must fit the model
+        float enemyHullHeight = 1.25f;
+        float enemyRadius = 0.3f;
+
+        JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 
         for (int i = 0; i < 5; ++i) {
-            auto gameObject4 = GameObject::createGameObject();
-            gameObject4.model = humanModel;
-            gameObject4.transform.translation = {3.0f * i, 0.0f, 0.0f};
-            gameObject4.transform.scale = {1.0f, 1.0f, 1.0f};
-            gameObject4.isEntity = std::make_unique<bool>(true);
-            gameObject4.isEnemy = std::make_unique<bool>(true);
-            // set bounding box with regard to translation
-            gameObject4.boundingBox = boundingBox;
-            gameObject4.boundingBox[0] += gameObject4.transform.translation;
-            gameObject4.boundingBox[1] += gameObject4.transform.translation;
-            gameObjects.emplace(gameObject4.getId(), std::move(gameObject4));
+
+            Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
+
+            std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
+            sprinterSettings->model = humanModel;
+
+            std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
+            enemyCharacterSettings->mLayer = physics::Layers::MOVING;
+            enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius); // Accept contacts that touch the lower sphere of the capsule
+            enemyCharacterSettings->mFriction = 10.0f;
+            enemyCharacterSettings->mShape = enemyShape;
+            enemyCharacterSettings->mGravityFactor = 1.0f;
+
+            std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
+            sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
+            sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
+            sprinterCreationSettings->position = RVec3(3.0f * i + 3.0f, 3.0f, 0.0f);
+
+            sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
         }
 
-
-        auto crossHair = GameObject::createGameObject();
-        crossHair.model = crossHairModel;
-        crossHair.transform.translation = {0.0f, 0.0f, 0.0f};
-        crossHair.isCrossHair = std::make_unique<bool>(true);
-        gameObjects.emplace(crossHair.getId(), std::move(crossHair));
-
-        auto blackScreenTextObject = GameObject::createGameObject();
-        blackScreenTextObject.model = blackScreenTextModel;
-        blackScreenTextObject.transform.translation = {-1.0f, -1.0f, 0.0f};
-        blackScreenTextObject.transform.scale = {30.0f, 30.0f, 30.0f};
-        blackScreenTextObject.isHud = std::make_unique<bool>(true);
-        gameObjects.emplace(blackScreenTextObject.getId(), std::move(blackScreenTextObject));
-
-        auto closeTextObject = GameObject::createGameObject();
-        closeTextObject.model = closeTextModel;
-        closeTextObject.transform.translation = {-0.9f, 0.9f, 0.0f};
-        closeTextObject.transform.scale = {0.1f, 0.1f, 0.1f};
-        closeTextObject.isHud = std::make_unique<bool>(true);
-        gameObjects.emplace(closeTextObject.getId(), std::move(closeTextObject));
-
-        auto toggleFullscreenTextObject = GameObject::createGameObject();
-        toggleFullscreenTextObject.model = toggleFullscreenTextModel;
-        toggleFullscreenTextObject.transform.translation = {-0.5f, 0.9f, 0.0f};
-        toggleFullscreenTextObject.transform.scale = {0.1f, 0.1f, 0.1f};
-        toggleFullscreenTextObject.isHud = std::make_unique<bool>(true);
-        gameObjects.emplace(toggleFullscreenTextObject.getId(), std::move(toggleFullscreenTextObject));
-
-
-
-        auto pointLight1 = GameObject::makePointLight(1.2f);
-        pointLight1.color = {1.0f, 0.0f, 0.0f};
-        gameObjects.emplace(pointLight1.getId(), std::move(pointLight1));
-
-        auto pointLight2 = GameObject::makePointLight(1.2f);
-        pointLight2.color = {0.0f, 1.0f, 0.0f};
-        pointLight2.transform.translation = {1.0f, 0.0f, 0.0f};
-        gameObjects.emplace(pointLight2.getId(), std::move(pointLight2));
-
-        auto pointLight3 = GameObject::makePointLight(1.2f);
-        pointLight3.color = {0.0f, 0.0f, 1.0f};
-        pointLight3.transform.translation = {2.0f, 0.0f, 0.0f};
-        gameObjects.emplace(pointLight3.getId(), std::move(pointLight3));
+        glfwSetWindowUserPointer(window->getGLFWWindow(), sceneManager.get());
     }
-
-
-
 }

@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #include "cross_hair_system.h"
 #include "../vk_renderer.h"
 
@@ -68,9 +64,12 @@ namespace vk {
         pipelineConfig.attributeDescriptions[0] = Model::Vertex::getAttributeDescriptions()[0];
         pipelineConfig.attributeDescriptions[1] = Model::Vertex::getAttributeDescriptions()[1];
 
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.frag.spv",
-                                              pipelineConfig);
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "hud.vert",
+            "hud.frag",
+            pipelineConfig
+        );
     }
 
     // here are the push constants (for rotation or translation of the object)
@@ -86,15 +85,16 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.isCrossHair == nullptr || !*obj.isCrossHair) {
+        for (std::weak_ptr<vk::UIComponent> weak_uiElement : frameInfo.sceneManager.getUIObjects()) {
+
+            std::shared_ptr<vk::UIComponent> uiElement = weak_uiElement.lock();
+            if(!uiElement || !uiElement->isDrawLines) {
                 continue;
             }
-
+            
             PushConstantData push{};
-            push.scale = obj.transform.scale.x;
-            push.translation = obj.transform.translation;
+            push.scale = uiElement->getScale().x;
+            push.translation = uiElement->getPosition();
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
@@ -105,8 +105,8 @@ namespace vk {
                     &push
             );
 
-            obj.model->bind(frameInfo.commandBuffer);
-            obj.model->draw(frameInfo.commandBuffer);
+            uiElement->getModel()->bind(frameInfo.commandBuffer);
+            uiElement->getModel()->draw(frameInfo.commandBuffer);
         }
     }
 }

@@ -1,26 +1,190 @@
 cmake_minimum_required(VERSION 3.22)
 
 if(APPLE)
-    # Fix runtime path for installed executables
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 endif()
 
-project(GCGProject_VK)
+project(Swarm)
 
-if(MSVC)
-    # https://docs.microsoft.com/en-us/previous-versions/958x11bc(v=vs.140)
-    add_compile_options("$<$<CONFIG:Debug>:/MTd>$<$<CONFIG:Release>:/MT>")
-    add_compile_options("$<$<CONFIG:Debug>:/ZI>$<$<CONFIG:Release>:/Zi>")
-    add_compile_options(/FS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
+if(APPLE)
+  add_compile_options("-isysroot" "${CMAKE_OSX_SYSROOT}")
+  add_link_options("-isysroot" "${CMAKE_OSX_SYSROOT}")
 endif()
 
+include(FetchContent)
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")
+
+# Distribution build flags match release
+set(CMAKE_EXE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+
+# on allows for much bigger worlds
+set(DOUBLE_PRECISION OFF)
+
+# When turning this option on, the library will be compiled with debug symbols
+set(GENERATE_DEBUG_SYMBOLS ON)
+
+# When turning this option on, the library will be compiled in such a way to attempt to keep the simulation deterministic across platforms
+set(CROSS_PLATFORM_DETERMINISTIC ON)
+
+# When turning this on, in Debug and Release mode, the library will emit extra code to ensure that the 4th component of a 3-vector is kept the same as the 3rd component 
+# and will enable floating point exceptions during simulation to detect divisions by zero. 
+# Note that this currently only works using MSVC. Clang turns Float2 into a SIMD vector sometimes causing floating point exceptions (the option is ignored).
+set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF)
+
+# Number of bits to use in ObjectLayer. Can be 16 or 32.
+set(OBJECT_LAYER_BITS 16)
+
+# Select X86 processor features to use, by default the library compiles with AVX2, if everything is off it will be SSE2 compatible.
+set(USE_SSE4_1 ON)
+set(USE_SSE4_2 ON)
+set(USE_AVX ON)
+set(USE_AVX2 ON)
+set(USE_AVX512 OFF)
+set(USE_LZCNT ON)
+set(USE_TZCNT ON)
+set(USE_F16C ON)
+set(USE_FMADD ON)
+
+find_package(Vulkan REQUIRED)
+
+# Find glslc compiler from Vulkan SDK
+if(WIN32)
+    find_program(GLSLC_EXECUTABLE NAMES glslc PATHS $ENV{VULKAN_SDK}/Bin REQUIRED)
+elseif(APPLE)
+    find_program(GLSLC_EXECUTABLE NAMES glslc PATHS $ENV{VULKAN_SDK}/macOS/bin REQUIRED)
+else() # Linux
+    find_program(GLSLC_EXECUTABLE NAMES glslc PATHS $ENV{VULKAN_SDK}/bin REQUIRED)
+endif()
+
+if(NOT GLSLC_EXECUTABLE)
+    message(FATAL_ERROR "glslc shader compiler not found! Make sure Vulkan SDK is installed.")
+endif()
+
+FetchContent_Declare(
+    JoltPhysics
+    GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
+    GIT_TAG "v5.2.0"
+    SOURCE_SUBDIR "Build"
+    GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(JoltPhysics)
+
+FetchContent_Declare(
+    tinygltf
+    GIT_REPOSITORY "https://github.com/syoyo/tinygltf"
+    GIT_TAG "v2.9.5"
+    GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(tinygltf)
+
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY "https://github.com/g-truc/glm.git"
+    GIT_TAG "0.9.9.8"
+    GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(glm)
+
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY "https://github.com/glfw/glfw.git"
+    GIT_TAG "3.3.8"
+    GIT_SHALLOW ON
+)
+
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+if(WIN32)
+  # These Windows-specific settings help with runtime library consistency
+  set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF CACHE BOOL "" FORCE)
+endif()
+
+FetchContent_MakeAvailable(glfw)
+
+FetchContent_Declare(
+    tinyobjloader
+    GIT_REPOSITORY "https://github.com/tinyobjloader/tinyobjloader.git"
+    GIT_TAG "v1.0.6"
+    GIT_SHALLOW ON
+)
+
+FetchContent_MakeAvailable(tinyobjloader)
+
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-#file(GLOB SOURCES "src/*.cpp" "src/*.h")
-file(GLOB SOURCES "src/*.cpp" "src/*.h")
+message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
+
+if (MSVC)
+    set(CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE "x64")
+    if (USE_STATIC_MSVC_RUNTIME_LIBRARY)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    endif()
+
+    add_compile_options(/FS)
+    add_compile_options("$<$<CONFIG:Debug>:/MTd>$<$<CONFIG:Release>:/MT>")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
+
+    if (GENERATE_DEBUG_SYMBOLS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
+    endif()
+
+    string(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+
+    if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+    endif()
+
+    set(CMAKE_CXX_FLAGS_DEBUG "/GS /Od /Ob0 /RTC1")
+    set(CMAKE_CXX_FLAGS_RELEASE "/GS- /Gy /O2 /Oi /Ot")
+    set(CMAKE_CXX_FLAGS_DISTRIBUTION "/GS- /Gy /O2 /Oi /Ot")
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        if (CROSS_PLATFORM_DETERMINISTIC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast")
+        endif()
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /showFilenames")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
+    endif()
+else()
+    # Unix/Mac compilers
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    if (GENERATE_DEBUG_SYMBOLS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    endif()
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-stringop-overflow -ffp-contract=off")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
+        if (CMAKE_CXX_COMPILER_VERSION LESS 14 OR CROSS_PLATFORM_DETERMINISTIC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
+        endif()
+    endif()
+
+    # Disable error for missing override
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=inconsistent-missing-override")
+endif()
+
+# Platform-specific pthread linking
+if(UNIX AND NOT APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+endif()
+
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
+
 set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/linux" ".")
 elseif(UNIX AND APPLE)
@@ -29,19 +193,11 @@ elseif(WIN32)
     set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/windows" ".")
 endif()
 
-find_package(Vulkan REQUIRED)
-
+# Set up libraries to link
 set(LINK_LIBRARIES
-    debug VulkanLaunchpadd optimized VulkanLaunchpad
-    debug glslangd optimized glslang
-    debug MachineIndependentd optimized MachineIndependent
-    debug GenericCodeGend optimized GenericCodeGen
-    debug OSDependentd optimized OSDependent
-    debug SPIRVd optimized SPIRV
-    debug glfw3d optimized glfw3
-    debug OGLCompilerd optimized OGLCompiler
-    debug GCG_VK_Lib_Debug optimized GCG_VK_Lib_Release
-    Vulkan::Vulkan Vulkan::Headers
+    Vulkan::Vulkan
+    Vulkan::Headers
+    glfw
     $<$<BOOL:${APPLE}>:
         "-framework CoreFoundation"
         "-framework CoreGraphics"
@@ -50,55 +206,125 @@ set(LINK_LIBRARIES
     >
 )
 
+# Windows-specific libraries if needed
+if (WIN32)
+    list(APPEND LINK_LIBRARIES
+    # debug VulkanLaunchpadd optimized VulkanLaunchpad
+    # debug glslangd optimized glslang
+    # debug MachineIndependentd optimized MachineIndependent
+    # debug GenericCodeGend optimized GenericCodeGen
+    # debug OSDependentd optimized OSDependent
+    # debug SPIRVd optimized SPIRV
+    # debug glfw3d optimized glfw3
+    # debug OGLCompilerd optimized OGLCompiler
+    # debug GCG_VK_Lib_Debug optimized GCG_VK_Lib_Release
+    )
+endif()
+
+message(LINK_LIBRARIES=${LINK_LIBRARIES})
+
+if (WIN32)
+    # Enable link time optimization in Release and Distribution mode if requested and available
+    SET_INTERPROCEDURAL_OPTIMIZATION()
+endif()
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
 add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
-add_executable(${PROJECT_NAME} ${SOURCES}
-        "src/main.cpp"
-        "src/vk_window.h"
-        "src/vk_window.cpp"
-        "src/first_app.h"
-        "src/first_app.cpp"
-        "src/vk_pipeline.h"
-        "src/vk_pipeline.cpp"
-        "src/vk_pipeline.cpp"
-        "src/vk_swap_chain.cpp"
-        "src/vk_swap_chain.h"
-        "src/vk_model.h"
-        "src/vk_model.cpp"
-        "src/vk_game_object.h"
-        "src/vk_renderer.h"
-        "src/vk_renderer.cpp"
-        "src/systems/simple_render_system.h"
-        "src/systems/simple_render_system.cpp"
-        src/vk_camera.h
-        src/vk_camera.cpp
-        src/keyboard_movement_controller.h
-        src/keyboard_movement_controller.cpp
-        src/vk_utils.hpp
-        src/vk_game_object.cpp
-        src/vk_buffer.h
-        src/vk_buffer.cpp
-        src/vk_frame_info.h
-        src/vk_descriptors.h
-        src/vk_descriptors.cpp
-        src/systems/point_light_system.h
-        src/systems/point_light_system.cpp
-        src/systems/cross_hair_system.h
-        src/systems/cross_hair_system.cpp
-        src/systems/hud_system.h
-        src/systems/hud_system.cpp
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${INCLUDE_DIRS}
+    ${tinygltf_SOURCE_DIR}
+    ${glm_SOURCE_DIR}
+    ${glfw_SOURCE_DIR}/include
+    ${tinyobjloader_SOURCE_DIR}
 )
-target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${LINK_LIBRARIES}
+    Jolt
+)
 target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
-# IDE specific settings
+# Setup shader compilation
+# Define shader directories
+set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders_vk")
+set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/assets/shaders_vk/compiled")
+
+# Make sure the output directory exists
+file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
+
+# Find all shader files
+file(GLOB SHADER_SOURCE_FILES
+    "${SHADER_SOURCE_DIR}/*.vert"
+    "${SHADER_SOURCE_DIR}/*.frag"
+    "${SHADER_SOURCE_DIR}/*.comp"
+    "${SHADER_SOURCE_DIR}/*.geom"
+    "${SHADER_SOURCE_DIR}/*.tesc"
+    "${SHADER_SOURCE_DIR}/*.tese"
+)
+
+# Setup custom commands for shader compilation
+foreach(SHADER_SOURCE_FILE ${SHADER_SOURCE_FILES})
+    get_filename_component(SHADER_NAME ${SHADER_SOURCE_FILE} NAME)
+    set(SHADER_OUTPUT_FILE "${SHADER_OUTPUT_DIR}/${SHADER_NAME}.spv")
+    
+    add_custom_command(
+        OUTPUT ${SHADER_OUTPUT_FILE}
+        COMMAND ${GLSLC_EXECUTABLE} -o ${SHADER_OUTPUT_FILE} ${SHADER_SOURCE_FILE}
+        DEPENDS ${SHADER_SOURCE_FILE}
+        COMMENT "Compiling shader: ${SHADER_SOURCE_FILE}"
+        VERBATIM
+    )
+    
+    list(APPEND SHADER_OUTPUTS ${SHADER_OUTPUT_FILE})
+endforeach()
+
+# Create a custom target for shader compilation
+add_custom_target(
+    shaders ALL
+    DEPENDS ${SHADER_OUTPUTS}
+)
+
+# Make the main target depend on shaders
+add_dependencies(${PROJECT_NAME} shaders)
+
+# Copy compiled shaders to binary directory
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${SHADER_OUTPUT_DIR}
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/shaders_vk/compiled
+)
+
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/models/
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/models
+)
+
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/textures
+)
+
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/settings/
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/settings
+)
+
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-   set_property(DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+   set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 elseif(CMAKE_GENERATOR MATCHES "Xcode")
    set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_GENERATE_SCHEME TRUE CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-   set_property(DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY XCODE_STARTUP_PROJECT ${PROJECT_NAME})
+   set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY XCODE_STARTUP_PROJECT ${PROJECT_NAME})
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -112,4 +338,29 @@ install(
 )
 install(
     TARGETS ${PROJECT_NAME} CONFIGURATIONS Release DESTINATION "release"
+)
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
+
+install(
+    DIRECTORY "${SHADER_OUTPUT_DIR}/"
+    DESTINATION "assets/shaders_vk/compiled"
+    FILES_MATCHING PATTERN "*.spv"
+)
+
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/models/"
+    DESTINATION "assets/models"
+)
+
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/textures/"
+    DESTINATION "assets/textures"
+)
+
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/settings/"
+    DESTINATION "assets/settings"
 )

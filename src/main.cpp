@@ -1,16 +1,18 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
-
 #include "first_app.h"
-#include "cstdlib"
-#include "iostream"
-#include "stdexcept"
+#include "asset_utils/AssetManager.h"
 
-int main() {
-    vk::FirstApp app{};
+#include <cstdlib>
+#include <iostream>
+#include <stdexcept>
 
+int main(int argc, char **argv) {
     try {
+        vk::AssetManager::getInstance().initialize(argv[0]);
+
+        // Additional custom paths can be registered if needed
+        // vk::AssetManager::getInstance().registerPath("customModels", "/path/to/custom/models");
+
+        vk::FirstApp app{};
         app.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << '\n';

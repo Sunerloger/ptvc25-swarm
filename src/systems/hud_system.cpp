@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 03.04.24.
-//
-
 #include "hud_system.h"
 #include "../vk_renderer.h"
 
@@ -75,9 +71,12 @@ namespace vk {
         pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
         pipelineConfig.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // Apply blending to all color channels
 
-        pipeline = std::make_unique<Pipeline>(device, std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.vert.spv",
-                                              std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/hud.frag.spv",
-                                              pipelineConfig);
+        pipeline = std::make_unique<Pipeline>(
+            device,
+            "hud.vert",
+            "hud.frag",
+            pipelineConfig
+        );
     }
 
     // here are the push constants (for rotation or translation of the object)
@@ -93,15 +92,31 @@ namespace vk {
                                 0,
                                 nullptr);
 
-        for (auto& kv : frameInfo.gameObjects) {
-            auto& obj = kv.second;
-            if(obj.isHud == nullptr || !*obj.isHud || !escapeMenuOpen) {
+        for (std::weak_ptr<UIComponent> weak_uiElement : frameInfo.sceneManager.getUIObjects()) {
+
+            std::shared_ptr<UIComponent> uiElement = weak_uiElement.lock();
+            if (!uiElement) {
+                continue;
+            }
+
+            // TODO unite hud systems
+            if (uiElement->isDrawLines) {
+                continue;
+            }
+
+            // escape menu only gets drawn if open
+            if(!escapeMenuOpen && uiElement->isEscapeMenu) {
+                continue;
+            }
+
+            // other ui elements only get drawn if escape menu not open
+            if (escapeMenuOpen && !uiElement->isEscapeMenu) {
                 continue;
             }
 
             PushConstantData push{};
-            push.scale = obj.transform.scale.x;
-            push.translation = obj.transform.translation;
+            push.scale = uiElement->getScale().x;
+            push.translation = uiElement->getPosition();
 
             vkCmdPushConstants(
                     frameInfo.commandBuffer,
@@ -112,8 +127,8 @@ namespace vk {
                     &push
             );
 
-            obj.model->bind(frameInfo.commandBuffer);
-            obj.model->draw(frameInfo.commandBuffer);
+            uiElement->getModel()->bind(frameInfo.commandBuffer);
+            uiElement->getModel()->draw(frameInfo.commandBuffer);
         }
     }
 }

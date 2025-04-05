@@ -1,10 +1,7 @@
-//
-// Created by Vlad Dancea on 28.03.24.
-//
-
 #include "vk_model.h"
 #include "vk_utils.hpp"
 #include "vk_buffer.h"
+#include "asset_utils/AssetManager.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
@@ -158,9 +155,11 @@ namespace vk{
         vertices.clear();
         indices.clear();
 
-        std::ifstream file(filename);
+        std::string resolvedPath = AssetManager::getInstance().resolvePath(filename);
+
+        std::ifstream file(resolvedPath);
         if (!file.is_open()) {
-            throw std::runtime_error("Failed to open file: " + filename);
+            throw std::runtime_error("Failed to open file: " + resolvedPath);
         }
 
         std::string line;
@@ -196,10 +195,9 @@ namespace vk{
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
 
-        if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str())){
-            throw std::runtime_error(warn + err);
+        if (!AssetManager::getInstance().loadOBJModel(filename, attrib, shapes, materials)) {
+            throw std::runtime_error("Failed to load OBJ model: " + filename);
         }
 
         vertices.clear();
@@ -216,12 +214,6 @@ namespace vk{
                             attrib.vertices[3 * index.vertex_index + 0],
                             attrib.vertices[3 * index.vertex_index + 1],
                             attrib.vertices[3 * index.vertex_index + 2]
-                    };
-
-                    vertex.color = {
-                            attrib.colors[3 * index.vertex_index + 0],
-                            attrib.colors[3 * index.vertex_index + 1],
-                            attrib.colors[3 * index.vertex_index + 2]
                     };
                 }
 

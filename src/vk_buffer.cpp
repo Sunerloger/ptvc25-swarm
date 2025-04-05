@@ -1,7 +1,3 @@
-//
-// Created by Vlad Dancea on 30.03.24.
-//
-
 /*
  * Encapsulates a vulkan buffer
  *

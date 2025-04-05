@@ -1,15 +1,15 @@
-//
-// Created by Vlad Dancea on 29.03.24.
-//
-
 #pragma once
 
-#include "vk_game_object.h"
 #include "vk_window.h"
-#include "vk_camera.h"
 #include "vk_frame_info.h"
 
-namespace vk {
+#include "vk_model.h"
+
+#include <iostream>
+#include "simulation/objects/actors/Player.h"
+#include "movement_controller_utils.h"
+
+namespace controls {
     class KeyboardMovementController {
     public:
 
@@ -24,31 +24,20 @@ namespace vk {
             int moveRight = GLFW_KEY_D;
             int moveForward = GLFW_KEY_W;
             int moveBackward = GLFW_KEY_S;
-            int moveUp = GLFW_KEY_E;
-            int moveDown = GLFW_KEY_Q;
-            int lookLeft = GLFW_KEY_LEFT;
-            int lookRight = GLFW_KEY_RIGHT;
-            int lookUp = GLFW_KEY_UP;
-            int lookDown = GLFW_KEY_DOWN;
+            int jump = GLFW_KEY_SPACE;
         };
 
-        void moveInPlaneXZ(GLFWwindow *window,
-                           float dt,
-                           GameObject &gameObject);
+        MovementIntent getMovementIntent(GLFWwindow* window);
 
-        void lookInPlaneXY(GLFWwindow *window,
-                           float dt,
-                           GameObject &gameObject);
+        // Mouse input since last frame inherently contains deltaTime
+        void handleRotation(GLFWwindow* window,
+                           physics::Player& player);
 
-        void handleEscMenu(GLFWwindow *window);
-
-        void handleClicking(GLFWwindow *window, float dt, Camera &camera, FrameInfo &frameInfo);
+        void handleEscMenu(GLFWwindow* window);
 
         bool escapeMenuOpen = false;
     private:
         KeyMappings keys{};
-        float moveSpeed{3.0f};
-        float lookSpeed{0.1f};
 
         double lastMouseX = 0;
         double lastMouseY = {0};
