@@ -25,7 +25,6 @@ namespace physics {
 	}
 
 	void Player::handleMovement(JPH::Vec3 movementDirectionCharacter, bool isJump, float cPhysicsDeltaTime) {
-
 		// deltaTime can be used for e.g. setting a fixed time it should take for the character to reach max velocity
 
 		float yaw = glm::radians(camera->getYaw());
@@ -48,7 +47,6 @@ namespace physics {
 		}
 
 		if (settings->controlMovementDuringJump || character->IsSupported()) {
-			
 			// Update velocity
 			JPH::Vec3 current_velocity = character->GetLinearVelocity();
 			JPH::Vec3 desired_velocity = settings->movementSpeed * movementDirectionWorld;
@@ -81,12 +79,11 @@ namespace physics {
 	}
 
 	void Player::printInfo(int iterationStep) const {
-
 		// Output current position and velocity of the player
-		
+
 		JPH::RVec3 position = character->GetPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
+		// Debug: std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
 	}
 
 	JPH::BodyID Player::getBodyID() {

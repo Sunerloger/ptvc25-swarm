@@ -27,8 +27,8 @@ set(GENERATE_DEBUG_SYMBOLS ON)
 # When turning this option on, the library will be compiled in such a way to attempt to keep the simulation deterministic across platforms
 set(CROSS_PLATFORM_DETERMINISTIC ON)
 
-# When turning this on, in Debug and Release mode, the library will emit extra code to ensure that the 4th component of a 3-vector is kept the same as the 3rd component 
-# and will enable floating point exceptions during simulation to detect divisions by zero. 
+# When turning this on, in Debug and Release mode, the library will emit extra code to ensure that the 4th component of a 3-vector is kept the same as the 3rd component
+# and will enable floating point exceptions during simulation to detect divisions by zero.
 # Note that this currently only works using MSVC. Clang turns Float2 into a SIMD vector sometimes causing floating point exceptions (the option is ignored).
 set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF)
 
@@ -269,7 +269,7 @@ file(GLOB SHADER_SOURCE_FILES
 foreach(SHADER_SOURCE_FILE ${SHADER_SOURCE_FILES})
     get_filename_component(SHADER_NAME ${SHADER_SOURCE_FILE} NAME)
     set(SHADER_OUTPUT_FILE "${SHADER_OUTPUT_DIR}/${SHADER_NAME}.spv")
-    
+
     add_custom_command(
         OUTPUT ${SHADER_OUTPUT_FILE}
         COMMAND ${GLSLC_EXECUTABLE} -o ${SHADER_OUTPUT_FILE} ${SHADER_SOURCE_FILE}
@@ -277,7 +277,7 @@ foreach(SHADER_SOURCE_FILE ${SHADER_SOURCE_FILES})
         COMMENT "Compiling shader: ${SHADER_SOURCE_FILE}"
         VERBATIM
     )
-    
+
     list(APPEND SHADER_OUTPUTS ${SHADER_OUTPUT_FILE})
 endforeach()
 

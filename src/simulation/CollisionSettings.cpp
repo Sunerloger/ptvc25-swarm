@@ -6,19 +6,16 @@
 namespace physics {
 
 	bool ObjectLayerPairFilterImpl::ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const {
-		switch (inObject1)
-		{
-		case Layers::NON_MOVING:
-			return inObject2 == Layers::MOVING; // Non moving only collides with moving
-		case Layers::MOVING:
-			return true; // Moving collides with everything
-		default:
-			JPH_ASSERT(false);
-			return false;
+		switch (inObject1) {
+			case Layers::NON_MOVING:
+				return inObject2 == Layers::MOVING;	 // Non moving only collides with moving
+			case Layers::MOVING:
+				return true;  // Moving collides with everything
+			default:
+				JPH_ASSERT(false);
+				return false;
 		}
 	}
-
-
 
 	BPLayerInterfaceImpl::BPLayerInterfaceImpl() {
 		// Create a mapping table from object to broad phase layer
@@ -35,30 +32,29 @@ namespace physics {
 		return this->mObjectToBroadPhase[inLayer];
 	}
 
+#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
 	const char* BPLayerInterfaceImpl::GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const {
 		switch ((JPH::BroadPhaseLayer::Type) inLayer) {
-
-		case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:
-			return "NON_MOVING";
-		case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:
-			return "MOVING";
-		default:
-			JPH_ASSERT(false); return "INVALID";
+			case (JPH::BroadPhaseLayer::Type) BroadPhaseLayers::NON_MOVING:
+				return "NON_MOVING";
+			case (JPH::BroadPhaseLayer::Type) BroadPhaseLayers::MOVING:
+				return "MOVING";
+			default:
+				JPH_ASSERT(false);
+				return "INVALID";
 		}
 	}
-
-
+#endif
 
 	bool ObjectVsBroadPhaseLayerFilterImpl::ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const {
 		switch (inLayer1) {
-
-		case Layers::NON_MOVING:
-			return inLayer2 == BroadPhaseLayers::MOVING;
-		case Layers::MOVING:
-			return true;
-		default:
-			JPH_ASSERT(false);
-			return false;
+			case Layers::NON_MOVING:
+				return inLayer2 == BroadPhaseLayers::MOVING;
+			case Layers::MOVING:
+				return true;
+			default:
+				JPH_ASSERT(false);
+				return false;
 		}
 	}
 

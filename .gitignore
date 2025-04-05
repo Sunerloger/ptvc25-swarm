@@ -38,7 +38,7 @@
 **/test/
 **/_project/
 
-# Prebuild files and assets
+# Prebuilt files and assets
 lib/
 include/
 
@@ -62,15 +62,10 @@ Tools/**/*.cache
 # Build helpers and results:
 **/obj/
 
-# Visual Studio
-
-**/.vs
-**/.vscode
-
 # CLion
 **/.idea
 
-# Clangd
+# Clang
 **/.cache
 
 # Emacs
@@ -81,3 +76,14 @@ Tools/**/*.cache
 
 # MacOS
 .DS_Store
+
+# Visual Studio
+**/.vs
+
+# Vlad
+**/.vscode
+all_code.txt
+.clang-format
+code.txt
+.gitignore
+vk_abstraction.txt
