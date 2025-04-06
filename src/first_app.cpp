@@ -156,7 +156,5 @@ namespace vk {
 		// add terrain to scene
 		// rotate the model to match the terrain
 		sceneManager->addManagedPhysicsEntity(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f}));
-
-		glfwSetWindowUserPointer(window->getGLFWWindow(), sceneManager.get());
 	}
 }
