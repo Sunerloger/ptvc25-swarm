@@ -30,6 +30,12 @@ namespace vk {
 		GLFWwindow *getGLFWWindow() const {
 			return window;
 		}
+		int getWidth() const {
+			return width;
+		}
+		int getHeight() const {
+			return height;
+		}
 
 		void createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
 

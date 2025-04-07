@@ -106,9 +106,12 @@ namespace vk {
 
 					GlobalUbo ubo{};
 					ubo.projection = sceneManager->getPlayer()->getProjMat();
+					glm::mat4 orthographicProjection = CharacterCamera::getOrthographicProjection(-aspect, aspect, -1.0f, 1.0f, 0.1f, 100.0f);
+					ubo.uiProjection = orthographicProjection;
 					ubo.view = sceneManager->getPlayer()->calculateViewMat();
-					ubo.inverseView = glm::inverse(ubo.view);
-					ubo.aspectRatio = aspect;
+					std::cout << "ubo.view: " << glm::to_string(ubo.view) << std::endl;
+					std::cout << "ubo.projection: " << glm::to_string(ubo.projection) << std::endl;
+					std::cout << "ubo.uiProjection: " << glm::to_string(ubo.uiProjection) << std::endl;
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
 
