@@ -1,11 +1,11 @@
-#include "texture_render_system.h"
+#include "ui_render_system.h"
 #include <stdexcept>
 #include <array>
 #include <iostream>
 
 namespace vk {
 
-	TextureRenderSystem::TextureRenderSystem(Device& device, VkRenderPass renderPass,
+	UIRenderSystem::UIRenderSystem(Device& device, VkRenderPass renderPass,
 		VkDescriptorSetLayout globalSetLayout,
 		VkDescriptorSetLayout textureSetLayout)
 		: device{device} {
@@ -15,14 +15,14 @@ namespace vk {
 		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
 		pipelineConfig.renderPass = renderPass;
 		pipelineConfig.pipelineLayout = pipelineLayout;
-		pipeline = std::make_unique<Pipeline>(device, "texture_shader.vert", "texture_shader.frag", pipelineConfig);
+		pipeline = std::make_unique<Pipeline>(device, "ui_shader.vert", "ui_shader.frag", pipelineConfig);
 
 		if (Model::textureDescriptorPool) {
 			createDefaultTexture(Model::textureDescriptorPool->getPool(), Model::textureDescriptorSetLayout);
 		}
 	}
 
-	TextureRenderSystem::~TextureRenderSystem() {
+	UIRenderSystem::~UIRenderSystem() {
 		if (defaultTextureSampler != VK_NULL_HANDLE) {
 			vkDestroySampler(device.device(), defaultTextureSampler, nullptr);
 		}
@@ -38,11 +38,11 @@ namespace vk {
 		vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
 	}
 
-	void TextureRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout, VkDescriptorSetLayout textureSetLayout) {
+	void UIRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout, VkDescriptorSetLayout textureSetLayout) {
 		VkPushConstantRange pushConstantRange{};
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(SimplePushConstantData);
+		pushConstantRange.size = sizeof(UIPushConstantData);
 
 		std::vector<VkDescriptorSetLayout> setLayouts = {globalSetLayout, textureSetLayout};
 
@@ -54,20 +54,11 @@ namespace vk {
 		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
 		if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create texture render pipeline layout!");
+			throw std::runtime_error("Failed to create UI render pipeline layout!");
 		}
 	}
 
-	void TextureRenderSystem::createPipeline(VkRenderPass renderPass) {
-		PipelineConfigInfo pipelineConfig{};
-		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-		pipelineConfig.renderPass = renderPass;
-		pipelineConfig.pipelineLayout = pipelineLayout;
-		pipeline = std::make_unique<Pipeline>(device, "texture_shader.vert", "texture_shader.frag", pipelineConfig);
-	}
-
-	// Create a default 1x1 white texture and allocate a descriptor set for it.
-	void TextureRenderSystem::createDefaultTexture(VkDescriptorPool textureDescriptorPool, VkDescriptorSetLayout textureSetLayout) {
+	void UIRenderSystem::createDefaultTexture(VkDescriptorPool textureDescriptorPool, VkDescriptorSetLayout textureSetLayout) {
 		// 1. Create a 1x1 white pixel.
 		const int texWidth = 1;
 		const int texHeight = 1;
@@ -160,7 +151,7 @@ namespace vk {
 		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	void TextureRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
 		pipeline->bind(frameInfo.commandBuffer);
 		vkCmdBindDescriptorSets(frameInfo.commandBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -170,12 +161,12 @@ namespace vk {
 			&frameInfo.globalDescriptorSet,
 			0, nullptr);
 
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.get3DObjects()) {
+		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getSpectralObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject)
 				continue;
 
-			SimplePushConstantData push{};
+			UIPushConstantData push{};
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
 			push.hasTexture = gameObject->getModel()->hasTexture() ? 1 : 0;
@@ -183,7 +174,7 @@ namespace vk {
 				pipelineLayout,
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 				0,
-				sizeof(SimplePushConstantData),
+				sizeof(UIPushConstantData),
 				&push);
 
 			VkDescriptorSet textureDS = VK_NULL_HANDLE;

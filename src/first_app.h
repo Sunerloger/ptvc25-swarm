@@ -9,6 +9,7 @@
 #include "scene/SceneManager.h"
 
 #include "systems/texture_render_system.h"
+#include "systems/ui_render_system.h"
 
 #include "keyboard_movement_controller.h"
 

@@ -58,6 +58,11 @@ namespace vk {
 			globalSetLayout->getDescriptorSetLayout(),
 			Model::textureDescriptorSetLayout};
 
+		UIRenderSystem uiRenderSystem{*device,
+			renderer->getSwapChainRenderPass(),
+			globalSetLayout->getDescriptorSetLayout(),
+			Model::textureDescriptorSetLayout};
+
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
 
@@ -109,6 +114,7 @@ namespace vk {
 
 					renderer->beginSwapChainRenderPass(commandBuffer);
 					textureRenderSystem.renderGameObjects(frameInfo);
+					uiRenderSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
@@ -118,6 +124,7 @@ namespace vk {
 					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
 					renderer->beginSwapChainRenderPass(commandBuffer);
 					textureRenderSystem.renderGameObjects(frameInfo);
+					uiRenderSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
@@ -128,6 +135,7 @@ namespace vk {
 
 	void FirstApp::loadGameObjects() {
 		std::shared_ptr<Model> floorModel = Model::createModelFromFile(*device, "models:BoxTextured.glb");
+		std::shared_ptr<Model> hudModel = Model::createModelFromFile(*device, "models:Box.glb");
 
 		// 2m player
 		float playerHeight = 1.40f;
@@ -156,5 +164,6 @@ namespace vk {
 		// add terrain to scene
 		// rotate the model to match the terrain
 		sceneManager->addManagedPhysicsEntity(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f}));
+		sceneManager->addSpectralObject(std::make_unique<UIComponent>(hudModel, true, false, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f}));
 	}
 }
