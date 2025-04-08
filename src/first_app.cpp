@@ -18,7 +18,12 @@ namespace vk {
 
 		float aspectCorrection = screenWidth / screenHeight;
 
-		glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX, ndcY, 0.0f));
+		glm::mat4 translation;
+		if (aspectCorrection < 1.0f) {
+			translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX, ndcY / aspectCorrection, 0.0f));
+		} else {
+			translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX * aspectCorrection, ndcY, 0.0f));
+		}
 		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
 			glm::vec3(ndcWidth * 0.5f * aspectCorrection, -ndcHeight * 0.5f, 0.0f));
 		glm::mat4 scale = glm::scale(glm::mat4(1.0f),
@@ -152,7 +157,7 @@ namespace vk {
 
 	void FirstApp::loadGameObjects() {
 		std::shared_ptr<Model> floorModel = Model::createModelFromFile(*device, "models:BoxTextured.glb");
-		std::shared_ptr<Model> hudModel = Model::createModelFromFile(*device, "models:Box.glb");
+		std::shared_ptr<Model> hudModel = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
 
 		// 2m player
 		float playerHeight = 1.40f;
@@ -181,8 +186,7 @@ namespace vk {
 		// add terrain to scene
 		// rotate the model to match the terrain
 		sceneManager->addManagedPhysicsEntity(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f}));
-		glm::mat4 modelMatrix = computeUIModelMatrix(100.0f, 100.0f, 100.0f, 100.0f, static_cast<float>(window->getWidth()), static_cast<float>(window->getHeight()));
+		glm::mat4 modelMatrix = computeUIModelMatrix(800.0f, 400.0f, 100.0f, 100.0f, static_cast<float>(window->getWidth()), static_cast<float>(window->getHeight()));
 		sceneManager->addSpectralObject(std::make_unique<UIComponent>(hudModel, modelMatrix));
 	}
-
 }

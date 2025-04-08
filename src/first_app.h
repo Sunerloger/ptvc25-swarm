@@ -34,7 +34,7 @@ namespace vk {
 
 	struct ApplicationSettings {
 		int windowWidth = 1600;
-		int windowHeight = 900;
+		int windowHeight = 800;
 	};
 
 	struct EngineSettings {
