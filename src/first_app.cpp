@@ -9,29 +9,6 @@
 
 namespace vk {
 
-	glm::mat4 computeUIModelMatrix(float x, float y, float width, float height, float screenWidth, float screenHeight) {
-		float ndcX = (x / screenWidth) * 2.0f - 1.0f;
-		float ndcY = 1.0f - (y / screenHeight) * 2.0f;
-
-		float ndcWidth = (width / screenWidth) * 2.0f;
-		float ndcHeight = (height / screenHeight) * 2.0f;
-
-		float aspectCorrection = screenWidth / screenHeight;
-
-		glm::mat4 translation;
-		if (aspectCorrection < 1.0f) {
-			translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX, ndcY / aspectCorrection, 0.0f));
-		} else {
-			translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX * aspectCorrection, ndcY, 0.0f));
-		}
-		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
-			glm::vec3(ndcWidth * 0.5f * aspectCorrection, -ndcHeight * 0.5f, 0.0f));
-		glm::mat4 scale = glm::scale(glm::mat4(1.0f),
-			glm::vec3(ndcWidth * aspectCorrection, ndcHeight, 1.0f));
-
-		return translation * pivotOffset * scale;
-	}
-
 	FirstApp::FirstApp() {
 		window = std::make_unique<Window>(applicationSettings.windowWidth, applicationSettings.windowHeight, "Swarm");
 		device = std::make_unique<Device>(*window);
@@ -157,7 +134,6 @@ namespace vk {
 
 	void FirstApp::loadGameObjects() {
 		std::shared_ptr<Model> floorModel = Model::createModelFromFile(*device, "models:BoxTextured.glb");
-		std::shared_ptr<Model> hudModel = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
 
 		// 2m player
 		float playerHeight = 1.40f;
@@ -186,7 +162,16 @@ namespace vk {
 		// add terrain to scene
 		// rotate the model to match the terrain
 		sceneManager->addManagedPhysicsEntity(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f}));
-		glm::mat4 modelMatrix = computeUIModelMatrix(800.0f, 400.0f, 100.0f, 100.0f, static_cast<float>(window->getWidth()), static_cast<float>(window->getHeight()));
-		sceneManager->addSpectralObject(std::make_unique<UIComponent>(hudModel, modelMatrix));
+		UIComponentCreationSettings hudSettings{};
+
+		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
+		hudSettings.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+		hudSettings.posX = 800.0f;
+		hudSettings.posY = 400.0f;
+		hudSettings.width = 100.0f;
+		hudSettings.height = 100.0f;
+		hudSettings.windowWidth = static_cast<float>(window->getWidth());
+		hudSettings.windowHeight = static_cast<float>(window->getHeight());
+		sceneManager->addSpectralObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

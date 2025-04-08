@@ -6,11 +6,21 @@
 #include "../GameObject.h"
 
 namespace vk {
+	class UIComponentCreationSettings {
+	   public:
+		std::shared_ptr<Model> model;
+		glm::vec3 rotation;
+		float posX;
+		float posY;
+		float width;
+		float height;
+		float windowWidth;
+		float windowHeight;
+	};
+
 	class UIComponent : public GameObject {
 	   public:
-		UIComponent(std::shared_ptr<Model> model, glm::vec3 position = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f),
-			glm::vec3 rotation = glm::vec3(0.0f));
-		UIComponent(std::shared_ptr<Model> model, glm::mat4 modelMatrix);
+		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
 		glm::mat4 computeModelMatrix() const override;
@@ -23,11 +33,16 @@ namespace vk {
 
 		glm::vec3 getScale() const;
 
+		void updateWindowDimension(float screenWidth, float screenHeight);
+
 	   private:
 		std::shared_ptr<Model> model;
-
-		glm::vec3 position;
-		glm::vec3 scale;
 		glm::vec3 rotation;
+		float posX;
+		float posY;
+		float width;
+		float height;
+		float windowWidth;
+		float windowHeight;
 	};
 }
