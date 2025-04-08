@@ -9,6 +9,20 @@
 
 namespace vk {
 
+	glm::mat4 computeUIModelMatrix(float x, float y, float width, float height, float screenWidth, float screenHeight) {
+		float ndcX = (x / screenWidth) * 2.0f - 1.0f;
+		float ndcY = 1.0f - (y / screenHeight) * 2.0f;
+
+		float ndcWidth = (width / screenWidth) * 2.0f;
+		float ndcHeight = (height / screenHeight) * 2.0f;
+
+		glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX, ndcY, 0.0f));
+		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f), glm::vec3(ndcWidth * 0.5f, -ndcHeight * 0.5f, 0.0f));
+		glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(ndcWidth, ndcHeight, 1.0f));
+
+		return translation * pivotOffset * scale;
+	}
+
 	FirstApp::FirstApp() {
 		window = std::make_unique<Window>(applicationSettings.windowWidth, applicationSettings.windowHeight, "Swarm");
 		device = std::make_unique<Device>(*window);
@@ -106,12 +120,8 @@ namespace vk {
 
 					GlobalUbo ubo{};
 					ubo.projection = sceneManager->getPlayer()->getProjMat();
-					glm::mat4 orthographicProjection = CharacterCamera::getOrthographicProjection(-aspect, aspect, -1.0f, 1.0f, 0.1f, 100.0f);
-					ubo.uiProjection = orthographicProjection;
+					ubo.uiProjection = CharacterCamera::getOrthographicProjection(-aspect, aspect, -1.0f, 1.0f, 0.1f, 100.0f);
 					ubo.view = sceneManager->getPlayer()->calculateViewMat();
-					std::cout << "ubo.view: " << glm::to_string(ubo.view) << std::endl;
-					std::cout << "ubo.projection: " << glm::to_string(ubo.projection) << std::endl;
-					std::cout << "ubo.uiProjection: " << glm::to_string(ubo.uiProjection) << std::endl;
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
 
@@ -167,6 +177,8 @@ namespace vk {
 		// add terrain to scene
 		// rotate the model to match the terrain
 		sceneManager->addManagedPhysicsEntity(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f}));
-		sceneManager->addSpectralObject(std::make_unique<UIComponent>(hudModel, true, false, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f}));
+		glm::mat4 modelMatrix = computeUIModelMatrix(100.0f, 100.0f, 100.0f, 100.0f, static_cast<float>(window->getWidth()), static_cast<float>(window->getHeight()));
+		sceneManager->addSpectralObject(std::make_unique<UIComponent>(hudModel, modelMatrix));
 	}
+
 }
