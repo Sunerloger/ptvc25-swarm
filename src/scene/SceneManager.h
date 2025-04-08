@@ -57,6 +57,8 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	SceneManager();
 	virtual ~SceneManager() = default;
 
+	void updateUIWindowDimensions(float windowWidth, float windowHeight);
+
 	// always replaces old player!
 	vk::id_t setPlayer(std::unique_ptr<physics::Player> player);
 

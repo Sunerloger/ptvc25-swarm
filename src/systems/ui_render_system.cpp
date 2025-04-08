@@ -161,7 +161,7 @@ namespace vk {
 			&frameInfo.globalDescriptorSet,
 			0, nullptr);
 
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getSpectralObjects()) {
+		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getUIObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject)
 				continue;

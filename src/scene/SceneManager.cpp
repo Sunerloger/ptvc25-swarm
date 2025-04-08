@@ -2,6 +2,15 @@
 
 SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
+void SceneManager::updateUIWindowDimensions(float windowWidth, float windowHeight) {
+	for (auto& uiObject : this->getUIObjects()) {
+		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
+		if (!uiComponent)
+			continue;
+		uiComponent->updateWindowDimensions(windowWidth, windowHeight);
+	}
+}
+
 vk::id_t SceneManager::setPlayer(std::unique_ptr<physics::Player> newPlayer) {
 	if (this->scene->player) {
 		this->idToClass.erase(this->scene->player->getId());

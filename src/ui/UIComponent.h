@@ -10,10 +10,13 @@ namespace vk {
 	   public:
 		std::shared_ptr<Model> model;
 		glm::vec3 rotation;
-		float posX;
-		float posY;
-		float width;
-		float height;
+
+		float objectX;
+		float objectY;
+
+		float objectWidth;
+		float objectHeight;
+
 		float windowWidth;
 		float windowHeight;
 	};
@@ -24,24 +27,22 @@ namespace vk {
 		virtual ~UIComponent() = default;
 
 		glm::mat4 computeModelMatrix() const override;
-
 		glm::mat4 computeNormalMatrix() const override;
-
 		glm::vec3 getPosition() const override;
-
 		std::shared_ptr<Model> getModel() const override;
-
 		glm::vec3 getScale() const;
-
-		void updateWindowDimension(float screenWidth, float screenHeight);
+		void updateWindowDimensions(float screenWidth, float screenHeight);
 
 	   private:
 		std::shared_ptr<Model> model;
 		glm::vec3 rotation;
-		float posX;
-		float posY;
-		float width;
-		float height;
+
+		float objectX;
+		float objectY;
+
+		float objectWidth;
+		float objectHeight;
+
 		float windowWidth;
 		float windowHeight;
 	};

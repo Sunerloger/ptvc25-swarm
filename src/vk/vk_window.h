@@ -37,7 +37,11 @@ namespace vk {
 			return height;
 		}
 
-		void createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
+		void getFramebufferSize(int &width, int &height) const {
+			glfwGetFramebufferSize(this->window, &width, &height);
+		}
+		void
+		createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
 
 	   private:
 		static void framebufferResizeCallback(GLFWwindow *window, int width, int height);

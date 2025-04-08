@@ -33,7 +33,7 @@
 namespace vk {
 
 	struct ApplicationSettings {
-		int windowWidth = 1600;
+		int windowWidth = 800;
 		int windowHeight = 800;
 	};
 
