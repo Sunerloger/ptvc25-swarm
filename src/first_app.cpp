@@ -16,9 +16,13 @@ namespace vk {
 		float ndcWidth = (width / screenWidth) * 2.0f;
 		float ndcHeight = (height / screenHeight) * 2.0f;
 
+		float aspectCorrection = screenWidth / screenHeight;
+
 		glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX, ndcY, 0.0f));
-		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f), glm::vec3(ndcWidth * 0.5f, -ndcHeight * 0.5f, 0.0f));
-		glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(ndcWidth, ndcHeight, 1.0f));
+		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
+			glm::vec3(ndcWidth * 0.5f * aspectCorrection, -ndcHeight * 0.5f, 0.0f));
+		glm::mat4 scale = glm::scale(glm::mat4(1.0f),
+			glm::vec3(ndcWidth * aspectCorrection, ndcHeight, 1.0f));
 
 		return translation * pivotOffset * scale;
 	}
