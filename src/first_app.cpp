@@ -82,7 +82,7 @@ namespace vk {
 			float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
 			currentTime = newTime;
 			deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
-			float aspect = windowWidth / windowHeight;
+
 			glfwPollEvents();
 			movementController.handleEscMenu(window->getGLFWWindow());
 
@@ -110,7 +110,7 @@ namespace vk {
 
 				GlobalUbo ubo{};
 				ubo.projection = sceneManager->getPlayer()->getProjMat();
-				ubo.uiProjection = CharacterCamera::getOrthographicProjection(-aspect, aspect, -1.0f, 1.0f, 0.1f, 100.0f);
+				ubo.uiProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 100.0f);
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
@@ -167,22 +167,22 @@ namespace vk {
 		// add terrain to scene
 		// rotate the model to match the terrain
 		sceneManager->addManagedPhysicsEntity(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f}));
-		UIComponentCreationSettings hudSettings{};
 
 		int fbWidth, fbHeight;
 		window->getFramebufferSize(fbWidth, fbHeight);
-
 		float windowWidth = static_cast<float>(fbWidth);
 		float windowHeight = static_cast<float>(fbHeight);
 
+		UIComponentCreationSettings hudSettings{};
 		hudSettings.model = Model::createModelFromFile(*device, "models:Box.glb");
 		hudSettings.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-		hudSettings.objectX = windowWidth - 100.0f * 2.0f;
+		hudSettings.objectWidth = 200.0f;
+		hudSettings.objectHeight = 200.0f;
+		hudSettings.objectX = windowWidth - 200.0f;
 		hudSettings.objectY = 0.0f;
-		hudSettings.objectWidth = 100.0f * 2.0f;
-		hudSettings.objectHeight = 100.0f * 2.0f;
 		hudSettings.windowWidth = windowWidth;
 		hudSettings.windowHeight = windowHeight;
+
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

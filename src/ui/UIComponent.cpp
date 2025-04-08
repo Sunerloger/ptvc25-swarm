@@ -41,33 +41,14 @@ namespace vk {
 	}
 
 	glm::mat4 UIComponent::computeModelMatrix() const {
-		float ndcX = (objectX / windowWidth) * 2.0f - 1.0f;
-		float ndcY = 1.0f - (objectY / windowHeight) * 2.0f;
+		glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, objectY, 0.0f));
 
-		float ndcWidth = (objectWidth / windowWidth) * 2.0f;
-		float ndcHeight = (objectHeight / windowHeight) * 2.0f;
+		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
+			glm::vec3(objectWidth * 0.5f, -objectHeight * 0.5f, 0.0f));
 
-		float aspectCorrection = windowWidth / windowHeight;
+		glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(objectWidth, objectHeight, 1.0f));
 
-		glm::mat4 translation;
-		glm::mat4 scale;
-		glm::mat4 pivotOffset;
-		std::cout << aspectCorrection << std::endl;
-		if (aspectCorrection < 1.0f) {
-			translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX, ndcY / aspectCorrection, 0.0f));
-			scale = glm::scale(glm::mat4(1.0f),
-				glm::vec3(ndcWidth, ndcHeight / aspectCorrection, 1.0f));
-			pivotOffset = glm::translate(glm::mat4(1.0f),
-				glm::vec3(ndcWidth * 0.5f, -ndcHeight * 0.5f / aspectCorrection, 0.0f));
-		} else {
-			translation = glm::translate(glm::mat4(1.0f), glm::vec3(ndcX * aspectCorrection, ndcY, 0.0f));
-			scale = glm::scale(glm::mat4(1.0f),
-				glm::vec3(ndcWidth * aspectCorrection, ndcHeight, 1.0f));
-			pivotOffset = glm::translate(glm::mat4(1.0f),
-				glm::vec3(ndcWidth * 0.5f * aspectCorrection, -ndcHeight * 0.5f, 0.0f));
-		}
-
-		return translation *
-			   pivotOffset * scale;
+		return translate * pivotOffset * scale;
 	}
+
 }
