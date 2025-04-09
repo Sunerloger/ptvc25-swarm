@@ -41,14 +41,22 @@ namespace vk {
 	}
 
 	glm::mat4 UIComponent::computeModelMatrix() const {
-		glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, objectY, 0.0f));
+		// For some reason the z index needs to be bigger than 0.0f to correctly show the hud
+		// I assume this is because the z index is used to sort the objects in the scene
+		// and if it is smaller, then then HUD is draw behind the player
+		glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, -objectY, -5.0f));
 
 		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
 			glm::vec3(objectWidth * 0.5f, -objectHeight * 0.5f, 0.0f));
 
+		glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 rotation = Rz * Ry * Rx;
+
 		glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(objectWidth, objectHeight, 1.0f));
 
-		return translate * pivotOffset * scale;
+		return translate * pivotOffset * rotation * scale;
 	}
 
 }

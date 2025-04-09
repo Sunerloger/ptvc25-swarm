@@ -174,12 +174,11 @@ namespace vk {
 		float windowHeight = static_cast<float>(fbHeight);
 
 		UIComponentCreationSettings hudSettings{};
-		hudSettings.model = Model::createModelFromFile(*device, "models:Box.glb");
-		hudSettings.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb");
 		hudSettings.objectWidth = 200.0f;
 		hudSettings.objectHeight = 200.0f;
-		hudSettings.objectX = windowWidth - 200.0f;
-		hudSettings.objectY = 0.0f;
+		hudSettings.objectX = windowWidth / 2 - hudSettings.objectWidth / 2;
+		hudSettings.objectY = windowHeight / 2 - hudSettings.objectHeight / 2;
 		hudSettings.windowWidth = windowWidth;
 		hudSettings.windowHeight = windowHeight;
 
