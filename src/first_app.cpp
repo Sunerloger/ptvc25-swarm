@@ -174,14 +174,23 @@ namespace vk {
 		float windowHeight = static_cast<float>(fbHeight);
 
 		UIComponentCreationSettings hudSettings{};
-		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb");
-		hudSettings.objectWidth = 200.0f;
-		hudSettings.objectHeight = 200.0f;
-		hudSettings.objectX = windowWidth / 2 - hudSettings.objectWidth / 2;
-		hudSettings.objectY = windowHeight / 2 - hudSettings.objectHeight / 2;
 		hudSettings.windowWidth = windowWidth;
 		hudSettings.windowHeight = windowHeight;
 
+		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb");
+		hudSettings.objectWidth = 200.0f;
+		hudSettings.objectHeight = 200.0f;
+		hudSettings.objectX = 0.0f;
+		hudSettings.objectY = 0.0f;
+		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
+		hudSettings.objectWidth = 1.0f;
+		hudSettings.objectHeight = 1.0f;
+		hudSettings.objectX = 0.0f;
+		hudSettings.objectY = 0.0f;
+		hudSettings.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
+		hudSettings.usePerspectiveProjection = 1;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

@@ -11,7 +11,8 @@ namespace vk {
 		  objectWidth(settings.objectWidth),
 		  objectHeight(settings.objectHeight),
 		  windowWidth(settings.windowWidth),
-		  windowHeight(settings.windowHeight) {}
+		  windowHeight(settings.windowHeight),
+		  usePerspectiveProjection(settings.usePerspectiveProjection) {}
 
 	glm::mat4 UIComponent::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
@@ -28,10 +29,6 @@ namespace vk {
 	}
 
 	void UIComponent::updateWindowDimensions(float windowWidth, float windowHeight) {
-		std::cout << "UIComponent: window dimensions updated from "
-				  << this->windowWidth << "x" << this->windowHeight << std::endl;
-		std::cout << "UIComponent: window dimensions updated to "
-				  << windowWidth << "x" << windowHeight << std::endl;
 		this->windowWidth = windowWidth;
 		this->windowHeight = windowHeight;
 	}

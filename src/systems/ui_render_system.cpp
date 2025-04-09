@@ -166,10 +166,13 @@ namespace vk {
 			if (!gameObject)
 				continue;
 
+			std::shared_ptr<UIComponent> uiComponent = std::dynamic_pointer_cast<UIComponent>(gameObject);
+
 			UIPushConstantData push{};
-			push.modelMatrix = gameObject->computeModelMatrix();
-			push.normalMatrix = gameObject->computeNormalMatrix();
-			push.hasTexture = gameObject->getModel()->hasTexture() ? 1 : 0;
+			push.modelMatrix = uiComponent->computeModelMatrix();
+			push.normalMatrix = uiComponent->computeNormalMatrix();
+			push.hasTexture = uiComponent->getModel()->hasTexture() ? 1 : 0;
+			push.usePerspectiveProjection = uiComponent->getUsePerspectiveProjection();
 			vkCmdPushConstants(frameInfo.commandBuffer,
 				pipelineLayout,
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -178,8 +181,8 @@ namespace vk {
 				&push);
 
 			VkDescriptorSet textureDS = VK_NULL_HANDLE;
-			if (gameObject->getModel()->hasTexture()) {
-				textureDS = gameObject->getModel()->getTextureDescriptorSet();
+			if (uiComponent->getModel()->hasTexture()) {
+				textureDS = uiComponent->getModel()->getTextureDescriptorSet();
 			} else {
 				textureDS = defaultTextureDescriptorSet;
 			}
@@ -191,8 +194,8 @@ namespace vk {
 				&textureDS,
 				0, nullptr);
 
-			gameObject->getModel()->bind(frameInfo.commandBuffer);
-			gameObject->getModel()->draw(frameInfo.commandBuffer);
+			uiComponent->getModel()->bind(frameInfo.commandBuffer);
+			uiComponent->getModel()->draw(frameInfo.commandBuffer);
 		}
 	}
 
