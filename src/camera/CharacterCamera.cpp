@@ -91,6 +91,19 @@ void CharacterCamera::setPerspectiveProjection(float fov, float aspect, float ne
 	projMatrix = proj * getVulkanAxisInversionMatrix();
 }
 
+glm::mat4 CharacterCamera::getPerspectiveProjection(float fov, float aspect, float near, float far) {
+	assert(glm::abs(aspect - std::numeric_limits<float>::epsilon()) > 0.0f);
+	const float tanHalfFov = tan(fov / 2.f);
+	glm::mat4 proj = glm::mat4{0.0f};
+	proj[0][0] = 1.f / (aspect * tanHalfFov);
+	proj[1][1] = 1.f / (tanHalfFov);
+	proj[2][2] = far / (far - near);
+	proj[2][3] = 1.f;
+	proj[3][2] = -(far * near) / (far - near);
+
+	return proj * getStaticVulkanAxisInversionMatrix();
+}
+
 void CharacterCamera::setViewDirection(glm::vec3 direction) {
 	direction = glm::normalize(direction);
 

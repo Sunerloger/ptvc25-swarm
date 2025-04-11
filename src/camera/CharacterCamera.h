@@ -43,6 +43,7 @@ class CharacterCamera {
 
 	// flips y axis
 	void setPerspectiveProjection(float fov, float aspect, float near, float far);
+	static glm::mat4 getPerspectiveProjection(float fov, float aspect, float, float);
 
    private:
 	std::unique_ptr<CharacterCameraSettings> settings;

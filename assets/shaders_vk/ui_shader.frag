@@ -6,8 +6,10 @@ layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
-    mat4 uiProjection;
     mat4 view;
+    mat4 uiOrthographicProjection;
+    mat4 uiPerspectiveProjection;
+    mat4 uiView;
 } ubo;
 
 layout(location = 0) out vec4 outColor;

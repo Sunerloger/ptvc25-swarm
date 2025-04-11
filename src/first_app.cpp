@@ -110,8 +110,14 @@ namespace vk {
 
 				GlobalUbo ubo{};
 				ubo.projection = sceneManager->getPlayer()->getProjMat();
-				ubo.uiProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 100.0f);
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
+				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 100.0f);
+				ubo.uiPerspectiveProjection = CharacterCamera::getPerspectiveProjection(glm::radians(45.0f), windowWidth / windowHeight, 0.1f, 100.0f);
+				ubo.uiView = glm::lookAt(
+					glm::vec3(5.0f, 5.0f, 5.0f),  // Camera position: top-right in world space
+					glm::vec3(0.0f, 0.0f, 0.0f),  // Look at the origin (object center)
+					glm::vec3(0.0f, 1.0f, 0.0f)	  // Up vector
+				);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
@@ -187,8 +193,9 @@ namespace vk {
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
 		hudSettings.objectWidth = 1.0f;
 		hudSettings.objectHeight = 1.0f;
-		hudSettings.objectX = 0.0f;
-		hudSettings.objectY = 0.0f;
+		hudSettings.objectX = 200.0f;
+		hudSettings.objectY = 200.0f;
+		hudSettings.objectZ = -10.0f;
 		hudSettings.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
 		hudSettings.usePerspectiveProjection = 1;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));

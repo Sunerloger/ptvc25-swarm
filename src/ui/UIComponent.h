@@ -13,6 +13,7 @@ namespace vk {
 
 		float objectX;
 		float objectY;
+		float objectZ = -5.0f;
 
 		float objectWidth;
 		float objectHeight;
@@ -44,6 +45,7 @@ namespace vk {
 
 		float objectX;
 		float objectY;
+		float objectZ = -5.0f;
 
 		float objectWidth;
 		float objectHeight;

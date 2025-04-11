@@ -6,8 +6,10 @@ layout(location = 3) in vec2 uv;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
-    mat4 uiProjection;
     mat4 view;
+    mat4 uiOrthographicProjection;
+    mat4 uiPerspectiveProjection;
+    mat4 uiView;
 } ubo;
 
 layout(push_constant) uniform Push {
@@ -22,9 +24,9 @@ layout(location = 1) out vec3 fragColor;
 
 void main() {
     if(push.usePerspectiveProjection == 1) {
-        gl_Position = ubo.projection * push.modelMatrix * vec4(position, 1.0);
+        gl_Position = ubo.uiPerspectiveProjection * push.modelMatrix * vec4(position, 1.0);
     } else {
-        gl_Position = ubo.uiProjection * push.modelMatrix * vec4(position, 1.0);
+        gl_Position = ubo.uiOrthographicProjection * push.modelMatrix * vec4(position, 1.0);
     }
     fragUV = uv;
     fragColor = color;

@@ -11,8 +11,10 @@ namespace vk {
 
 	struct GlobalUbo {
 		glm::mat4 projection{1.0f};
-		glm::mat4 uiProjection;
 		glm::mat4 view{1.0f};
+		glm::mat4 uiOrthographicProjection{1.0f};
+		glm::mat4 uiPerspectiveProjection{1.0f};
+		glm::mat4 uiView{1.0f};
 	};
 
 	struct FrameInfo {
