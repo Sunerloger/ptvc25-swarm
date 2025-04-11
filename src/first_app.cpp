@@ -65,6 +65,7 @@ namespace vk {
 
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
+		controls::KeyboardPlacementController placementController;
 
 		auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = startTime;
@@ -123,7 +124,8 @@ namespace vk {
 
 				renderer->beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
-				uiRenderSystem.renderGameObjects(frameInfo);
+				glm::mat4 modelMatrix = placementController.updateModelMatrix(window->getGLFWWindow());
+				uiRenderSystem.renderGameObjects(frameInfo, modelMatrix);
 				renderer->endSwapChainRenderPass(commandBuffer);
 				renderer->endFrame();
 			}
@@ -188,16 +190,17 @@ namespace vk {
 		hudSettings.objectHeight = 200.0f;
 		hudSettings.objectX = 0.0f;
 		hudSettings.objectY = 0.0f;
+		hudSettings.objectZ = -99.0f;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
 		hudSettings.objectWidth = 1.0f;
 		hudSettings.objectHeight = 1.0f;
-		hudSettings.objectX = 200.0f;
-		hudSettings.objectY = 200.0f;
-		hudSettings.objectZ = -10.0f;
-		hudSettings.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
+		hudSettings.objectX = 0.0f;
+		hudSettings.objectY = 0.0f;
+		hudSettings.objectZ = -5.0f;
 		hudSettings.usePerspectiveProjection = 1;
+		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

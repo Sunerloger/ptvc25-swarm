@@ -151,7 +151,7 @@ namespace vk {
 		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo, glm::mat4 transform) {
 		pipeline->bind(frameInfo.commandBuffer);
 		vkCmdBindDescriptorSets(frameInfo.commandBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -169,7 +169,8 @@ namespace vk {
 			std::shared_ptr<UIComponent> uiComponent = std::dynamic_pointer_cast<UIComponent>(gameObject);
 
 			UIPushConstantData push{};
-			push.modelMatrix = uiComponent->computeModelMatrix();
+			// use the translation from the argument
+			push.modelMatrix = uiComponent->computeModelMatrix(transform);
 			push.normalMatrix = uiComponent->computeNormalMatrix();
 			push.hasTexture = uiComponent->getModel()->hasTexture() ? 1 : 0;
 			push.usePerspectiveProjection = uiComponent->getUsePerspectiveProjection();

@@ -12,6 +12,7 @@
 #include "systems/ui_render_system.h"
 
 #include "keyboard_movement_controller.h"
+#include "keyboard_placement_controller.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
