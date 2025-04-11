@@ -7,6 +7,8 @@
 #include "../vk/vk_model.h"
 #include "../vk/vk_buffer.h"
 
+#include "../keyboard_placement_controller.h"
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
@@ -31,7 +33,7 @@ namespace vk {
 			VkDescriptorSetLayout textureSetLayout);
 		~UIRenderSystem();
 
-		void renderGameObjects(FrameInfo& frameInfo);
+		void renderGameObjects(FrameInfo& frameInfo, glm::mat4 modelMatrix);
 
 	   private:
 		void createPipelineLayout(VkDescriptorSetLayout globalSetLayout, VkDescriptorSetLayout textureSetLayout);
