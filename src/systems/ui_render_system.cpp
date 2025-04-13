@@ -169,7 +169,6 @@ namespace vk {
 			std::shared_ptr<UIComponent> uiComponent = std::dynamic_pointer_cast<UIComponent>(gameObject);
 
 			UIPushConstantData push{};
-			// use the translation from the argument
 			push.modelMatrix = uiComponent->computeModelMatrix(placementTransform);
 			push.normalMatrix = uiComponent->computeNormalMatrix();
 			push.hasTexture = uiComponent->getModel()->hasTexture() ? 1 : 0;
