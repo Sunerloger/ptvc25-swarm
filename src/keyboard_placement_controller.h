@@ -28,7 +28,7 @@ namespace controls {
 			int rotateDownZ = GLFW_KEY_N;
 		};
 
-		glm::mat4 updateModelMatrix(GLFWwindow* window);
+		int updateModelMatrix(GLFWwindow* window);
 
 	   private:
 		KeyMappings keys{};

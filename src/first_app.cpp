@@ -124,8 +124,8 @@ namespace vk {
 
 				renderer->beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
-				glm::mat4 modelMatrix = placementController.updateModelMatrix(window->getGLFWWindow());
-				uiRenderSystem.renderGameObjects(frameInfo, modelMatrix);
+				int placementTransform = placementController.updateModelMatrix(window->getGLFWWindow());
+				uiRenderSystem.renderGameObjects(frameInfo, glm::mat4(placementTransform));
 				renderer->endSwapChainRenderPass(commandBuffer);
 				renderer->endFrame();
 			}
@@ -191,6 +191,8 @@ namespace vk {
 		hudSettings.objectX = 0.0f;
 		hudSettings.objectY = 0.0f;
 		hudSettings.objectZ = -99.0f;
+		hudSettings.controllable = false;
+
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");

@@ -74,35 +74,22 @@ namespace vk {
 			return modelMatrix;
 		}
 
-		if (usePerspectiveProjection == 0) {
-			glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, -objectY, objectZ));
-
-			glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
-				glm::vec3(objectWidth * 0.5f, -objectHeight * 0.5f, 0.0f));
-
-			glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-			glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			glm::mat4 R = Rz * Ry * Rx;
-
-			glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(objectWidth, objectHeight, 1.0f));
-
-			return T * pivotOffset * R * S;
-		} else {
-			// Translation to put the element at calculated world-space coordinates;
-			// note: we translate along -Z to move it into view.
-			glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, -objectY, objectZ));
-
-			glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-			glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			glm::mat4 R = Rz * Ry * Rx;
-
-			glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(objectWidth, objectHeight, 1.0f));
-
-			modelMatrix = T * R * S;
+		if (modelMatrix != glm::mat4(1.0f) && !controllable) {
 			return modelMatrix;
 		}
+
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, -objectY, objectZ));
+		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
+			glm::vec3(objectWidth * 0.5f, -objectHeight * 0.5f, 0.0f));
+		glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 R = Rz * Ry * Rx;
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(objectWidth, objectHeight, 1.0f));
+
+		modelMatrix = T * pivotOffset * R * S;
+		saveModelMatrix(modelMatrix, "model_matrix.txt");
+		return modelMatrix;
 	}
 
 }
