@@ -125,7 +125,7 @@ namespace vk {
 				renderer->beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
 				int placementTransform = placementController.updateModelMatrix(window->getGLFWWindow());
-				uiRenderSystem.renderGameObjects(frameInfo, glm::mat4(placementTransform));
+				uiRenderSystem.renderGameObjects(frameInfo, placementTransform);
 				renderer->endSwapChainRenderPass(commandBuffer);
 				renderer->endFrame();
 			}
@@ -191,18 +191,14 @@ namespace vk {
 		hudSettings.objectX = 0.0f;
 		hudSettings.objectY = 0.0f;
 		hudSettings.objectZ = -99.0f;
-		hudSettings.controllable = false;
+		hudSettings.controllable = true;
 
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
-		hudSettings.objectWidth = 1.0f;
-		hudSettings.objectHeight = 1.0f;
-		hudSettings.objectX = 0.0f;
-		hudSettings.objectY = 0.0f;
-		hudSettings.objectZ = -5.0f;
+		hudSettings.modelMatrix = glm::mat4(0.178848, 0.00162543, -0.028593, 0, 0.0286391, -0.0111642, 0.178497, 0, -0.000160613, -0.180773, -0.0112808, 0, -1.35073, 1.35512, -3.71212, 1);
 		hudSettings.usePerspectiveProjection = 1;
-		hudSettings.controllable = true;
+		hudSettings.controllable = false;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

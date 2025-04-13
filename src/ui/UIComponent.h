@@ -31,9 +31,9 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
-		glm::mat4 computeModelMatrix(glm::mat4 transform) const;
+		glm::mat4 computeModelMatrix(int placementTransform) const;
 		glm::mat4 computeModelMatrix() const override {
-			return computeModelMatrix(glm::mat4(1.0f));
+			return computeModelMatrix(-1);
 		}
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;

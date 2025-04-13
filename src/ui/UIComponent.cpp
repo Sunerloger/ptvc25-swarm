@@ -63,13 +63,61 @@ namespace vk {
 		}
 	}
 
-	glm::mat4 UIComponent::computeModelMatrix(glm::mat4 transform) const {
+	glm::mat4 UIComponent::computeModelMatrix(int placementTransform) const {
 		// For some reason the z index needs to be bigger than 0.0f to correctly show the hud
 		// I assume this is because the z index is used to sort the objects in the scene
 		// and if it is smaller, then then HUD is draw behind the player
 
 		if (modelMatrix != glm::mat4(1.0f) && controllable) {
-			modelMatrix = transform * modelMatrix;
+			float step = 0.01f;
+			switch (placementTransform) {
+				case GLFW_KEY_Q:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -step));
+					break;
+				case GLFW_KEY_E:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, step));
+					break;
+				case GLFW_KEY_LEFT:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(-step, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_RIGHT:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(step, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_UP:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, step, 0.0f));
+					break;
+				case GLFW_KEY_DOWN:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -step, 0.0f));
+					break;
+				case GLFW_KEY_EQUAL:
+					modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f + step));
+					break;
+				case GLFW_KEY_MINUS:
+					modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f - step));
+					break;
+				case GLFW_KEY_Z:
+					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(1.0f, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_X:
+					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(1.0f, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_C:
+					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 1.0f, 0.0f));
+					break;
+				case GLFW_KEY_V:
+					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 1.0f, 0.0f));
+					break;
+				case GLFW_KEY_B:
+					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 0.0f, 1.0f));
+					break;
+				case GLFW_KEY_N:
+					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 0.0f, 1.0f));
+					break;
+				default:
+					break;
+			}
+
+			// modelMatrix = glm::mat4(placementTransform) * modelMatrix;
 			saveModelMatrix(modelMatrix, "model_matrix.txt");
 			return modelMatrix;
 		}

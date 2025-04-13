@@ -33,7 +33,7 @@ namespace vk {
 			VkDescriptorSetLayout textureSetLayout);
 		~UIRenderSystem();
 
-		void renderGameObjects(FrameInfo& frameInfo, glm::mat4 modelMatrix);
+		void renderGameObjects(FrameInfo& frameInfo, int placementTransform);
 
 	   private:
 		void createPipelineLayout(VkDescriptorSetLayout globalSetLayout, VkDescriptorSetLayout textureSetLayout);

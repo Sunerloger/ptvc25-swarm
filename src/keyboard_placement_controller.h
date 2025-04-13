@@ -4,34 +4,35 @@
 #include "vk/vk_frame_info.h"
 
 #include "vk/vk_model.h"
+#include <GLFW/glfw3.h>
 
 namespace controls {
+	struct PlacementKeyMappings {
+		static constexpr int moveLeft = GLFW_KEY_LEFT;
+		static constexpr int moveRight = GLFW_KEY_RIGHT;
+		static constexpr int moveUp = GLFW_KEY_UP;
+		static constexpr int moveDown = GLFW_KEY_DOWN;
+		static constexpr int moveForward = GLFW_KEY_Q;
+		static constexpr int moveBackward = GLFW_KEY_E;
+		static constexpr int scaleDown = GLFW_KEY_MINUS;
+		static constexpr int scaleUp = GLFW_KEY_EQUAL;
+		static constexpr int rotateUpX = GLFW_KEY_Z;
+		static constexpr int rotateDownX = GLFW_KEY_X;
+		static constexpr int rotateUpY = GLFW_KEY_C;
+		static constexpr int rotateDownY = GLFW_KEY_V;
+		static constexpr int rotateUpZ = GLFW_KEY_B;
+		static constexpr int rotateDownZ = GLFW_KEY_N;
+	};
+
 	class KeyboardPlacementController {
 	   public:
 		KeyboardPlacementController() {
 		}
 
-		struct KeyMappings {
-			int moveLeft = GLFW_KEY_LEFT;
-			int moveRight = GLFW_KEY_RIGHT;
-			int moveUp = GLFW_KEY_UP;
-			int moveDown = GLFW_KEY_DOWN;
-			int moveForward = GLFW_KEY_Q;
-			int moveBackward = GLFW_KEY_E;
-			int scaleDown = GLFW_KEY_MINUS;
-			int scaleUp = GLFW_KEY_EQUAL;
-			int rotateUpX = GLFW_KEY_Z;
-			int rotateDownX = GLFW_KEY_X;
-			int rotateUpY = GLFW_KEY_C;
-			int rotateDownY = GLFW_KEY_V;
-			int rotateUpZ = GLFW_KEY_B;
-			int rotateDownZ = GLFW_KEY_N;
-		};
-
 		int updateModelMatrix(GLFWwindow* window);
 
 	   private:
-		KeyMappings keys{};
+		PlacementKeyMappings keys{};
 		float step = 0.01f;
 	};
 }  // namespace controls

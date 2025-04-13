@@ -151,7 +151,7 @@ namespace vk {
 		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo, glm::mat4 transform) {
+	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo, int placementTransform) {
 		pipeline->bind(frameInfo.commandBuffer);
 		vkCmdBindDescriptorSets(frameInfo.commandBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -170,7 +170,7 @@ namespace vk {
 
 			UIPushConstantData push{};
 			// use the translation from the argument
-			push.modelMatrix = uiComponent->computeModelMatrix(transform);
+			push.modelMatrix = uiComponent->computeModelMatrix(placementTransform);
 			push.normalMatrix = uiComponent->computeNormalMatrix();
 			push.hasTexture = uiComponent->getModel()->hasTexture() ? 1 : 0;
 			push.usePerspectiveProjection = uiComponent->getUsePerspectiveProjection();
