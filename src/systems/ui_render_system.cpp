@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include <array>
 #include <iostream>
+#include <memory>
+#include "../ui/UIComponent.h"
 
 namespace vk {
 
@@ -161,12 +163,10 @@ namespace vk {
 			&frameInfo.globalDescriptorSet,
 			0, nullptr);
 
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getUIObjects()) {
-			std::shared_ptr<GameObject> gameObject = weakObj.lock();
-			if (!gameObject)
+		for (std::weak_ptr<UIComponent> weakObj : frameInfo.sceneManager.getUIObjects()) {
+			std::shared_ptr<UIComponent> uiComponent = weakObj.lock();
+			if (!uiComponent)
 				continue;
-
-			std::shared_ptr<UIComponent> uiComponent = std::dynamic_pointer_cast<UIComponent>(gameObject);
 
 			UIPushConstantData push{};
 			push.modelMatrix = uiComponent->computeModelMatrix(placementTransform);
