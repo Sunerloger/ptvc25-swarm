@@ -2,8 +2,6 @@
 #include <stdexcept>
 #include <array>
 #include <iostream>
-#include <memory>
-#include "../ui/UIComponent.h"
 
 namespace vk {
 
