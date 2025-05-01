@@ -4,24 +4,20 @@
 
 namespace vk {
 
-	UIComponent::UIComponent(UIComponentCreationSettings settings)
-		: model(settings.model),
-		  windowWidth(settings.windowWidth),
-		  windowHeight(settings.windowHeight),
-		  usePerspectiveProjection(settings.usePerspectiveProjection),
-		  controllable(settings.controllable) {
-		if (settings.modelMatrix != glm::mat4(1.0f)) {
-			modelMatrix = settings.modelMatrix;
-		} else {
-			modelMatrix = glm::mat4(1.0f);
-			objectX = settings.objectX;
-			objectY = settings.objectY;
-			objectZ = settings.objectZ;
-			objectWidth = settings.objectWidth;
-			objectHeight = settings.objectHeight;
-			rotation = settings.rotation;
-		}
-	}
+	UIComponent::UIComponent(UIComponentCreationSettings settings) : 
+		model(settings.model),
+		windowWidth(settings.windowWidth),
+		windowHeight(settings.windowHeight),
+		usePerspectiveProjection(settings.usePerspectiveProjection),
+		controllable(settings.controllable),
+		modelMatrix(settings.modelMatrix),
+		objectX(settings.objectX),
+		objectY(settings.objectY),
+		objectZ(settings.objectZ),
+		objectWidth(settings.objectWidth),
+		objectHeight(settings.objectHeight),
+		rotation(settings.rotation)
+	{}
 
 	glm::mat4 UIComponent::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));

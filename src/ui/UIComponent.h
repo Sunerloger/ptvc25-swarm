@@ -9,17 +9,17 @@ namespace vk {
 	class UIComponentCreationSettings {
 	   public:
 		std::shared_ptr<Model> model;
-		glm::vec3 rotation;
+		glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
-		float objectX;
-		float objectY;
+		float objectX = 0.0f;
+		float objectY = 0.0f;
 		float objectZ = -5.0f;
 
-		float objectWidth;
-		float objectHeight;
+		float objectWidth = 1.0f;
+		float objectHeight = 1.0f;
 
-		float windowWidth;
-		float windowHeight;
+		float windowWidth = 1.0f;
+		float windowHeight = 1.0f;
 
 		int usePerspectiveProjection = 0;
 		glm::mat4 modelMatrix = glm::mat4(1.0f);
