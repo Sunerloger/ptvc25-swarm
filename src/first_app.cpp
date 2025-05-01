@@ -186,6 +186,7 @@ namespace vk {
 		hudSettings.windowHeight = windowHeight;
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb");
+		hudSettings.layer = 0;	//
 		hudSettings.objectWidth = 200.0f;
 		hudSettings.objectHeight = 200.0f;
 		hudSettings.objectX = 0.0f;
@@ -194,8 +195,10 @@ namespace vk {
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
+		hudSettings.layer = 1;
 		hudSettings.modelMatrix = glm::mat4(0.178848, 0.00162543, -0.028593, 0, 0.0286391, -0.0111642, 0.178497, 0, -0.000160613, -0.180773, -0.0112808, 0, -1.35073, 1.35512, -3.71212, 1);
 		hudSettings.usePerspectiveProjection = 1;
+		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

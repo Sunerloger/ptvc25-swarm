@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
+project(Swarm)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -8,14 +9,9 @@ if(CCACHE_FOUND)
 endif()
 
 if(APPLE)
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
-endif()
-
-project(Swarm)
-
-if(APPLE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
   add_compile_options("-isysroot" "${CMAKE_OSX_SYSROOT}")
-  add_link_options("-isysroot" "${CMAKE_OSX_SYSROOT}")
+  add_link_options   ("-isysroot" "${CMAKE_OSX_SYSROOT}")
 endif()
 
 include(FetchContent)
@@ -68,6 +64,8 @@ if(NOT GLSLC_EXECUTABLE)
     message(FATAL_ERROR "glslc shader compiler not found! Make sure Vulkan SDK is installed.")
 endif()
 
+include(FetchContent)
+
 FetchContent_Declare(
     JoltPhysics
     GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
@@ -75,7 +73,10 @@ FetchContent_Declare(
     SOURCE_SUBDIR "Build"
     GIT_SHALLOW ON
 )
-FetchContent_MakeAvailable(JoltPhysics)
+FetchContent_GetProperties(JoltPhysics)
+if(NOT JoltPhysics_POPULATED)
+  FetchContent_MakeAvailable(JoltPhysics)
+endif()
 
 FetchContent_Declare(
     tinygltf
@@ -83,7 +84,10 @@ FetchContent_Declare(
     GIT_TAG "v2.9.5"
     GIT_SHALLOW ON
 )
-FetchContent_MakeAvailable(tinygltf)
+FetchContent_GetProperties(tinygltf)
+if(NOT tinygltf_POPULATED)
+  FetchContent_MakeAvailable(tinygltf)
+endif()
 
 FetchContent_Declare(
     glm
@@ -91,7 +95,10 @@ FetchContent_Declare(
     GIT_TAG "0.9.9.8"
     GIT_SHALLOW ON
 )
-FetchContent_MakeAvailable(glm)
+FetchContent_GetProperties(glm)
+if(NOT glm_POPULATED)
+  FetchContent_MakeAvailable(glm)
+endif()
 
 FetchContent_Declare(
     glfw
@@ -99,6 +106,10 @@ FetchContent_Declare(
     GIT_TAG "3.3.8"
     GIT_SHALLOW ON
 )
+FetchContent_GetProperties(glfw)
+if(NOT glfw_POPULATED)
+  FetchContent_MakeAvailable(glfw)
+endif()
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -117,8 +128,10 @@ FetchContent_Declare(
     GIT_TAG "v1.0.6"
     GIT_SHALLOW ON
 )
-
-FetchContent_MakeAvailable(tinyobjloader)
+FetchContent_GetProperties(tinyobjloader)
+if(NOT tinyobjloader_POPULATED)
+  FetchContent_MakeAvailable(tinyobjloader)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

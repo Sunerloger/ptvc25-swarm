@@ -24,6 +24,7 @@ namespace vk {
 		int usePerspectiveProjection = 0;
 		glm::mat4 modelMatrix = glm::mat4(1.0f);
 		bool controllable = false;
+		int layer = 0;
 	};
 
 	class UIComponent : public GameObject {
@@ -37,6 +38,9 @@ namespace vk {
 		}
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
+		int getLayer() const {
+			return layer;
+		}
 		int getUsePerspectiveProjection() const {
 			return usePerspectiveProjection;
 		}
@@ -61,5 +65,6 @@ namespace vk {
 		int usePerspectiveProjection = 0;
 		mutable glm::mat4 modelMatrix = glm::mat4(1.0f);
 		bool controllable = false;
+		int layer = 0;
 	};
 }

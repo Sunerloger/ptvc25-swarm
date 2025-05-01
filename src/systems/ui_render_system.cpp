@@ -1,71 +1,101 @@
+// ui_render_system.cpp
 #include "ui_render_system.h"
 #include <stdexcept>
-#include <array>
-#include <iostream>
+#include <algorithm>
 
 namespace vk {
 
-	UIRenderSystem::UIRenderSystem(Device& device, VkRenderPass renderPass,
+	UIRenderSystem::UIRenderSystem(Device &device, VkRenderPass renderPass,
 		VkDescriptorSetLayout globalSetLayout,
 		VkDescriptorSetLayout textureSetLayout)
 		: device{device} {
-		createPipelineLayout(globalSetLayout, Model::textureDescriptorSetLayout);
-
-		PipelineConfigInfo pipelineConfig{};
-		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-		pipelineConfig.renderPass = renderPass;
-		pipelineConfig.pipelineLayout = pipelineLayout;
-		pipeline = std::make_unique<Pipeline>(device, "ui_shader.vert", "ui_shader.frag", pipelineConfig);
-
+		createPipelineLayout(globalSetLayout, textureSetLayout);
+		createPipelines(renderPass);
 		if (Model::textureDescriptorPool) {
-			createDefaultTexture(Model::textureDescriptorPool->getPool(), Model::textureDescriptorSetLayout);
+			createDefaultTexture(Model::textureDescriptorPool->getPool(), textureSetLayout);
 		}
 	}
 
 	UIRenderSystem::~UIRenderSystem() {
-		if (defaultTextureSampler != VK_NULL_HANDLE) {
+		if (defaultTextureSampler != VK_NULL_HANDLE)
 			vkDestroySampler(device.device(), defaultTextureSampler, nullptr);
-		}
-		if (defaultTextureImageView != VK_NULL_HANDLE) {
+		if (defaultTextureImageView != VK_NULL_HANDLE)
 			vkDestroyImageView(device.device(), defaultTextureImageView, nullptr);
-		}
-		if (defaultTextureImage != VK_NULL_HANDLE) {
+		if (defaultTextureImage != VK_NULL_HANDLE)
 			vkDestroyImage(device.device(), defaultTextureImage, nullptr);
-		}
-		if (defaultTextureImageMemory != VK_NULL_HANDLE) {
+		if (defaultTextureImageMemory != VK_NULL_HANDLE)
 			vkFreeMemory(device.device(), defaultTextureImageMemory, nullptr);
-		}
 		vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
 	}
 
-	void UIRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout, VkDescriptorSetLayout textureSetLayout) {
-		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(UIPushConstantData);
+	void UIRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout,
+		VkDescriptorSetLayout textureSetLayout) {
+		VkPushConstantRange pushRange{};
+		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		pushRange.offset = 0;
+		pushRange.size = sizeof(UIPushConstantData);
 
-		std::vector<VkDescriptorSetLayout> setLayouts = {globalSetLayout, textureSetLayout};
+		std::vector<VkDescriptorSetLayout> layouts = {globalSetLayout, textureSetLayout};
+		VkPipelineLayoutCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		info.setLayoutCount = (uint32_t) layouts.size();
+		info.pSetLayouts = layouts.data();
+		info.pushConstantRangeCount = 1;
+		info.pPushConstantRanges = &pushRange;
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
-		pipelineLayoutInfo.pSetLayouts = setLayouts.data();
-		pipelineLayoutInfo.pushConstantRangeCount = 1;
-		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-
-		if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create UI render pipeline layout!");
-		}
+		if (vkCreatePipelineLayout(device.device(), &info, nullptr, &pipelineLayout) != VK_SUCCESS)
+			throw std::runtime_error("Failed to create UI pipeline layout");
 	}
 
-	void UIRenderSystem::createDefaultTexture(VkDescriptorPool textureDescriptorPool, VkDescriptorSetLayout textureSetLayout) {
+	void UIRenderSystem::createPipelines(VkRenderPass renderPass) {
+		PipelineConfigInfo cfg{};
+		Pipeline::defaultPipelineConfigInfo(cfg);
+		cfg.renderPass = renderPass;
+		cfg.pipelineLayout = pipelineLayout;
+
+		// 1) 2D HUD: no depth, always on top
+		cfg.depthStencilInfo.depthTestEnable = VK_FALSE;
+		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;
+		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+		cfg.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		orthoPipeline = std::make_unique<Pipeline>(device,
+			"ui_shader.vert",
+			"ui_shader.frag",
+			cfg);
+
+		// 2) Depth‐populate pass for 3D UI: writes into depth buffer (always passes world)
+		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
+		cfg.depthStencilInfo.depthWriteEnable = VK_TRUE;
+		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_ALWAYS;	 // ignore world depth
+		// back-face cull to speed up depth
+		cfg.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		cfg.rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		depthPopulatePipeline = std::make_unique<Pipeline>(device,
+			"ui_shader.vert",
+			"ui_shader.frag",
+			cfg);
+
+		// 3) Color pass for 3D UI: tests against own depth, no writes
+		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
+		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;
+		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+		cfg.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		cfg.rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		perspectivePipeline = std::make_unique<Pipeline>(device,
+			"ui_shader.vert",
+			"ui_shader.frag",
+			cfg);
+	}
+
+	void UIRenderSystem::createDefaultTexture(VkDescriptorPool textureDescriptorPool,
+		VkDescriptorSetLayout textureSetLayout) {
 		// 1. Create a 1x1 white pixel.
 		const int texWidth = 1;
 		const int texHeight = 1;
-		VkDeviceSize imageSize = texWidth * texHeight * 4;	// 4 bytes per pixel (RGBA)
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
 		uint8_t whitePixel[4] = {255, 255, 255, 255};
 
-		// 2. Create a staging buffer and copy the pixel data.
+		// 2. Staging buffer
 		Buffer stagingBuffer(device,
 			imageSize,
 			1,
@@ -75,13 +105,11 @@ namespace vk {
 		stagingBuffer.writeToBuffer(whitePixel, imageSize);
 		stagingBuffer.flush();
 
-		// 3. Create the optimal image for the texture.
+		// 3. Create image
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = texWidth;
-		imageInfo.extent.height = texHeight;
-		imageInfo.extent.depth = 1;
+		imageInfo.extent = {(uint32_t) texWidth, (uint32_t) texHeight, 1};
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -91,19 +119,28 @@ namespace vk {
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		device.createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, defaultTextureImage, defaultTextureImageMemory);
+		device.createImageWithInfo(imageInfo,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			defaultTextureImage,
+			defaultTextureImageMemory);
 
-		// 4. Transition image layout, copy the buffer data into the image, then transition for shader access.
-		device.transitionImageLayout(defaultTextureImage, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		// 4. Copy buffer to image
+		device.transitionImageLayout(defaultTextureImage,
+			VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		device.copyBufferToImage(stagingBuffer.getBuffer(), defaultTextureImage, texWidth, texHeight, 1);
-		device.transitionImageLayout(defaultTextureImage, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		device.transitionImageLayout(defaultTextureImage,
+			VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		// 5. Create an image view for the texture.
-		defaultTextureImageView = device.createImageView(defaultTextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+		// 5. Create image view
+		defaultTextureImageView = device.createImageView(defaultTextureImage,
+			VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_ASPECT_COLOR_BIT);
 
-		// 6. Create a sampler for the texture.
+		// 6. Create sampler
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -115,14 +152,13 @@ namespace vk {
 		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 		samplerInfo.unnormalizedCoordinates = VK_FALSE;
 		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 		if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &defaultTextureSampler) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create default texture sampler!");
 		}
 
-		// 7. Allocate a descriptor set for the default texture.
+		// 7. Allocate descriptor set
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = textureDescriptorPool;
@@ -133,7 +169,7 @@ namespace vk {
 			throw std::runtime_error("Failed to allocate default texture descriptor set!");
 		}
 
-		// 8. Update the descriptor set with the image view and sampler.
+		// 8. Update descriptor
 		VkDescriptorImageInfo imageInfoDS{};
 		imageInfoDS.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfoDS.imageView = defaultTextureImageView;
@@ -151,51 +187,61 @@ namespace vk {
 		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo, int placementTransform) {
-		pipeline->bind(frameInfo.commandBuffer);
-		vkCmdBindDescriptorSets(frameInfo.commandBuffer,
-			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipelineLayout,
-			0,
-			1,
-			&frameInfo.globalDescriptorSet,
-			0, nullptr);
+	void UIRenderSystem::renderGameObjects(FrameInfo &frameInfo,
+		int placementTransform) {
+		// Sort by layer
+		auto uiObjs = frameInfo.sceneManager.getUIObjects();
+		std::vector<std::shared_ptr<UIComponent>> sorted;
+		for (auto &w : uiObjs)
+			if (auto s = w.lock())
+				sorted.push_back(std::dynamic_pointer_cast<UIComponent>(s));
+		std::sort(sorted.begin(), sorted.end(),
+			[](auto &a, auto &b) { return a->getLayer() < b->getLayer(); });
 
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getUIObjects()) {
-			std::shared_ptr<GameObject> gameObject = weakObj.lock();
-			if (!gameObject)
-				continue;
+		for (auto &ui : sorted) {
+			bool persp = ui->getUsePerspectiveProjection();
 
-			std::shared_ptr<UIComponent> uiComponent = std::dynamic_pointer_cast<UIComponent>(gameObject);
+			// Common binding of globals & constants into two lambdas
+			auto recordDraw = [&](Pipeline &p) {
+				p.bind(frameInfo.commandBuffer);
+				vkCmdBindDescriptorSets(frameInfo.commandBuffer,
+					VK_PIPELINE_BIND_POINT_GRAPHICS,
+					pipelineLayout,
+					0, 1, &frameInfo.globalDescriptorSet,
+					0, nullptr);
 
-			UIPushConstantData push{};
-			push.modelMatrix = uiComponent->computeModelMatrix(placementTransform);
-			push.normalMatrix = uiComponent->computeNormalMatrix();
-			push.hasTexture = uiComponent->getModel()->hasTexture() ? 1 : 0;
-			push.usePerspectiveProjection = uiComponent->getUsePerspectiveProjection();
-			vkCmdPushConstants(frameInfo.commandBuffer,
-				pipelineLayout,
-				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-				0,
-				sizeof(UIPushConstantData),
-				&push);
+				UIPushConstantData push{};
+				push.modelMatrix = ui->computeModelMatrix(placementTransform);
+				push.normalMatrix = ui->computeNormalMatrix();
+				push.hasTexture = ui->getModel()->hasTexture() ? 1 : 0;
+				push.usePerspectiveProjection = ui->getUsePerspectiveProjection();
+				vkCmdPushConstants(frameInfo.commandBuffer,
+					pipelineLayout,
+					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+					0, sizeof(push), &push);
 
-			VkDescriptorSet textureDS = VK_NULL_HANDLE;
-			if (uiComponent->getModel()->hasTexture()) {
-				textureDS = uiComponent->getModel()->getTextureDescriptorSet();
+				VkDescriptorSet texDS = ui->getModel()->hasTexture()
+											? ui->getModel()->getTextureDescriptorSet()
+											: defaultTextureDescriptorSet;
+				vkCmdBindDescriptorSets(frameInfo.commandBuffer,
+					VK_PIPELINE_BIND_POINT_GRAPHICS,
+					pipelineLayout,
+					1, 1, &texDS,
+					0, nullptr);
+
+				ui->getModel()->bind(frameInfo.commandBuffer);
+				ui->getModel()->draw(frameInfo.commandBuffer);
+			};
+
+			if (persp) {
+				// 1) Populate depth
+				recordDraw(*depthPopulatePipeline);
+				// 2) Draw color
+				recordDraw(*perspectivePipeline);
 			} else {
-				textureDS = defaultTextureDescriptorSet;
+				// 2D HUD
+				recordDraw(*orthoPipeline);
 			}
-			vkCmdBindDescriptorSets(frameInfo.commandBuffer,
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayout,
-				1,
-				1,
-				&textureDS,
-				0, nullptr);
-
-			uiComponent->getModel()->bind(frameInfo.commandBuffer);
-			uiComponent->getModel()->draw(frameInfo.commandBuffer);
 		}
 	}
 

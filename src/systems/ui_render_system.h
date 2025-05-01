@@ -1,3 +1,4 @@
+// ui_render_system.h
 #pragma once
 
 #include "../vk/vk_renderer.h"
@@ -15,7 +16,6 @@
 
 #include <memory>
 #include <vector>
-#include "glm/glm.hpp"
 
 namespace vk {
 
@@ -36,15 +36,23 @@ namespace vk {
 		void renderGameObjects(FrameInfo& frameInfo, int placementTransform);
 
 	   private:
-		void createPipelineLayout(VkDescriptorSetLayout globalSetLayout, VkDescriptorSetLayout textureSetLayout);
-		void createPipeline(VkRenderPass renderPass);
-		void createDefaultTexture(VkDescriptorPool textureDescriptorPool, VkDescriptorSetLayout textureSetLayout);
+		void createPipelineLayout(VkDescriptorSetLayout globalSetLayout,
+			VkDescriptorSetLayout textureSetLayout);
+		void createPipelines(VkRenderPass renderPass);
+		void createDefaultTexture(VkDescriptorPool textureDescriptorPool,
+			VkDescriptorSetLayout textureSetLayout);
 
 		Device& device;
 		VkPipelineLayout pipelineLayout;
-		std::unique_ptr<Pipeline> pipeline;
 
-		// Default texture descriptor set and its associated resources.
+		// Three pipelines:
+		//   orthoPipeline         = 2D HUD (no depth)
+		//   depthPopulatePipeline = writes depth for 3D UI
+		//   perspectivePipeline   = color pass for 3D UI (tests against that depth)
+		std::unique_ptr<Pipeline> orthoPipeline;
+		std::unique_ptr<Pipeline> depthPopulatePipeline;
+		std::unique_ptr<Pipeline> perspectivePipeline;
+
 		VkDescriptorSet defaultTextureDescriptorSet = VK_NULL_HANDLE;
 		VkImage defaultTextureImage = VK_NULL_HANDLE;
 		VkDeviceMemory defaultTextureImageMemory = VK_NULL_HANDLE;
