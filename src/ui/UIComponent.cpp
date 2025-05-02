@@ -4,20 +4,17 @@
 
 namespace vk {
 
-	UIComponent::UIComponent(UIComponentCreationSettings settings) : 
-		model(settings.model),
-		windowWidth(settings.windowWidth),
-		windowHeight(settings.windowHeight),
-		usePerspectiveProjection(settings.usePerspectiveProjection),
-		controllable(settings.controllable),
-		modelMatrix(settings.modelMatrix),
-		objectX(settings.objectX),
-		objectY(settings.objectY),
-		objectZ(settings.objectZ),
-		objectWidth(settings.objectWidth),
-		objectHeight(settings.objectHeight),
-		rotation(settings.rotation)
-	{}
+	UIComponent::UIComponent(UIComponentCreationSettings settings) : model(settings.model),
+																	 windowWidth(settings.windowWidth),
+																	 windowHeight(settings.windowHeight),
+																	 controllable(settings.controllable),
+																	 modelMatrix(settings.modelMatrix),
+																	 objectX(settings.objectX),
+																	 objectY(settings.objectY),
+																	 objectZ(settings.objectZ),
+																	 objectWidth(settings.objectWidth),
+																	 objectHeight(settings.objectHeight),
+																	 rotation(settings.rotation) {}
 
 	glm::mat4 UIComponent::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
@@ -60,10 +57,6 @@ namespace vk {
 	}
 
 	glm::mat4 UIComponent::computeModelMatrix(int placementTransform) const {
-		// For some reason the z index needs to be bigger than 0.0f to correctly show the hud
-		// I assume this is because the z index is used to sort the objects in the scene
-		// and if it is smaller, then then HUD is draw behind the player
-
 		if (modelMatrix != glm::mat4(1.0f) && controllable) {
 			float step = 0.01f;
 			switch (placementTransform) {
@@ -113,7 +106,6 @@ namespace vk {
 					break;
 			}
 
-			// modelMatrix = glm::mat4(placementTransform) * modelMatrix;
 			saveModelMatrix(modelMatrix, "model_matrix.txt");
 			return modelMatrix;
 		}

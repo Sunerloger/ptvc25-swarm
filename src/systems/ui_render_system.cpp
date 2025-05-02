@@ -10,7 +10,7 @@ namespace vk {
 		VkDescriptorSetLayout textureSetLayout)
 		: device{device} {
 		createPipelineLayout(globalSetLayout, textureSetLayout);
-		createPipelines(renderPass);
+		createPipeline(renderPass);
 		if (Model::textureDescriptorPool) {
 			createDefaultTexture(Model::textureDescriptorPool->getPool(), textureSetLayout);
 		}
@@ -47,44 +47,21 @@ namespace vk {
 			throw std::runtime_error("Failed to create UI pipeline layout");
 	}
 
-	void UIRenderSystem::createPipelines(VkRenderPass renderPass) {
-		PipelineConfigInfo cfg{};
-		Pipeline::defaultPipelineConfigInfo(cfg);
-		cfg.renderPass = renderPass;
-		cfg.pipelineLayout = pipelineLayout;
+	void UIRenderSystem::createPipeline(VkRenderPass renderPass) {
+		PipelineConfigInfo pipelineConfig{};
+		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+		pipelineConfig.renderPass = renderPass;
+		pipelineConfig.pipelineLayout = pipelineLayout;
 
-		// 1) 2D HUD: no depth, always on top
-		cfg.depthStencilInfo.depthTestEnable = VK_FALSE;
-		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;
-		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_ALWAYS;
-		cfg.depthStencilInfo.stencilTestEnable = VK_FALSE;
-		orthoPipeline = std::make_unique<Pipeline>(device,
-			"ui_shader.vert",
-			"ui_shader.frag",
-			cfg);
+		pipelineConfig.depthStencilInfo = {};
+		pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;	 // test against UI’s own depth
+		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;	 // write UI depth so they occlude themselves
+		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
 
-		// 2) Depth‐populate pass for 3D UI: writes into depth buffer (always passes world)
-		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
-		cfg.depthStencilInfo.depthWriteEnable = VK_TRUE;
-		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_ALWAYS;	 // ignore world depth
-		// back-face cull to speed up depth
-		cfg.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-		cfg.rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		depthPopulatePipeline = std::make_unique<Pipeline>(device,
-			"ui_shader.vert",
-			"ui_shader.frag",
-			cfg);
-
-		// 3) Color pass for 3D UI: tests against own depth, no writes
-		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
-		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;
-		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-		cfg.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-		cfg.rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		perspectivePipeline = std::make_unique<Pipeline>(device,
-			"ui_shader.vert",
-			"ui_shader.frag",
-			cfg);
+		pipeline = std::make_unique<Pipeline>(device, "ui_shader.vert", "ui_shader.frag", pipelineConfig);
 	}
 
 	void UIRenderSystem::createDefaultTexture(VkDescriptorPool textureDescriptorPool,
@@ -189,60 +166,47 @@ namespace vk {
 
 	void UIRenderSystem::renderGameObjects(FrameInfo &frameInfo,
 		int placementTransform) {
-		// Sort by layer
-		auto uiObjs = frameInfo.sceneManager.getUIObjects();
-		std::vector<std::shared_ptr<UIComponent>> sorted;
-		for (auto &w : uiObjs)
-			if (auto s = w.lock())
-				sorted.push_back(std::dynamic_pointer_cast<UIComponent>(s));
-		std::sort(sorted.begin(), sorted.end(),
-			[](auto &a, auto &b) { return a->getLayer() < b->getLayer(); });
+		pipeline->bind(frameInfo.commandBuffer);
+		vkCmdBindDescriptorSets(frameInfo.commandBuffer,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout,
+			0,
+			1,
+			&frameInfo.globalDescriptorSet,
+			0, nullptr);
 
-		for (auto &ui : sorted) {
-			bool persp = ui->getUsePerspectiveProjection();
+		for (std::weak_ptr<UIComponent> weakObj : frameInfo.sceneManager.getUIObjects()) {
+			std::shared_ptr<UIComponent> gameObject = weakObj.lock();
+			if (!gameObject)
+				continue;
 
-			// Common binding of globals & constants into two lambdas
-			auto recordDraw = [&](Pipeline &p) {
-				p.bind(frameInfo.commandBuffer);
-				vkCmdBindDescriptorSets(frameInfo.commandBuffer,
-					VK_PIPELINE_BIND_POINT_GRAPHICS,
-					pipelineLayout,
-					0, 1, &frameInfo.globalDescriptorSet,
-					0, nullptr);
+			UIPushConstantData push{};
+			push.modelMatrix = gameObject->computeModelMatrix(placementTransform);
+			push.normalMatrix = gameObject->computeNormalMatrix();
+			push.hasTexture = gameObject->getModel()->hasTexture() ? 1 : 0;
+			vkCmdPushConstants(frameInfo.commandBuffer,
+				pipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+				0,
+				sizeof(UIPushConstantData),
+				&push);
 
-				UIPushConstantData push{};
-				push.modelMatrix = ui->computeModelMatrix(placementTransform);
-				push.normalMatrix = ui->computeNormalMatrix();
-				push.hasTexture = ui->getModel()->hasTexture() ? 1 : 0;
-				push.usePerspectiveProjection = ui->getUsePerspectiveProjection();
-				vkCmdPushConstants(frameInfo.commandBuffer,
-					pipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-					0, sizeof(push), &push);
-
-				VkDescriptorSet texDS = ui->getModel()->hasTexture()
-											? ui->getModel()->getTextureDescriptorSet()
-											: defaultTextureDescriptorSet;
-				vkCmdBindDescriptorSets(frameInfo.commandBuffer,
-					VK_PIPELINE_BIND_POINT_GRAPHICS,
-					pipelineLayout,
-					1, 1, &texDS,
-					0, nullptr);
-
-				ui->getModel()->bind(frameInfo.commandBuffer);
-				ui->getModel()->draw(frameInfo.commandBuffer);
-			};
-
-			if (persp) {
-				// 1) Populate depth
-				recordDraw(*depthPopulatePipeline);
-				// 2) Draw color
-				recordDraw(*perspectivePipeline);
+			VkDescriptorSet textureDS = VK_NULL_HANDLE;
+			if (gameObject->getModel()->hasTexture()) {
+				textureDS = gameObject->getModel()->getTextureDescriptorSet();
 			} else {
-				// 2D HUD
-				recordDraw(*orthoPipeline);
+				textureDS = defaultTextureDescriptorSet;
 			}
+			vkCmdBindDescriptorSets(frameInfo.commandBuffer,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelineLayout,
+				1,
+				1,
+				&textureDS,
+				0, nullptr);
+
+			gameObject->getModel()->bind(frameInfo.commandBuffer);
+			gameObject->getModel()->draw(frameInfo.commandBuffer);
 		}
 	}
-
 }  // namespace vk

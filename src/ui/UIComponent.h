@@ -21,10 +21,8 @@ namespace vk {
 		float windowWidth = 1.0f;
 		float windowHeight = 1.0f;
 
-		int usePerspectiveProjection = 0;
 		glm::mat4 modelMatrix = glm::mat4(1.0f);
 		bool controllable = false;
-		int layer = 0;
 	};
 
 	class UIComponent : public GameObject {
@@ -38,12 +36,6 @@ namespace vk {
 		}
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
-		int getLayer() const {
-			return layer;
-		}
-		int getUsePerspectiveProjection() const {
-			return usePerspectiveProjection;
-		}
 		std::shared_ptr<Model> getModel() const override;
 		glm::vec3 getScale() const;
 		void updateWindowDimensions(float screenWidth, float screenHeight);
@@ -62,9 +54,7 @@ namespace vk {
 		float windowWidth;
 		float windowHeight;
 
-		int usePerspectiveProjection = 0;
 		mutable glm::mat4 modelMatrix = glm::mat4(1.0f);
 		bool controllable = false;
-		int layer = 0;
 	};
 }

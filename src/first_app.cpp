@@ -113,17 +113,30 @@ namespace vk {
 				ubo.projection = sceneManager->getPlayer()->getProjMat();
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 100.0f);
-				ubo.uiPerspectiveProjection = CharacterCamera::getPerspectiveProjection(glm::radians(45.0f), windowWidth / windowHeight, 0.1f, 100.0f);
-				ubo.uiView = glm::lookAt(
-					glm::vec3(5.0f, 5.0f, 5.0f),  // Camera position: top-right in world space
-					glm::vec3(0.0f, 0.0f, 0.0f),  // Look at the origin (object center)
-					glm::vec3(0.0f, 1.0f, 0.0f)	  // Up vector
-				);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
 				renderer->beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
+
+				VkClearAttachment clearAttachment{};
+				clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+				clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0};
+				VkClearRect clearRect{};
+				clearRect.rect.offset = {0, 0};
+				clearRect.rect.extent = {
+					static_cast<uint32_t>(windowWidth),
+					static_cast<uint32_t>(windowHeight)};
+				clearRect.baseArrayLayer = 0;
+				clearRect.layerCount = 1;
+
+				vkCmdClearAttachments(
+					frameInfo.commandBuffer,
+					1,
+					&clearAttachment,
+					1,
+					&clearRect);
+
 				int placementTransform = placementController.updateModelMatrix(window->getGLFWWindow());
 				uiRenderSystem.renderGameObjects(frameInfo, placementTransform);
 				renderer->endSwapChainRenderPass(commandBuffer);
@@ -186,7 +199,6 @@ namespace vk {
 		hudSettings.windowHeight = windowHeight;
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb");
-		hudSettings.layer = 0;	//
 		hudSettings.objectWidth = 200.0f;
 		hudSettings.objectHeight = 200.0f;
 		hudSettings.objectX = 0.0f;
@@ -195,9 +207,7 @@ namespace vk {
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
-		hudSettings.layer = 1;
-		hudSettings.modelMatrix = glm::mat4(0.178848, 0.00162543, -0.028593, 0, 0.0286391, -0.0111642, 0.178497, 0, -0.000160613, -0.180773, -0.0112808, 0, -1.35073, 1.35512, -3.71212, 1);
-		hudSettings.usePerspectiveProjection = 1;
+		hudSettings.modelMatrix = glm::mat4(77.8601, -1.2355, 0.0758948, 0, -15.1871, -0.42165, 0.389336, 0, -1.13196, -79.3247, -0.00325152, 0, 89.616, -97.8785, -97.9393, 1);
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
