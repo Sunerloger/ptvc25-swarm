@@ -19,7 +19,8 @@ enum SceneClass {
 	ENEMY,
 	UI_COMPONENT,
 	PHYSICS_OBJECT,
-	SPECTRAL_OBJECT
+	SPECTRAL_OBJECT,
+	TESSELLATION_OBJECT  // New class for tessellation objects
 };
 
 // provides scene information to the renderer and the physics engine
@@ -41,6 +42,9 @@ struct Scene {
 
 	// non actor physics objects (e.g. terrain, drops, bullets, ...)
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::ManagedPhysicsEntity>> physicsObjects = {};
+	
+	// objects that use tessellation shaders
+	std::unordered_map<vk::id_t, std::shared_ptr<physics::ManagedPhysicsEntity>> tessellationObjects = {};
 
 	// manage themselves - need to be treated differently
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::Enemy>> enemies = {};
@@ -77,6 +81,9 @@ public:
 
 	// @return false if object could not be added because it already exists
 	vk::id_t addManagedPhysicsEntity(std::unique_ptr<physics::ManagedPhysicsEntity> managedPhysicsEntity);
+	
+	// @return false if object could not be added because it already exists
+	vk::id_t addTessellationObject(std::unique_ptr<physics::ManagedPhysicsEntity> tessellationObject);
 
 	// @return false if light could not be added because it already exists
 	vk::id_t addLight(std::unique_ptr<lighting::PointLight> light);
@@ -122,7 +129,11 @@ public:
 
 	vk::id_t getIdFromBodyID(JPH::BodyID bodyID);
 
-	std::vector<std::weak_ptr<vk::GameObject>> getRenderObjects();
+	// Get standard render objects (non-tessellated)
+	std::vector<std::weak_ptr<vk::GameObject>> getStandardRenderObjects();
+	
+	// Get tessellation render objects
+	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 
 private:
 

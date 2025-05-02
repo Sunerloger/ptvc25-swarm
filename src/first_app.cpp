@@ -25,9 +25,7 @@ namespace vk {
 		loadGameObjects();
 	}
 
-	FirstApp::~FirstApp() {
-		Model::cleanupTextureResources(*device);
-	}
+	FirstApp::~FirstApp() {}
 
 	void FirstApp::run() {
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -52,11 +50,14 @@ namespace vk {
 				.build(globalDescriptorSets[i]);
 		}
 
-		// Create render systems.
+		// Create render systems
 		TextureRenderSystem textureRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout(),
-			Model::textureDescriptorSetLayout};
+			globalSetLayout->getDescriptorSetLayout()};
+			
+		TessellationRenderSystem tessellationRenderSystem{*device,
+			renderer->getSwapChainRenderPass(),
+			globalSetLayout->getDescriptorSetLayout()};
 
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
@@ -109,6 +110,7 @@ namespace vk {
 
 					renderer->beginSwapChainRenderPass(commandBuffer);
 					textureRenderSystem.renderGameObjects(frameInfo);
+					tessellationRenderSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
@@ -118,6 +120,7 @@ namespace vk {
 					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
 					renderer->beginSwapChainRenderPass(commandBuffer);
 					textureRenderSystem.renderGameObjects(frameInfo);
+					tessellationRenderSystem.renderGameObjects(frameInfo);
 					renderer->endSwapChainRenderPass(commandBuffer);
 					renderer->endFrame();
 				}
@@ -127,7 +130,22 @@ namespace vk {
 	}
 
 	void FirstApp::loadGameObjects() {
-		std::shared_ptr<Model> floorModel = Model::createModelFromFile(*device, "models:BoxTextured.glb");
+		// Parameters for the terrain
+		int samplesPerSide = 64; // Resolution of the heightmap
+		float noiseScale = 3.0f;  // Controls the "frequency" of the noise
+		float heightScale = 3.0f; // Controls the height of the terrain
+		
+		// Generate terrain model with heightmap
+		auto result = Model::createTerrainModel(
+			*device,
+			samplesPerSide,
+			"textures:dirt.png", // Tile texture path
+			noiseScale,
+			heightScale
+		);
+		
+		// Extract the model and height data
+		auto& heightData = result.second;
 
 		// 2m player
 		float playerHeight = 1.40f;
@@ -138,9 +156,10 @@ namespace vk {
 		cameraSettings->cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
 
 		std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
+		playerSettings->movementSpeed = 10.0f;
 
 		std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-		characterSettings->mGravityFactor = 0.0f;
+		characterSettings->mGravityFactor = 1.0f;
 		characterSettings->mFriction = 10.0f;
 		characterSettings->mShape = characterShape;
 		characterSettings->mLayer = physics::Layers::MOVING;
@@ -150,12 +169,44 @@ namespace vk {
 		playerCreationSettings->characterSettings = std::move(characterSettings);
 		playerCreationSettings->cameraSettings = std::move(cameraSettings);
 		playerCreationSettings->playerSettings = std::move(playerSettings);
+		playerCreationSettings->position = JPH::RVec3(10.0f, 10.0f, 10.0f);
 
 		sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
 
 		// add terrain to scene
-		// rotate the model to match the terrain
-		sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f})));
+		// Create a terrain with procedural heightmap using Perlin noise
+		// Parameters: physics_system, color, model, position, scale, samplesPerSide, noiseScale, heightScale
+		// Create a terrain with our generated heightmap data
+		auto terrain = std::make_unique<physics::Terrain>(
+			physicsSimulation->getPhysicsSystem(),
+			glm::vec3{0.569, 0.29, 0},
+			std::move(result.first),  // Move the model
+			glm::vec3{0.0, 0.0, 0.0},  // Position at origin
+			glm::vec3{30.0f, 5.0f, 30.0f}, // Larger size and taller
+			heightData
+		);
+		
+		sceneManager->addTessellationObject(std::move(terrain));
+
+		// add skybox to scene
+		std::array<std::string, 6> cubemapFaces = {
+			"textures:skybox/learnopengl/right.jpg",
+			"textures:skybox/learnopengl/left.jpg",
+			"textures:skybox/learnopengl/top.jpg",
+			"textures:skybox/learnopengl/bottom.jpg",
+			"textures:skybox/learnopengl/front.jpg",
+			"textures:skybox/learnopengl/back.jpg"
+		};
+
+		// Option 1: Create skybox from 6 separate face images
+		auto skybox = std::make_unique<Skybox>(*device, cubemapFaces);
+		
+		// Option 2: Create skybox from a single image (horizontal strip)
+		// auto skybox = std::make_unique<Skybox>(*device, "textures:skybox/crystallotus/SunsetSky.png", true);
+
+		sceneManager->addSpectralObject(std::move(skybox));
+
+		// TODO add enemies back in
 
 		glfwSetWindowUserPointer(window->getGLFWWindow(), sceneManager.get());
 	}

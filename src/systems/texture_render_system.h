@@ -1,15 +1,13 @@
 #pragma once
 
-#include "../vk/vk_renderer.h"
 #include "../vk/vk_pipeline.h"
 #include "../vk/vk_frame_info.h"
 #include "../vk/vk_device.h"
-#include "../vk/vk_model.h"
-#include "../vk/vk_buffer.h"
+#include "../rendering/materials/Material.h"
 
 #include <memory>
-#include <vector>
-#include "glm/glm.hpp"
+#include <unordered_map>
+#include <glm/glm.hpp>
 
 namespace vk {
 
@@ -20,29 +18,56 @@ namespace vk {
 	};
 
 	class TextureRenderSystem {
-	   public:
-		TextureRenderSystem(Device& device, VkRenderPass renderPass,
-			VkDescriptorSetLayout globalSetLayout,
-			VkDescriptorSetLayout textureSetLayout);
+    
+    public:
+		TextureRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
 		~TextureRenderSystem();
 
 		void renderGameObjects(FrameInfo& frameInfo);
 
-	   private:
-		void createPipelineLayout(VkDescriptorSetLayout globalSetLayout, VkDescriptorSetLayout textureSetLayout);
-		void createPipeline(VkRenderPass renderPass);
-		void createDefaultTexture(VkDescriptorPool textureDescriptorPool, VkDescriptorSetLayout textureSetLayout);
+    private:
+        struct PipelineInfo {
+            std::unique_ptr<Pipeline> pipeline;
+            VkPipelineLayout pipelineLayout;
+        };
 
-		Device& device;
-		VkPipelineLayout pipelineLayout;
-		std::unique_ptr<Pipeline> pipeline;
+        PipelineInfo& getPipeline(const Material& material);
+        void createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
 
-		// Default texture descriptor set and its associated resources.
-		VkDescriptorSet defaultTextureDescriptorSet = VK_NULL_HANDLE;
-		VkImage defaultTextureImage = VK_NULL_HANDLE;
-		VkDeviceMemory defaultTextureImageMemory = VK_NULL_HANDLE;
-		VkImageView defaultTextureImageView = VK_NULL_HANDLE;
-		VkSampler defaultTextureSampler = VK_NULL_HANDLE;
+        struct PipelineKey {
+            std::string vertShaderPath;
+            std::string fragShaderPath;
+            bool depthWriteEnable;
+            VkCompareOp depthCompareOp;
+            VkCullModeFlags cullMode;
+
+            bool operator==(const PipelineKey& other) const {
+                return vertShaderPath == other.vertShaderPath &&
+                    fragShaderPath == other.fragShaderPath &&
+                    depthWriteEnable == other.depthWriteEnable &&
+                    depthCompareOp == other.depthCompareOp &&
+                    cullMode == other.cullMode;
+            }
+        };
+
+        struct PipelineKeyHash {
+            std::size_t operator()(const PipelineKey& key) const {
+                // Simple hash function
+                std::size_t h1 = std::hash<std::string>{}(key.vertShaderPath);
+                std::size_t h2 = std::hash<std::string>{}(key.fragShaderPath);
+                std::size_t h3 = std::hash<bool>{}(key.depthWriteEnable);
+                std::size_t h4 = std::hash<int>{}(static_cast<int>(key.depthCompareOp));
+                std::size_t h5 = std::hash<int>{}(static_cast<int>(key.cullMode));
+                return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4);
+            }
+        };
+
+  Device& device;
+        VkRenderPass renderPass;
+        VkDescriptorSetLayout globalSetLayout;
+
+        std::unordered_map<PipelineKey, PipelineInfo, PipelineKeyHash> pipelineCache;
+        std::unordered_map<VkDescriptorSetLayout, VkPipelineLayout> pipelineLayoutCache;
 	};
 
 }  // namespace vk
