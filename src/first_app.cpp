@@ -11,6 +11,7 @@ namespace vk {
 
 	FirstApp::FirstApp() {
 		window = std::make_unique<Window>(applicationSettings.windowWidth, applicationSettings.windowHeight, "Swarm");
+		menuController = std::make_unique<controls::KeyboardMenuController>(window->getGLFWWindow());
 		device = std::make_unique<Device>(*window);
 		renderer = std::make_unique<Renderer>(*window, *device);
 
@@ -85,9 +86,8 @@ namespace vk {
 			deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
 
 			glfwPollEvents();
-			movementController.handleEscMenu(window->getGLFWWindow());
 
-			if (!movementController.escapeMenuOpen) {
+			if (!menuController->isMenuOpen()) {
 				physicsTimeAccumulator += deltaTime;
 				gameTimer += deltaTime;
 				int newSecond = static_cast<int>(gameTimer);
