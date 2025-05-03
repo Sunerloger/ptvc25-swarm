@@ -1,7 +1,7 @@
 #version 450
 
-// Define patch size (4 control points for a quad patch)
-layout(vertices = 4) out;
+// Define patch size (3 control points for a triangle patch)
+layout(vertices = 3) out;
 
 // Input from vertex shader
 layout(location = 0) in vec3 fragColor[];
@@ -33,7 +33,7 @@ void main() {
     // Only the first invocation computes tessellation levels
     if (gl_InvocationID == 0) {
         // Calculate the center of the patch
-        vec3 center = (fragPosWorld[0] + fragPosWorld[1] + fragPosWorld[2] + fragPosWorld[3]) / 4.0;
+        vec3 center = (fragPosWorld[0] + fragPosWorld[1] + fragPosWorld[2]) / 3.0;
         
         // Calculate distance from camera to patch center
         float distance = distance(viewPosition[0], center);
@@ -51,9 +51,7 @@ void main() {
         gl_TessLevelOuter[0] = tessLevel;
         gl_TessLevelOuter[1] = tessLevel;
         gl_TessLevelOuter[2] = tessLevel;
-        gl_TessLevelOuter[3] = tessLevel;
         
         gl_TessLevelInner[0] = tessLevel;
-        gl_TessLevelInner[1] = tessLevel;
     }
 }

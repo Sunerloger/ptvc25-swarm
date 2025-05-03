@@ -35,7 +35,7 @@ namespace vk {
         pipelineConfig.tessEvalShaderPath = "terrain_tess_eval.tese";
         
         // Configure for tessellation
-        Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 4);  // 4 control points for quad patches
+        Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 3);  // 3 control points for triangle patches
     }
     
     // Constructor with color texture and shader paths
@@ -52,7 +52,7 @@ namespace vk {
         
         // Configure for tessellation if tessellation shaders are provided
         if (!tessControlShaderPath.empty() && !tessEvalShaderPath.empty()) {
-            Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 4);  // 4 control points for quad patches
+            Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 3);  // 3 control points for triangle patches
             pipelineConfig.tessControlShaderPath = tessControlShaderPath;
             pipelineConfig.tessEvalShaderPath = tessEvalShaderPath;
         }
@@ -84,7 +84,7 @@ namespace vk {
         
         // Configure for tessellation if tessellation shaders are provided
         if (!tessControlShaderPath.empty() && !tessEvalShaderPath.empty()) {
-            Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 4);  // 4 control points for quad patches
+            Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 3);  // 3 control points for triangle patches
             pipelineConfig.tessControlShaderPath = tessControlShaderPath;
             pipelineConfig.tessEvalShaderPath = tessEvalShaderPath;
         }
@@ -119,7 +119,7 @@ namespace vk {
         
         // Configure for tessellation if tessellation shaders are provided
         if (!tessControlShaderPath.empty() && !tessEvalShaderPath.empty()) {
-            Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 4);  // 4 control points for quad patches
+            Pipeline::tessellationPipelineConfigInfo(pipelineConfig, 3);  // 3 control points for triangle patches
             pipelineConfig.tessControlShaderPath = tessControlShaderPath;
             pipelineConfig.tessEvalShaderPath = tessEvalShaderPath;
         }

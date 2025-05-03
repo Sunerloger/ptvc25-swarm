@@ -169,7 +169,7 @@ namespace vk {
 		playerCreationSettings->characterSettings = std::move(characterSettings);
 		playerCreationSettings->cameraSettings = std::move(cameraSettings);
 		playerCreationSettings->playerSettings = std::move(playerSettings);
-		playerCreationSettings->position = JPH::RVec3(10.0f, 10.0f, 10.0f);
+		playerCreationSettings->position = JPH::RVec3(10.0f, 15.0f, 10.0f); // Increased Y position to start higher above terrain
 
 		sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
 
@@ -181,8 +181,8 @@ namespace vk {
 			physicsSimulation->getPhysicsSystem(),
 			glm::vec3{0.569, 0.29, 0},
 			std::move(result.first),  // Move the model
-			glm::vec3{0.0, 0.0, 0.0},  // Position at origin
-			glm::vec3{30.0f, 5.0f, 30.0f}, // Larger size and taller
+			glm::vec3{0.0, -2.0, 0.0},  // Position slightly below origin to prevent falling through
+			glm::vec3{30.0f, heightScale, 30.0f}, // Larger size and taller
 			heightData
 		);
 		

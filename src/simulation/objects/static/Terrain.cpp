@@ -37,16 +37,14 @@ namespace physics {
 		this->color = color;
 		this->scale = scale;
 		
-		// Store the heightfield data
 		heightfieldSamples = heightfieldData;
-		heightfieldSampleCount = heightfieldData.size();
 		
-		// Calculate the number of samples in each dimension
-		int numSamplesPerSide = static_cast<int>(sqrt(heightfieldSampleCount));
+		// create a temporary array with the correct size
+		float* heightData = this->heightfieldSamples.data();
+
+		// calculate the number of samples in each dimension
+		int numSamplesPerSide = static_cast<int>(sqrt(this->heightfieldSamples.size()));
 		std::cout << "Creating heightfield with " << numSamplesPerSide << "x" << numSamplesPerSide << " samples" << std::endl;
-		
-		// Create a temporary array with the correct size
-		float* heightData = new float[numSamplesPerSide * numSamplesPerSide];
 		
 		// Copy our height samples directly into the array
 		for (int i = 0; i < numSamplesPerSide * numSamplesPerSide; i++) {
@@ -71,20 +69,20 @@ namespace physics {
 			std::cout << "No samples!" << std::endl;
 		}
 		
-		// Create the heightfield settings
+		float width = scale.x * 2.0f;								// mesh spans [-scale.x, +scale.x]
+		float depth = scale.z * 2.0f;								// mesh spans [-scale.z, +scale.z]
+		float cellSizeX = width / (numSamplesPerSide - 1);			// divide by sample - 1 cells to get size of single cell
+		float cellSizeZ = depth / (numSamplesPerSide - 1);
+		RVec3 shapeOffset = RVec3(-scale.x, 0.0f, -scale.z);		// samples go from -scale.x -> +scale.x
+		
 		HeightFieldShapeSettings heightfield_settings(
-			heightData,                         // Height field data (float array)
-			RVec3(0, 0, 0),                     // Offset (position in the physics world)
-			Vec3(scale.x / numSamplesPerSide,   // Scale X (divide by samples to get correct size)
-				 scale.y,                       // Scale Y (height)
-				 scale.z / numSamplesPerSide),  // Scale Z (divide by samples to get correct size)
-			numSamplesPerSide);                 // Sample count per side
+			heightData,
+			shapeOffset,
+			Vec3(cellSizeX,	scale.y, cellSizeZ),
+			numSamplesPerSide);
 			
 		// Create the shape
 		ShapeSettings::ShapeResult heightfield_result = heightfield_settings.Create();
-		
-		// Clean up the temporary height data array
-		delete[] heightData;
 		
 		// Create the body settings
 		if (heightfield_result.HasError()) {

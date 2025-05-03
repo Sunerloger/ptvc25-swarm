@@ -2,8 +2,7 @@
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragPosWorld;
-layout(location = 2) in vec3 fragNormalWorld;
-layout(location = 3) in vec2 fragTexCoord;
+layout(location = 2) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
@@ -38,6 +37,11 @@ vec3 calculateLighting(vec3 normal, vec3 color) {
 }
 
 void main() {
+
+    vec3 dpdx = dFdx(fragPosWorld);
+    vec3 dpdy = dFdy(fragPosWorld);
+    vec3 adjustedNormal = normalize(cross(dpdx, dpdy)); // after tessellation
+
     // Get base color (from texture or vertex color)
     vec3 color = fragColor;
     if (push.params1.x > 0.0) {  // hasTexture is in params1.x
@@ -45,7 +49,7 @@ void main() {
     }
     
     // Apply lighting
-    vec3 litColor = calculateLighting(normalize(fragNormalWorld), color);
+    vec3 litColor = calculateLighting(normalize(adjustedNormal), color);
     
     // Output final color
     outColor = vec4(litColor, 1.0);

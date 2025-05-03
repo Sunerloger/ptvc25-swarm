@@ -40,11 +40,9 @@ namespace physics {
 		
 		std::shared_ptr<vk::Model> model;
 		glm::vec3 scale;
+
 		bool useHeightfield = false;
-		
-		// For heightfield terrain
 		std::vector<float> heightfieldSamples;
-		int heightfieldSampleCount = 0;
 		
 		// For Perlin noise generation
 		std::vector<int> p; // Permutation table for Perlin noise
