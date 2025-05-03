@@ -14,8 +14,6 @@ if(APPLE)
   add_link_options   ("-isysroot" "${CMAKE_OSX_SYSROOT}")
 endif()
 
-include(FetchContent)
-
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")
 
 # Distribution build flags match release
