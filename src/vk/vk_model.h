@@ -42,7 +42,7 @@ namespace vk {
 			void loadModel(const std::string& filename);
 		};
 
-		Model(Device& device, const Model::Builder& builder);
+		Model(Device& device, const Model::Builder& builder, bool isUI = false);
 		~Model();
 		Model(const Model&) = delete;
 		void operator=(const Model&) = delete;
@@ -54,7 +54,7 @@ namespace vk {
 			return material ? material->getDescriptorSet() : VK_NULL_HANDLE;
 		}
 
-		static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename);
+		static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename, bool isUI = false);
 		static std::unique_ptr<Model> createCubeModel(Device& device);
 		static std::unique_ptr<Model> createGridModel(Device& device, int gridSize);
 		
@@ -74,7 +74,8 @@ namespace vk {
 		void createVertexBuffers(const std::vector<Vertex>& vertices);
 		void createIndexBuffers(const std::vector<uint32_t>& indices);
 
-		void createMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex, const std::string& modelPath);
+		void createStandardMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex);
+		void createUIMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex);
 
 		Device& device;
 		std::unique_ptr<Buffer> vertexBuffer;

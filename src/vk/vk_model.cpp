@@ -5,6 +5,7 @@
 
 #include "../asset_utils/AssetManager.h"
 #include "../rendering/materials/StandardMaterial.h"
+#include "../rendering/materials/UIMaterial.h"
 #include "../rendering/materials/TessellationMaterial.h"
 
 #include <random>
@@ -38,22 +39,27 @@ namespace std {
 
 
 namespace vk {
-	Model::Model(Device& device, const Builder& builder) : device(device) {
+	Model::Model(Device& device, const Builder& builder, bool isUI) : device(device) {
 		createVertexBuffers(builder.vertices);
 		createIndexBuffers(builder.indices);
 		if (builder.textureMaterialIndex >= 0) {
 			// Create material from GLTF data
-			createMaterialFromGltf(builder.gltfModelData, builder.textureMaterialIndex, AssetManager::getInstance().resolvePath(""));
+			if (isUI) {
+				createUIMaterialFromGltf(builder.gltfModelData, builder.textureMaterialIndex);
+			}
+			else {
+				createStandardMaterialFromGltf(builder.gltfModelData, builder.textureMaterialIndex);
+			}
 		}
 	}
 
 	Model::~Model() {}
 
 
-	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename) {
+	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename, bool isUI) {
 		Builder builder{};
 		builder.loadModel(filename);
-		return std::make_unique<Model>(device, builder);
+		return std::make_unique<Model>(device, builder, isUI);
 	}
 
 	void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
@@ -310,7 +316,90 @@ namespace vk {
 		textureMaterialIndex = materialIndex;
 	}
 
-	void Model::createMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex, const std::string& modelPath) {
+	void Model::createUIMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex) {
+		// Create a StandardMaterial for the model
+		if (materialIndex >= 0 && materialIndex < gltfModel.materials.size()) {
+			const tinygltf::Material& gltfMaterial = gltfModel.materials[materialIndex];
+
+			// Check if material has a texture
+			std::string texturePath;
+			bool hasTexture = false;
+			bool hasEmbeddedTexture = false;
+			int embeddedWidth = 0, embeddedHeight = 0, embeddedChannels = 0;
+			std::vector<unsigned char> embeddedImageData;
+
+			if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index >= 0) {
+				int textureIndex = gltfMaterial.pbrMetallicRoughness.baseColorTexture.index;
+				if (textureIndex >= 0 && textureIndex < gltfModel.textures.size()) {
+					const tinygltf::Texture& gltfTexture = gltfModel.textures[textureIndex];
+					int imageIndex = gltfTexture.source;
+					if (imageIndex >= 0 && imageIndex < gltfModel.images.size()) {
+						const tinygltf::Image& gltfImage = gltfModel.images[imageIndex];
+
+						// Check if the image has a URI (external texture)
+						if (!gltfImage.uri.empty()) {
+							// Use AssetManager to resolve the texture path
+							texturePath = AssetManager::getInstance().resolvePath(gltfImage.uri);
+							std::cout << "Loading external texture from: " << texturePath << std::endl;
+							hasTexture = true;
+						}
+						// Check if the image has embedded data
+						else if (!gltfImage.image.empty()) {
+							std::cout << "Found embedded texture in GLTF file, size: " << gltfImage.image.size()
+								<< " bytes, dimensions: " << gltfImage.width << "x" << gltfImage.height
+								<< ", components: " << gltfImage.component << std::endl;
+
+							// Store the embedded image data for direct use
+							embeddedImageData = gltfImage.image;
+							embeddedWidth = gltfImage.width;
+							embeddedHeight = gltfImage.height;
+							embeddedChannels = gltfImage.component;
+							hasEmbeddedTexture = true;
+						}
+					}
+				}
+			}
+
+			if (hasTexture) {
+				// Create material with external texture
+				material = std::make_shared<UIMaterial>(device, texturePath);
+			}
+			else if (hasEmbeddedTexture) {
+				// Create material directly from embedded texture data
+				material = std::make_shared<UIMaterial>(
+					device,
+					embeddedImageData,
+					embeddedWidth,
+					embeddedHeight,
+					embeddedChannels
+				);
+				std::cout << "Created material from embedded texture data" << std::endl;
+			}
+			else {
+				// Create a default material with a solid color
+				// For now, we'll use a white texture as a fallback
+				material = std::make_shared<UIMaterial>(device, "textures:missing.png");
+				std::cout << "Using default texture: textures:missing.png" << std::endl;
+
+				// Set color from material if available
+				if (gltfMaterial.pbrMetallicRoughness.baseColorFactor.size() >= 3) {
+					// Note: In a more complete implementation, we would set the color
+					// as a uniform in the material
+					std::cout << "Material has color factor: "
+						<< gltfMaterial.pbrMetallicRoughness.baseColorFactor[0] << ", "
+						<< gltfMaterial.pbrMetallicRoughness.baseColorFactor[1] << ", "
+						<< gltfMaterial.pbrMetallicRoughness.baseColorFactor[2] << std::endl;
+				}
+			}
+		}
+		else {
+			// Create a default material if no material is specified
+			material = std::make_shared<UIMaterial>(device, "textures:missing.png");
+			std::cout << "No material specified, using default texture" << std::endl;
+		}
+	}
+
+	void Model::createStandardMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex) {
 		// Create a StandardMaterial for the model
 		if (materialIndex >= 0 && materialIndex < gltfModel.materials.size()) {
 			const tinygltf::Material& gltfMaterial = gltfModel.materials[materialIndex];

@@ -49,6 +49,8 @@ namespace controls {
 		if (glfwGetKey(window, keys.rotateDownZ) == GLFW_PRESS) {
 			return keys.rotateDownZ;
 		}
+
+		return -1;
 	}
 
 }

@@ -30,19 +30,20 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
-		glm::mat4 computeModelMatrix(int placementTransform) const;
-		glm::mat4 computeModelMatrix() const override {
-			return computeModelMatrix(-1);
-		}
+		void updateTransform(int placementTransform = -1);
+
+		glm::mat4 computeModelMatrix() const override;
+
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
-		glm::vec3 getScale() const;
 		void updateWindowDimensions(float screenWidth, float screenHeight);
 
 	   private:
 		std::shared_ptr<Model> model;
 		glm::vec3 rotation;
+
+		// TODO only store position, rotation, scale without model matrix (also in file) and compute model matrix in computeModelMatrix
 
 		float objectX;
 		float objectY;

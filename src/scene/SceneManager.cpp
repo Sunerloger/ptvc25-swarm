@@ -2,6 +2,15 @@
 
 SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
+void SceneManager::updateUITransforms(int placementTransform) {
+	for (auto& uiObject : this->getUIObjects()) {
+		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
+		if (!uiComponent)
+			continue;
+		uiComponent->updateTransform(placementTransform);
+	}
+}
+
 void SceneManager::updateUIWindowDimensions(float windowWidth, float windowHeight) {
 	for (auto& uiObject : this->getUIObjects()) {
 		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
