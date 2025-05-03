@@ -5,16 +5,16 @@
 namespace vk {
 
 	UIComponent::UIComponent(UIComponentCreationSettings settings) : model(settings.model),
-																	 windowWidth(settings.windowWidth),
-																	 windowHeight(settings.windowHeight),
-																	 controllable(settings.controllable),
-																	 modelMatrix(settings.modelMatrix),
-																	 objectX(settings.objectX),
-																	 objectY(settings.objectY),
-																	 objectZ(settings.objectZ),
-																	 objectWidth(settings.objectWidth),
-																	 objectHeight(settings.objectHeight),
-																	 rotation(settings.rotation) {}
+		windowWidth(settings.windowWidth),
+		windowHeight(settings.windowHeight),
+		controllable(settings.controllable),
+		modelMatrix(settings.modelMatrix),
+		objectX(settings.objectX),
+		objectY(settings.objectY),
+		objectZ(settings.objectZ),
+		objectWidth(settings.objectWidth),
+		objectHeight(settings.objectHeight),
+		rotation(settings.rotation) {}
 
 	glm::mat4 UIComponent::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
@@ -22,12 +22,6 @@ namespace vk {
 
 	glm::vec3 UIComponent::getPosition() const {
 		return glm::vec3(objectX, objectY, 0.0f);
-	}
-
-	glm::vec3 UIComponent::getScale() const {
-		glm::vec4 scaleX = computeModelMatrix() * glm::vec4(1, 0, 0, 0);
-		glm::vec4 scaleY = computeModelMatrix() * glm::vec4(0, 1, 0, 0);
-		return glm::vec3(glm::length(glm::vec3(scaleX)), glm::length(glm::vec3(scaleY)), 1.0f);
 	}
 
 	void UIComponent::updateWindowDimensions(float windowWidth, float windowHeight) {
@@ -51,67 +45,68 @@ namespace vk {
 			file << matrix[3][0] << ", " << matrix[3][1] << ", " << matrix[3][2] << ", " << matrix[3][3] << ");";
 			file << std::endl;
 			file.close();
-		} else {
+		}
+		else {
 			std::cerr << "Unable to open file: " << filename << std::endl;
 		}
 	}
 
-	glm::mat4 UIComponent::computeModelMatrix(int placementTransform) const {
+	void UIComponent::updateTransform(int placementTransform) {
 		if (modelMatrix != glm::mat4(1.0f) && controllable) {
 			float step = 0.01f;
 			switch (placementTransform) {
-				case GLFW_KEY_Q:
-					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -step));
-					break;
-				case GLFW_KEY_E:
-					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, step));
-					break;
-				case GLFW_KEY_LEFT:
-					modelMatrix = glm::translate(modelMatrix, glm::vec3(-step, 0.0f, 0.0f));
-					break;
-				case GLFW_KEY_RIGHT:
-					modelMatrix = glm::translate(modelMatrix, glm::vec3(step, 0.0f, 0.0f));
-					break;
-				case GLFW_KEY_UP:
-					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, step, 0.0f));
-					break;
-				case GLFW_KEY_DOWN:
-					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -step, 0.0f));
-					break;
-				case GLFW_KEY_EQUAL:
-					modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f + step));
-					break;
-				case GLFW_KEY_MINUS:
-					modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f - step));
-					break;
-				case GLFW_KEY_Z:
-					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(1.0f, 0.0f, 0.0f));
-					break;
-				case GLFW_KEY_X:
-					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(1.0f, 0.0f, 0.0f));
-					break;
-				case GLFW_KEY_C:
-					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 1.0f, 0.0f));
-					break;
-				case GLFW_KEY_V:
-					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 1.0f, 0.0f));
-					break;
-				case GLFW_KEY_B:
-					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 0.0f, 1.0f));
-					break;
-				case GLFW_KEY_N:
-					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 0.0f, 1.0f));
-					break;
-				default:
-					break;
+			case GLFW_KEY_Q:
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -step));
+				break;
+			case GLFW_KEY_E:
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, step));
+				break;
+			case GLFW_KEY_LEFT:
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(-step, 0.0f, 0.0f));
+				break;
+			case GLFW_KEY_RIGHT:
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(step, 0.0f, 0.0f));
+				break;
+			case GLFW_KEY_UP:
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, step, 0.0f));
+				break;
+			case GLFW_KEY_DOWN:
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -step, 0.0f));
+				break;
+			case GLFW_KEY_EQUAL:
+				modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f + step));
+				break;
+			case GLFW_KEY_MINUS:
+				modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f - step));
+				break;
+			case GLFW_KEY_Z:
+				modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(1.0f, 0.0f, 0.0f));
+				break;
+			case GLFW_KEY_X:
+				modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(1.0f, 0.0f, 0.0f));
+				break;
+			case GLFW_KEY_C:
+				modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 1.0f, 0.0f));
+				break;
+			case GLFW_KEY_V:
+				modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 1.0f, 0.0f));
+				break;
+			case GLFW_KEY_B:
+				modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 0.0f, 1.0f));
+				break;
+			case GLFW_KEY_N:
+				modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 0.0f, 1.0f));
+				break;
+			default:
+				break;
 			}
 
 			saveModelMatrix(modelMatrix, "model_matrix.txt");
-			return modelMatrix;
+			return;
 		}
 
 		if (modelMatrix != glm::mat4(1.0f) && !controllable) {
-			return modelMatrix;
+			return;
 		}
 
 		glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, -objectY, objectZ));
@@ -125,7 +120,9 @@ namespace vk {
 
 		modelMatrix = T * pivotOffset * R * S;
 		saveModelMatrix(modelMatrix, "model_matrix.txt");
-		return modelMatrix;
 	}
 
+	glm::mat4 UIComponent::computeModelMatrix() const {
+		return modelMatrix;
+	}
 }

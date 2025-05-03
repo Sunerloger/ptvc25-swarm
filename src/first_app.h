@@ -8,8 +8,14 @@
 
 #include "scene/SceneManager.h"
 
+#include "rendering/materials/CubemapMaterial.h"
+#include "rendering/structures/SkyBox.h"
+
 #include "systems/texture_render_system.h"
 #include "systems/ui_render_system.h"
+#include "systems/tessellation_render_system.h"
+
+#include "rendering/materials/TessellationMaterial.h"
 
 #include "keyboard_movement_controller.h"
 #include "keyboard_placement_controller.h"

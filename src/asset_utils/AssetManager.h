@@ -7,6 +7,7 @@
 
 // #include "tiny_gltf.h"
 #include "tiny_obj_loader.h"
+#include "stb_image.h"
 
 #include <string>
 #include <vector>
@@ -15,6 +16,7 @@
 #include <memory>
 #include <iostream>
 #include <fstream>
+#include <cstring>
 
 namespace fs = std::filesystem;
 
@@ -233,7 +235,38 @@ namespace vk {
 		// TODO
 		//        }
 
-	   private:
+		// Texture loading structure
+		struct TextureData {
+		    std::vector<unsigned char> pixels;
+		    int width = 0;
+		    int height = 0;
+		    int channels = 0;
+		};
+
+		// Load a texture from a file
+		TextureData loadTexture(const std::string& filepath) {
+		    TextureData result;
+		    std::string resolvedPath = resolvePath(filepath);
+		    
+		    // Load the image
+		    unsigned char* data = stbi_load(resolvedPath.c_str(), &result.width, &result.height, &result.channels, 0);
+		    
+		    if (!data) {
+		        throw std::runtime_error("Failed to load texture: " + resolvedPath);
+		    }
+		    
+		    // Copy the data to our vector
+		    size_t dataSize = result.width * result.height * result.channels;
+		    result.pixels.resize(dataSize);
+		    std::memcpy(result.pixels.data(), data, dataSize);
+		    
+		    // Free the original data
+		    stbi_image_free(data);
+		    
+		    return result;
+		}
+
+	private:
 		AssetManager() = default;
 		~AssetManager() = default;
 

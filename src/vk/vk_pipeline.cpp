@@ -16,10 +16,31 @@ namespace vk {
 		: device{device} {
 		createGraphicsPipeline(vertFilepath, fragFilepath, configInfo);
 	}
+	
 	Pipeline::~Pipeline() {
 		vkDestroyShaderModule(device.device(), vertShaderModule, nullptr);
 		vkDestroyShaderModule(device.device(), fragShaderModule, nullptr);
+		
+		// Clean up tessellation shader modules if they exist
+		if (tessControlShaderModule != VK_NULL_HANDLE) {
+			vkDestroyShaderModule(device.device(), tessControlShaderModule, nullptr);
+		}
+		if (tessEvalShaderModule != VK_NULL_HANDLE) {
+			vkDestroyShaderModule(device.device(), tessEvalShaderModule, nullptr);
+		}
+		
 		vkDestroyPipeline(device.device(), graphicsPipeline, nullptr);
+	}
+
+	// Constructor with tessellation shaders
+	Pipeline::Pipeline(Device& device,
+		const std::string& vertFilepath,
+		const std::string& tessControlFilepath,
+		const std::string& tessEvalFilepath,
+		const std::string& fragFilepath,
+		const PipelineConfigInfo& configInfo)
+		: device{device} {
+		createTessellationPipeline(vertFilepath, tessControlFilepath, tessEvalFilepath, fragFilepath, configInfo);
 	}
 
 	std::vector<char> Pipeline::readFile(const std::string& filepath) {
@@ -88,6 +109,107 @@ namespace vk {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
 	}
+	
+	void Pipeline::createTessellationPipeline(
+		const std::string& vertFilepath,
+		const std::string& tessControlFilepath,
+		const std::string& tessEvalFilepath,
+		const std::string& fragFilepath,
+		const PipelineConfigInfo& configInfo) {
+		
+		assert(configInfo.pipelineLayout != VK_NULL_HANDLE &&
+			   "Cannot create tessellation pipeline::pipelineLayout is null");
+		assert(configInfo.renderPass != VK_NULL_HANDLE &&
+			   "Cannot create tessellation pipeline::renderPass is null");
+			   
+		// Load shader code
+		auto vertCode = readFile(vertFilepath);
+		auto tessControlCode = readFile(tessControlFilepath);
+		auto tessEvalCode = readFile(tessEvalFilepath);
+		auto fragCode = readFile(fragFilepath);
+
+		// Create shader modules
+		createShaderModule(vertCode, &vertShaderModule);
+		createShaderModule(tessControlCode, &tessControlShaderModule);
+		createShaderModule(tessEvalCode, &tessEvalShaderModule);
+		createShaderModule(fragCode, &fragShaderModule);
+
+		// Create shader stages
+		VkPipelineShaderStageCreateInfo shaderStages[4];
+		
+		// Vertex shader
+		shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderStages[0].module = vertShaderModule;
+		shaderStages[0].pName = "main";
+		shaderStages[0].flags = 0;
+		shaderStages[0].pNext = nullptr;
+		shaderStages[0].pSpecializationInfo = nullptr;
+
+		// Tessellation control shader
+		shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStages[1].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+		shaderStages[1].module = tessControlShaderModule;
+		shaderStages[1].pName = "main";
+		shaderStages[1].flags = 0;
+		shaderStages[1].pNext = nullptr;
+		shaderStages[1].pSpecializationInfo = nullptr;
+
+		// Tessellation evaluation shader
+		shaderStages[2].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStages[2].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		shaderStages[2].module = tessEvalShaderModule;
+		shaderStages[2].pName = "main";
+		shaderStages[2].flags = 0;
+		shaderStages[2].pNext = nullptr;
+		shaderStages[2].pSpecializationInfo = nullptr;
+
+		// Fragment shader
+		shaderStages[3].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStages[3].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		shaderStages[3].module = fragShaderModule;
+		shaderStages[3].pName = "main";
+		shaderStages[3].flags = 0;
+		shaderStages[3].pNext = nullptr;
+		shaderStages[3].pSpecializationInfo = nullptr;
+
+		// Vertex input state
+		auto& bindingDescriptions = configInfo.bindingDescriptions;
+		auto& attributeDescriptions = configInfo.attributeDescriptions;
+
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+
+		// Create pipeline
+		VkGraphicsPipelineCreateInfo pipelineInfo{};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineInfo.stageCount = 4;  // Vertex, TessControl, TessEval, Fragment
+		pipelineInfo.pStages = shaderStages;
+		pipelineInfo.pVertexInputState = &vertexInputInfo;
+		pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
+		pipelineInfo.pViewportState = &configInfo.viewportInfo;
+		pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
+		pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
+		pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
+		pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
+		pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
+		pipelineInfo.pTessellationState = &configInfo.tessellationInfo;
+
+		pipelineInfo.layout = configInfo.pipelineLayout;
+		pipelineInfo.renderPass = configInfo.renderPass;
+		pipelineInfo.subpass = configInfo.subpass;
+
+		pipelineInfo.basePipelineIndex = -1;
+		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+		if (vkCreateGraphicsPipelines(device.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create tessellation pipeline!");
+		}
+	}
 
 	void Pipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule) {
 		VkShaderModuleCreateInfo createInfo{};
@@ -105,6 +227,13 @@ namespace vk {
 	}
 
 	void Pipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo) {
+		// Set default shader paths
+		configInfo.vertShaderPath = "texture_shader.vert";
+		configInfo.fragShaderPath = "texture_shader.frag";
+		configInfo.tessControlShaderPath = "";
+		configInfo.tessEvalShaderPath = "";
+		configInfo.useTessellation = false;
+		
 		configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
@@ -120,8 +249,8 @@ namespace vk {
 		configInfo.rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
 		configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
 		configInfo.rasterizationInfo.lineWidth = 1.0f;
-		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-		configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		configInfo.rasterizationInfo.depthBiasEnable = VK_FALSE;
 		configInfo.rasterizationInfo.depthBiasConstantFactor = 0.0f;  // Optional
 		configInfo.rasterizationInfo.depthBiasClamp = 0.0f;			  // Optional
@@ -175,6 +304,34 @@ namespace vk {
 
 		configInfo.bindingDescriptions = Model::Vertex::getBindingDescriptions();
 		configInfo.attributeDescriptions = Model::Vertex::getAttributeDescriptions();
+		
+		// Initialize tessellation state (even though it's not used by default)
+		configInfo.tessellationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+		configInfo.tessellationInfo.pNext = nullptr;
+		configInfo.tessellationInfo.flags = 0;
+		configInfo.tessellationInfo.patchControlPoints = 3;  // Default for triangles
+	}
+	
+	void Pipeline::tessellationPipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t patchControlPoints) {
+		// Start with default configuration
+		defaultPipelineConfigInfo(configInfo);
+		
+		// Enable tessellation
+		configInfo.useTessellation = true;
+		
+		// Set default tessellation shader paths
+		configInfo.vertShaderPath = "terrain_shader.vert";
+		configInfo.fragShaderPath = "terrain_shader.frag";
+		configInfo.tessControlShaderPath = "terrain_tess_control.tesc";
+		configInfo.tessEvalShaderPath = "terrain_tess_eval.tese";
+		
+		// Set patch control points
+		configInfo.patchControlPoints = patchControlPoints;
+		configInfo.tessellationInfo.patchControlPoints = patchControlPoints;
+		
+		// Change input assembly topology to patch list
+		configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+
 	}
 
 }

@@ -55,19 +55,53 @@ namespace physics {
 		if (isLockedOnPlayer) {
 			JPH::Vec3 currentVelocity = character->GetLinearVelocity();
 			JPH::Vec3 directionToCharacter = getDirectionToCharacter();
-
-			// std::cout << "  directionToCharacter=("
-			// 		<< directionToCharacter.GetX() << ", "
-			// 		<< directionToCharacter.GetY() << ", "
-			// 		<< directionToCharacter.GetZ() << ")" << std::endl;
-
-			// v = v0 + t * a
-			JPH::Vec3 newVelocity = currentVelocity + cPhysicsDeltaTime * this->sprinterSettings->accelerationToMaxSpeed * directionToCharacter;
 			
-			if (newVelocity.Length() > sprinterSettings->maxMovementSpeed) {
-				newVelocity = directionToCharacter * sprinterSettings->maxMovementSpeed;
+			// Create a horizontal-only direction vector
+			JPH::Vec3 horizontalDirection = directionToCharacter;
+			horizontalDirection.SetY(0.0f);  // Zero out Y component for horizontal movement
+			
+			// Handle slopes - similar to Player class
+			JPH::Character::EGroundState ground_state = this->character->GetGroundState();
+			if (ground_state == JPH::Character::EGroundState::OnSteepGround ||
+				ground_state == JPH::Character::EGroundState::NotSupported) {
+				
+				// Get ground normal and project it to horizontal plane
+				JPH::Vec3 normal = character->GetGroundNormal();
+				JPH::Vec3 horizontalNormal = normal;
+				horizontalNormal.SetY(0.0f);
+				
+				float normal_length_sq = horizontalNormal.LengthSq();
+				if (normal_length_sq > 0.0f) {
+					// Calculate dot product to see if we're moving into the slope
+					float dot = horizontalNormal.Dot(horizontalDirection);
+					if (dot < 0.0f) {
+						// Adjust direction to slide along the slope instead of into it
+						horizontalDirection -= (dot * horizontalNormal) / normal_length_sq;
+					}
+				}
 			}
-
+			
+			// Re-normalize after adjustments
+			if (horizontalDirection.LengthSq() > 0.001f) {
+				horizontalDirection = horizontalDirection.Normalized();
+			}
+			
+			// Calculate desired horizontal velocity
+			JPH::Vec3 desiredVelocity = horizontalDirection * sprinterSettings->maxMovementSpeed;
+			
+			// Preserve current Y velocity (gravity)
+			desiredVelocity.SetY(currentVelocity.GetY());
+			
+			// Blend current and desired velocity (with acceleration)
+			JPH::Vec3 newVelocity = currentVelocity + cPhysicsDeltaTime *
+				this->sprinterSettings->accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
+			
+			// Apply a small upward force when on ground to help with slopes
+			if (ground_state == JPH::Character::EGroundState::OnGround &&
+				glm::abs(newVelocity.GetX()) + glm::abs(newVelocity.GetZ()) > 0.1f) {
+				newVelocity.SetY(newVelocity.GetY() + 0.5f); // Small upward boost
+			}
+			
 			this->character->SetLinearVelocity(newVelocity);
 		}
 
@@ -119,14 +153,20 @@ namespace physics {
 		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
 
+		// Calculate direction vector to player
 		glm::vec3 direction = playerPosition - enemyPosition;
+		
+		// Slightly increase the Y component to help with upward movement
+		// This makes enemies try to move slightly upward toward the player
+		direction.y += 0.5f;
 
 		if (glm::length(direction) <= 0.001) {
 			return JPH::Vec3::sZero();
 		}
 
+		// Convert to JPH vector and normalize
 		JPH::Vec3 returnValue = GLMToRVec3(direction).Normalized();
-
+		
 		return returnValue;
 	}
 

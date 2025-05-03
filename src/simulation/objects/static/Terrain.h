@@ -7,9 +7,11 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 
 #include "../../PhysicsConversions.h"
 #include "../../CollisionSettings.h"
+#include <random>
 
 using namespace JPH;
 
@@ -19,7 +21,13 @@ using namespace JPH::literals;
 namespace physics {
 	class Terrain : public ManagedPhysicsEntity {
 	   public:
+		// Constructor for simple box terrain
 		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale = {1.0f, 1.0f, 1.0f});
+		
+		// Constructor with externally provided heightmap data
+		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model,
+		        glm::vec3 position, glm::vec3 scale, const std::vector<float>& heightfieldData);
+		
 		virtual ~Terrain();
 
 		void addPhysicsBody() override;
@@ -29,12 +37,16 @@ namespace physics {
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
-
-	   private:
+		
 		std::shared_ptr<vk::Model> model;
-
 		glm::vec3 scale;
 
+		bool useHeightfield = false;
+		std::vector<float> heightfieldSamples;
+		
+		// For Perlin noise generation
+		std::vector<int> p; // Permutation table for Perlin noise
+		
 		std::unique_ptr<BodyCreationSettings> body_settings;
 	};
 }

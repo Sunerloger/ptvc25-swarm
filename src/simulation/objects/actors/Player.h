@@ -22,7 +22,7 @@ namespace physics {
 	};
 
 	struct PlayerCreationSettings {
-		JPH::RVec3Arg position = JPH::RVec3::sZero();
+		JPH::RVec3 position = JPH::RVec3::sZero();
 
 		// you probably don't want to set that but the camera rotation
 		// this only rotates the physics-body

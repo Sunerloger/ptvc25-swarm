@@ -3,6 +3,7 @@
 #include "vk_device.h"
 #include "vk_buffer.h"
 #include "vk_descriptors.h"
+#include "../rendering/materials/Material.h"
 
 #include <vector>
 #include <memory>
@@ -41,33 +42,40 @@ namespace vk {
 			void loadModel(const std::string& filename);
 		};
 
-		Model(Device& device, const Model::Builder& builder);
+		Model(Device& device, const Model::Builder& builder, bool isUI = false);
 		~Model();
 		Model(const Model&) = delete;
 		void operator=(const Model&) = delete;
 
-		static VkDescriptorSetLayout textureDescriptorSetLayout;
-		static std::unique_ptr<DescriptorPool> textureDescriptorPool;
+		void setMaterial(std::shared_ptr<Material> material) { this->material = material; }
+		std::shared_ptr<Material> getMaterial() const { return material; }
 
-		bool hasTexture() const {
-			return _hasTexture;
-		}
-		VkDescriptorSet getTextureDescriptorSet() const {
-			return textureDescriptorSet;
+		VkDescriptorSet getMaterialDescriptorSet() const {
+			return material ? material->getDescriptorSet() : VK_NULL_HANDLE;
 		}
 
-		static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename);
+		static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename, bool isUI = false);
+		static std::unique_ptr<Model> createCubeModel(Device& device);
+		static std::unique_ptr<Model> createGridModel(Device& device, int gridSize);
+		
+		// Generate a heightmap texture and return both the model with the heightmap and the height data
+		static std::pair<std::unique_ptr<Model>, std::vector<float>> createTerrainModel(
+			Device& device,
+			int gridSize,
+			const std::string& tileTexturePath,
+			float noiseScale = 1.0f,
+			float heightScale = 1.0f);
 
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);
 
-		static void cleanupTextureResources(Device& device);
 
 	   private:
 		void createVertexBuffers(const std::vector<Vertex>& vertices);
 		void createIndexBuffers(const std::vector<uint32_t>& indices);
 
-		void createTextureResources(const tinygltf::Model& gltfModel, int materialIndex, const std::string& modelPath);
+		void createStandardMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex);
+		void createUIMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex);
 
 		Device& device;
 		std::unique_ptr<Buffer> vertexBuffer;
@@ -76,12 +84,7 @@ namespace vk {
 		uint32_t indexCount;
 		bool hasIndexBuffer = false;
 
-		bool _hasTexture = false;
-		VkImage textureImage;
-		VkDeviceMemory textureImageMemory;
-		VkImageView textureImageView;
-		VkSampler textureSampler;
-		VkDescriptorSet textureDescriptorSet;
+		std::shared_ptr<Material> material;
 	};
 
 }  // namespace vk
