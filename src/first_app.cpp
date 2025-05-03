@@ -173,7 +173,7 @@ namespace vk {
 	void FirstApp::loadGameObjects() {
 		// Parameters for the terrain
 		int samplesPerSide = 200; // Resolution of the heightmap
-		float noiseScale = 30.0f;  // Controls the "frequency" of the noise
+		float noiseScale = 3.0f;  // Controls the "frequency" of the noise
 		float heightScale = 10.0f; // Controls the height of the terrain
 
 		// Generate terrain model with heightmap
@@ -223,7 +223,7 @@ namespace vk {
 			glm::vec3{ 0.569, 0.29, 0 },
 			std::move(result.first),  // Move the model
 			glm::vec3{ 0.0, -2.0, 0.0 },  // Position slightly below origin to prevent falling through
-			glm::vec3{ 500.0f, heightScale, 500.0f }, // Larger size and taller
+			glm::vec3{ 50.0f, heightScale, 50.0f }, // Larger size and taller
 			heightData
 		);
 
@@ -244,6 +244,52 @@ namespace vk {
 		sceneManager->addSpectralObject(std::move(skybox));
 
 		// TODO add enemies back in
+		// this must fit the model
+
+		float enemyHullHeight = 1.25f;
+
+		float enemyRadius = 0.3f;
+
+		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
+		shared_ptr<Model> enemyModel = Model::createModelFromFile(*device, "models:CesiumMan.glb");
+
+		for (int i = 0; i < 15; ++i) {
+
+			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
+
+			std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
+
+			sprinterSettings->model = enemyModel;
+
+
+
+			std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
+
+			enemyCharacterSettings->mLayer = physics::Layers::MOVING;
+
+			enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius); // Accept contacts that touch the lower sphere of the capsule
+
+			enemyCharacterSettings->mFriction = 10.0f;
+
+			enemyCharacterSettings->mShape = enemyShape;
+
+			enemyCharacterSettings->mGravityFactor = 1.0f;
+
+
+
+			std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
+
+			sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
+
+			sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
+
+			sprinterCreationSettings->position = RVec3(10.0f * i + 10.0f, 15.0f, 10.0f);
+
+
+
+			sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
+
+		}
 
 		int fbWidth, fbHeight;
 		window->getFramebufferSize(fbWidth, fbHeight);
