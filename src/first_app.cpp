@@ -14,6 +14,12 @@ namespace vk {
 		menuController = std::make_unique<controls::KeyboardMenuController>(window->getGLFWWindow());
 		device = std::make_unique<Device>(*window);
 		renderer = std::make_unique<Renderer>(*window, *device);
+		menuController->setConfigChangeCallback([this]() {
+			int w, h;
+			window->getFramebufferSize(w, h);
+			sceneManager->updateUIWindowDimensions((float) w, (float) h);
+			renderer->recreateSwapChain();
+		});
 
 		globalPool = DescriptorPool::Builder(*device)
 						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -151,6 +157,7 @@ namespace vk {
 				windowWidth = windowWidth2;
 				windowHeight = windowHeight2;
 				sceneManager->updateUIWindowDimensions(windowWidth, windowHeight);
+				renderer->recreateSwapChain();
 			}
 
 			vkDeviceWaitIdle(device->device());

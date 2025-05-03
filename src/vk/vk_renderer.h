@@ -38,11 +38,11 @@ namespace vk {
 			assert(isFrameStarted && "Cannot get frame index when frame not in progress.");
 			return currentFrameIndex;
 		}
+		void recreateSwapChain();
 
 	   private:
 		void createCommandBuffers();
 		void freeCommandBuffers();
-		void recreateSwapChain();
 
 		Window& window;
 		Device& device;
