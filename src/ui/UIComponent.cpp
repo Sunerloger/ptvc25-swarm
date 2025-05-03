@@ -1,39 +1,131 @@
 #include "UIComponent.h"
+#include <iostream>
+#include <fstream>
 
 namespace vk {
-	UIComponent::UIComponent(std::shared_ptr<Model> model, bool isDrawLines, bool isEscapeMenu, glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, glm::vec3 color) : model(model),
-		position(position), scale(scale), rotation(rotation), isDrawLines(isDrawLines), isEscapeMenu(isEscapeMenu) {
-		this->color = color;
-	}
 
-	glm::mat4 UIComponent::computeModelMatrix() const {
-		glm::mat4 model_mat = glm::mat4(1.0f);
+	UIComponent::UIComponent(UIComponentCreationSettings settings) : model(settings.model),
+																	 windowWidth(settings.windowWidth),
+																	 windowHeight(settings.windowHeight),
+																	 controllable(settings.controllable),
+																	 modelMatrix(settings.modelMatrix),
+																	 objectX(settings.objectX),
+																	 objectY(settings.objectY),
+																	 objectZ(settings.objectZ),
+																	 objectWidth(settings.objectWidth),
+																	 objectHeight(settings.objectHeight),
+																	 rotation(settings.rotation) {}
 
-		model_mat = glm::translate(model_mat, position);
-
-		model_mat = glm::rotate(model_mat, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // roll
-		model_mat = glm::rotate(model_mat, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // pitch
-		model_mat = glm::rotate(model_mat, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // yaw
-
-		model_mat = glm::scale(model_mat, scale);
-
-		return model_mat;
-	}
-
-	// although probably not necessary for UI
 	glm::mat4 UIComponent::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
 	}
 
 	glm::vec3 UIComponent::getPosition() const {
-		return this->position;
+		return glm::vec3(objectX, objectY, 0.0f);
 	}
 
 	glm::vec3 UIComponent::getScale() const {
-		return this->scale;
+		glm::vec4 scaleX = computeModelMatrix() * glm::vec4(1, 0, 0, 0);
+		glm::vec4 scaleY = computeModelMatrix() * glm::vec4(0, 1, 0, 0);
+		return glm::vec3(glm::length(glm::vec3(scaleX)), glm::length(glm::vec3(scaleY)), 1.0f);
+	}
+
+	void UIComponent::updateWindowDimensions(float windowWidth, float windowHeight) {
+		this->windowWidth = windowWidth;
+		this->windowHeight = windowHeight;
 	}
 
 	std::shared_ptr<Model> UIComponent::getModel() const {
 		return this->model;
 	}
+
+	void saveModelMatrix(const glm::mat4& matrix, const std::string& filename) {
+		std::ofstream file(filename);
+		if (file.is_open()) {
+			// write the matrix to the file
+			// it should be written so that someone can copy-paste it directly as c++ code
+			file << "glm::mat4(";
+			file << matrix[0][0] << ", " << matrix[0][1] << ", " << matrix[0][2] << ", " << matrix[0][3] << ", ";
+			file << matrix[1][0] << ", " << matrix[1][1] << ", " << matrix[1][2] << ", " << matrix[1][3] << ", ";
+			file << matrix[2][0] << ", " << matrix[2][1] << ", " << matrix[2][2] << ", " << matrix[2][3] << ", ";
+			file << matrix[3][0] << ", " << matrix[3][1] << ", " << matrix[3][2] << ", " << matrix[3][3] << ");";
+			file << std::endl;
+			file.close();
+		} else {
+			std::cerr << "Unable to open file: " << filename << std::endl;
+		}
+	}
+
+	glm::mat4 UIComponent::computeModelMatrix(int placementTransform) const {
+		if (modelMatrix != glm::mat4(1.0f) && controllable) {
+			float step = 0.01f;
+			switch (placementTransform) {
+				case GLFW_KEY_Q:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -step));
+					break;
+				case GLFW_KEY_E:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, step));
+					break;
+				case GLFW_KEY_LEFT:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(-step, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_RIGHT:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(step, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_UP:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, step, 0.0f));
+					break;
+				case GLFW_KEY_DOWN:
+					modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -step, 0.0f));
+					break;
+				case GLFW_KEY_EQUAL:
+					modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f + step));
+					break;
+				case GLFW_KEY_MINUS:
+					modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f - step));
+					break;
+				case GLFW_KEY_Z:
+					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(1.0f, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_X:
+					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(1.0f, 0.0f, 0.0f));
+					break;
+				case GLFW_KEY_C:
+					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 1.0f, 0.0f));
+					break;
+				case GLFW_KEY_V:
+					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 1.0f, 0.0f));
+					break;
+				case GLFW_KEY_B:
+					modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 0.0f, 1.0f));
+					break;
+				case GLFW_KEY_N:
+					modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 0.0f, 1.0f));
+					break;
+				default:
+					break;
+			}
+
+			saveModelMatrix(modelMatrix, "model_matrix.txt");
+			return modelMatrix;
+		}
+
+		if (modelMatrix != glm::mat4(1.0f) && !controllable) {
+			return modelMatrix;
+		}
+
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, -objectY, objectZ));
+		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
+			glm::vec3(objectWidth * 0.5f, -objectHeight * 0.5f, 0.0f));
+		glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 R = Rz * Ry * Rx;
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(objectWidth, objectHeight, 1.0f));
+
+		modelMatrix = T * pivotOffset * R * S;
+		saveModelMatrix(modelMatrix, "model_matrix.txt");
+		return modelMatrix;
+	}
+
 }

@@ -11,8 +11,15 @@ namespace vk {
 
 	FirstApp::FirstApp() {
 		window = std::make_unique<Window>(applicationSettings.windowWidth, applicationSettings.windowHeight, "Swarm");
+		menuController = std::make_unique<controls::KeyboardMenuController>(window->getGLFWWindow());
 		device = std::make_unique<Device>(*window);
 		renderer = std::make_unique<Renderer>(*window, *device);
+		menuController->setConfigChangeCallback([this]() {
+			int w, h;
+			window->getFramebufferSize(w, h);
+			sceneManager->updateUIWindowDimensions((float) w, (float) h);
+			renderer->recreateSwapChain();
+		});
 
 		globalPool = DescriptorPool::Builder(*device)
 						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -58,14 +65,25 @@ namespace vk {
 			globalSetLayout->getDescriptorSetLayout(),
 			Model::textureDescriptorSetLayout};
 
+		UIRenderSystem uiRenderSystem{*device,
+			renderer->getSwapChainRenderPass(),
+			globalSetLayout->getDescriptorSetLayout(),
+			Model::textureDescriptorSetLayout};
+
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
+		controls::KeyboardPlacementController placementController;
 
 		auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = startTime;
 		int currentSecond = 0;
 		float gameTimer = 0;
 		float physicsTimeAccumulator = 0.0f;
+
+		int fbWidth, fbHeight;
+		window->getFramebufferSize(fbWidth, fbHeight);
+		float windowWidth = static_cast<float>(fbWidth);
+		float windowHeight = static_cast<float>(fbHeight);
 
 		while (!window->shouldClose()) {
 			auto newTime = std::chrono::high_resolution_clock::now();
@@ -74,9 +92,8 @@ namespace vk {
 			deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
 
 			glfwPollEvents();
-			movementController.handleEscMenu(window->getGLFWWindow());
 
-			if (!movementController.escapeMenuOpen) {
+			if (!menuController->isMenuOpen()) {
 				physicsTimeAccumulator += deltaTime;
 				gameTimer += deltaTime;
 				int newSecond = static_cast<int>(gameTimer);
@@ -92,36 +109,57 @@ namespace vk {
 					physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
 				}
-				float aspect = renderer->getAspectRatio();
-				sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 100.0f);
-
-				if (auto commandBuffer = renderer->beginFrame()) {
-					int frameIndex = renderer->getFrameIndex();
-					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
-
-					GlobalUbo ubo{};
-					ubo.projection = sceneManager->getPlayer()->getProjMat();
-					ubo.view = sceneManager->getPlayer()->calculateViewMat();
-					ubo.inverseView = glm::inverse(ubo.view);
-					ubo.aspectRatio = aspect;
-					uboBuffers[frameIndex]->writeToBuffer(&ubo);
-					uboBuffers[frameIndex]->flush();
-
-					renderer->beginSwapChainRenderPass(commandBuffer);
-					textureRenderSystem.renderGameObjects(frameInfo);
-					renderer->endSwapChainRenderPass(commandBuffer);
-					renderer->endFrame();
-				}
-			} else {
-				if (auto commandBuffer = renderer->beginFrame()) {
-					int frameIndex = renderer->getFrameIndex();
-					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
-					renderer->beginSwapChainRenderPass(commandBuffer);
-					textureRenderSystem.renderGameObjects(frameInfo);
-					renderer->endSwapChainRenderPass(commandBuffer);
-					renderer->endFrame();
-				}
 			}
+
+			if (auto commandBuffer = renderer->beginFrame()) {
+				int frameIndex = renderer->getFrameIndex();
+				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
+
+				GlobalUbo ubo{};
+				ubo.projection = sceneManager->getPlayer()->getProjMat();
+				ubo.view = sceneManager->getPlayer()->calculateViewMat();
+				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 100.0f);
+				uboBuffers[frameIndex]->writeToBuffer(&ubo);
+				uboBuffers[frameIndex]->flush();
+
+				renderer->beginSwapChainRenderPass(commandBuffer);
+				textureRenderSystem.renderGameObjects(frameInfo);
+
+				VkClearAttachment clearAttachment{};
+				clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+				clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0};
+				VkClearRect clearRect{};
+				clearRect.rect.offset = {0, 0};
+				clearRect.rect.extent = {
+					static_cast<uint32_t>(windowWidth),
+					static_cast<uint32_t>(windowHeight)};
+				clearRect.baseArrayLayer = 0;
+				clearRect.layerCount = 1;
+
+				vkCmdClearAttachments(
+					frameInfo.commandBuffer,
+					1,
+					&clearAttachment,
+					1,
+					&clearRect);
+
+				int placementTransform = placementController.updateModelMatrix(window->getGLFWWindow());
+				uiRenderSystem.renderGameObjects(frameInfo, placementTransform);
+				renderer->endSwapChainRenderPass(commandBuffer);
+				renderer->endFrame();
+			}
+
+			int fbWidth2, fbHeight2;
+			window->getFramebufferSize(fbWidth2, fbHeight2);
+			float windowWidth2 = static_cast<float>(fbWidth2);
+			float windowHeight2 = static_cast<float>(fbHeight2);
+			if (windowWidth != windowWidth2 || windowHeight != windowHeight2) {
+				windowWidth = windowWidth2;
+				windowHeight = windowHeight2;
+				sceneManager->updateUIWindowDimensions(windowWidth, windowHeight);
+				renderer->recreateSwapChain();
+			}
+
 			vkDeviceWaitIdle(device->device());
 		}
 	}
@@ -151,12 +189,33 @@ namespace vk {
 		playerCreationSettings->cameraSettings = std::move(cameraSettings);
 		playerCreationSettings->playerSettings = std::move(playerSettings);
 
-		sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
+		sceneManager->setPlayer(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem()));
+		sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), (float) (window->getWidth() / window->getHeight()), 0.1f, 100.0f);
 
 		// add terrain to scene
 		// rotate the model to match the terrain
-		sceneManager->addManagedPhysicsEntity(std::move(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f})));
+		sceneManager->addManagedPhysicsEntity(std::make_unique<physics::Terrain>(physicsSimulation->getPhysicsSystem(), glm::vec3{0.569, 0.29, 0}, floorModel, glm::vec3{0.0, -1.0, 0.0}, glm::vec3{1.0f, 1.0f, 1.0f}));
 
-		glfwSetWindowUserPointer(window->getGLFWWindow(), sceneManager.get());
+		int fbWidth, fbHeight;
+		window->getFramebufferSize(fbWidth, fbHeight);
+		float windowWidth = static_cast<float>(fbWidth);
+		float windowHeight = static_cast<float>(fbHeight);
+
+		UIComponentCreationSettings hudSettings{};
+		hudSettings.windowWidth = windowWidth;
+		hudSettings.windowHeight = windowHeight;
+
+		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb");
+		hudSettings.objectWidth = 200.0f;
+		hudSettings.objectHeight = 200.0f;
+		hudSettings.objectX = 0.0f;
+		hudSettings.objectY = 0.0f;
+		hudSettings.objectZ = -99.0f;
+		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb");
+		hudSettings.modelMatrix = glm::mat4(77.8601, -1.2355, 0.0758948, 0, -15.1871, -0.42165, 0.389336, 0, -1.13196, -79.3247, -0.00325152, 0, 89.616, -97.8785, -97.9393, 1);
+		hudSettings.controllable = true;
+		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

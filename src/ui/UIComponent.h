@@ -6,35 +6,55 @@
 #include "../GameObject.h"
 
 namespace vk {
-    class UIComponent : public GameObject {
+	class UIComponentCreationSettings {
+	   public:
+		std::shared_ptr<Model> model;
+		glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    public:
+		float objectX = 0.0f;
+		float objectY = 0.0f;
+		float objectZ = -5.0f;
 
-        UIComponent(std::shared_ptr<Model> model, bool isDrawLines = false, bool isEscapeMenu = false, glm::vec3 position = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f),
-            glm::vec3 rotation = glm::vec3(0.0f), glm::vec3 color = glm::vec3(0.0f));
-        virtual ~UIComponent() = default;
+		float objectWidth = 1.0f;
+		float objectHeight = 1.0f;
 
-        glm::mat4 computeModelMatrix() const override;
+		float windowWidth = 1.0f;
+		float windowHeight = 1.0f;
 
-        glm::mat4 computeNormalMatrix() const override;
+		glm::mat4 modelMatrix = glm::mat4(1.0f);
+		bool controllable = false;
+	};
 
-        glm::vec3 getPosition() const override;
+	class UIComponent : public GameObject {
+	   public:
+		UIComponent(UIComponentCreationSettings settings);
+		virtual ~UIComponent() = default;
 
-        std::shared_ptr<Model> getModel() const override;
+		glm::mat4 computeModelMatrix(int placementTransform) const;
+		glm::mat4 computeModelMatrix() const override {
+			return computeModelMatrix(-1);
+		}
+		glm::mat4 computeNormalMatrix() const override;
+		glm::vec3 getPosition() const override;
+		std::shared_ptr<Model> getModel() const override;
+		glm::vec3 getScale() const;
+		void updateWindowDimensions(float screenWidth, float screenHeight);
 
-        glm::vec3 getScale() const;
+	   private:
+		std::shared_ptr<Model> model;
+		glm::vec3 rotation;
 
-        // create subclasses if hud elements need extra logic
-        bool isDrawLines;
-        bool isEscapeMenu;
+		float objectX;
+		float objectY;
+		float objectZ = -5.0f;
 
-    private:
+		float objectWidth;
+		float objectHeight;
 
-        std::shared_ptr<Model> model;
+		float windowWidth;
+		float windowHeight;
 
-        glm::vec3 position;
-        glm::vec3 scale;
-        glm::vec3 rotation;
-
-    };
+		mutable glm::mat4 modelMatrix = glm::mat4(1.0f);
+		bool controllable = false;
+	};
 }

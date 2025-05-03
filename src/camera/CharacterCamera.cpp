@@ -1,7 +1,6 @@
 #include "CharacterCamera.h"
 
 CharacterCamera::CharacterCamera(std::unique_ptr<CharacterCameraSettings> cameraSettings) {
-
 	this->settings = std::move(cameraSettings);
 
 	this->yaw = this->settings->initialYaw;
@@ -19,8 +18,7 @@ const glm::mat4 CharacterCamera::getProjMat() const {
 }
 
 void CharacterCamera::setPhysicsPosition(JPH::Vec3 physicsPosition) {
-	for (size_t i = 0; i < 3; i++)
-	{
+	for (size_t i = 0; i < 3; i++) {
 		this->position[i] = physicsPosition[i];
 	}
 
@@ -49,12 +47,12 @@ const glm::vec3 CharacterCamera::getPosition() const {
 void CharacterCamera::setYaw(float newYaw) {
 	yaw = fmod(newYaw, 360.0f);
 	if (yaw < 0.0f) {
-		yaw += 360.0f; // ensure yaw is always positive
+		yaw += 360.0f;	// ensure yaw is always positive
 	}
 }
 
 void CharacterCamera::setPitch(float newPitch) {
-	pitch = glm::clamp(newPitch, -89.0f, 89.0f); // Limit pitch to avoid gimbal lock
+	pitch = glm::clamp(newPitch, -89.0f, 89.0f);  // Limit pitch to avoid gimbal lock
 }
 
 float CharacterCamera::getYaw() const {
@@ -62,7 +60,7 @@ float CharacterCamera::getYaw() const {
 }
 
 void CharacterCamera::setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {
-	glm::mat4 proj = glm::mat4{ 1.0f };
+	glm::mat4 proj = glm::mat4{1.0f};
 	proj[0][0] = 2.f / (right - left);
 	proj[1][1] = 2.f / (bottom - top);
 	proj[2][2] = 1.f / (far - near);
@@ -83,7 +81,7 @@ glm::mat4 CharacterCamera::getVulkanAxisInversionMatrix() {
 void CharacterCamera::setPerspectiveProjection(float fov, float aspect, float near, float far) {
 	assert(glm::abs(aspect - std::numeric_limits<float>::epsilon()) > 0.0f);
 	const float tanHalfFov = tan(fov / 2.f);
-	glm::mat4 proj = glm::mat4{ 0.0f };
+	glm::mat4 proj = glm::mat4{0.0f};
 	proj[0][0] = 1.f / (aspect * tanHalfFov);
 	proj[1][1] = 1.f / (tanHalfFov);
 	proj[2][2] = far / (far - near);
@@ -93,8 +91,20 @@ void CharacterCamera::setPerspectiveProjection(float fov, float aspect, float ne
 	projMatrix = proj * getVulkanAxisInversionMatrix();
 }
 
+glm::mat4 CharacterCamera::getPerspectiveProjection(float fov, float aspect, float near, float far) {
+	assert(glm::abs(aspect - std::numeric_limits<float>::epsilon()) > 0.0f);
+	const float tanHalfFov = tan(fov / 2.f);
+	glm::mat4 proj = glm::mat4{0.0f};
+	proj[0][0] = 1.f / (aspect * tanHalfFov);
+	proj[1][1] = 1.f / (tanHalfFov);
+	proj[2][2] = far / (far - near);
+	proj[2][3] = 1.f;
+	proj[3][2] = -(far * near) / (far - near);
+
+	return proj * getStaticVulkanAxisInversionMatrix();
+}
+
 void CharacterCamera::setViewDirection(glm::vec3 direction) {
-	
 	direction = glm::normalize(direction);
 
 	// normalization not necessary because tan is a ratio
@@ -107,4 +117,23 @@ void CharacterCamera::setViewDirection(glm::vec3 direction) {
 
 void CharacterCamera::setViewTarget(glm::vec3 target) {
 	setViewDirection(target - position);
+}
+
+glm::mat4 CharacterCamera::getOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {
+	glm::mat4 proj = glm::mat4{1.0f};
+	proj[0][0] = 2.f / (right - left);
+	proj[1][1] = 2.f / (bottom - top);
+	proj[2][2] = 1.f / (far - near);
+	proj[3][0] = -(right + left) / (right - left);
+	proj[3][1] = -(bottom + top) / (bottom - top);
+	proj[3][2] = -near / (far - near);
+
+	return proj * getStaticVulkanAxisInversionMatrix();
+}
+
+glm::mat4 CharacterCamera::getStaticVulkanAxisInversionMatrix() {
+	glm::mat4 inversion = glm::mat4(1.0f);
+	inversion[1][1] = -1.0f;
+	inversion[2][2] = -1.0f;
+	return inversion;
 }
