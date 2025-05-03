@@ -94,7 +94,7 @@ namespace vk {
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
 				}
 				float aspect = renderer->getAspectRatio();
-				sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 100.0f);
+				sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
 
 				if (auto commandBuffer = renderer->beginFrame()) {
 					int frameIndex = renderer->getFrameIndex();
@@ -131,9 +131,9 @@ namespace vk {
 
 	void FirstApp::loadGameObjects() {
 		// Parameters for the terrain
-		int samplesPerSide = 64; // Resolution of the heightmap
-		float noiseScale = 3.0f;  // Controls the "frequency" of the noise
-		float heightScale = 3.0f; // Controls the height of the terrain
+		int samplesPerSide = 200; // Resolution of the heightmap
+		float noiseScale = 30.0f;  // Controls the "frequency" of the noise
+		float heightScale = 10.0f; // Controls the height of the terrain
 		
 		// Generate terrain model with heightmap
 		auto result = Model::createTerrainModel(
@@ -159,7 +159,7 @@ namespace vk {
 		playerSettings->movementSpeed = 10.0f;
 
 		std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-		characterSettings->mGravityFactor = 1.0f;
+		characterSettings->mGravityFactor = 0.0f;
 		characterSettings->mFriction = 10.0f;
 		characterSettings->mShape = characterShape;
 		characterSettings->mLayer = physics::Layers::MOVING;
@@ -169,7 +169,7 @@ namespace vk {
 		playerCreationSettings->characterSettings = std::move(characterSettings);
 		playerCreationSettings->cameraSettings = std::move(cameraSettings);
 		playerCreationSettings->playerSettings = std::move(playerSettings);
-		playerCreationSettings->position = JPH::RVec3(10.0f, 15.0f, 10.0f); // Increased Y position to start higher above terrain
+		playerCreationSettings->position = JPH::RVec3(0.0f, 15.0f, 0.0f); // Increased Y position to start higher above terrain
 
 		sceneManager->setPlayer(std::move(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem())));
 
@@ -182,7 +182,7 @@ namespace vk {
 			glm::vec3{0.569, 0.29, 0},
 			std::move(result.first),  // Move the model
 			glm::vec3{0.0, -2.0, 0.0},  // Position slightly below origin to prevent falling through
-			glm::vec3{30.0f, heightScale, 30.0f}, // Larger size and taller
+			glm::vec3{500.0f, heightScale, 500.0f}, // Larger size and taller
 			heightData
 		);
 		

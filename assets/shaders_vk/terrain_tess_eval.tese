@@ -48,15 +48,15 @@ void main() {
     
     // Apply displacement mapping if heightmap is available
     float height = 0.0;
-    if (push.params2.w > 0.0 && push.params1.x > 0.0) {  // useHeightmapTexture is in params2.w, hasTexture is in params1.x
-        // Sample heightmap and apply displacement along normal
-        height = texture(heightMap, fragTexCoord).r * push.params2.z;  // heightScale is in params2.z
+    if (push.params2.w > 0.0 && push.params1.x > 0.0) {  // useHeightmapTexture is in params2.w, hasTexture is in params1.x  
+        float hNorm = texture(heightMap, fragTexCoord).r;
++       height = (hNorm * 2.0 - 1.0) * push.params2.z;   // heightScale is in params2.z
 
         vec3 interpNormal = fragNormalWorldTesc[0] * gl_TessCoord.x +
                       fragNormalWorldTesc[1] * gl_TessCoord.y +
                       fragNormalWorldTesc[2] * gl_TessCoord.z;
 
-        position += interpNormal * height;
+        position.y += height;
     }
     
     // Set world position

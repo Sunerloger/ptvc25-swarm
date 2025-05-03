@@ -520,7 +520,7 @@ namespace vk {
 		
 		// Create a vector to store the heightmap data
 		std::vector<float> heightData(gridSize * gridSize);
-		std::vector<unsigned char> imageData(gridSize * gridSize * 4); // RGBA format
+		std::vector<unsigned char> imageData(gridSize * gridSize * 4); // RGBA format (this only enables png for now)
 		
 		// Initialize permutation table for Perlin noise
 		std::vector<int> p(512);
@@ -557,18 +557,15 @@ namespace vk {
 					frequency *= 2.0f;
 				}
 				
-				// Normalize
+				// normalize to [-1, 1]
 				h /= maxValue;
-				
-				// Apply height scale
-				h *= heightScale;
 				
 				// Store in heightmap
 				int index = z * gridSize + x;
 				heightData[index] = h;
 				
 				// Convert height to grayscale for the image (0-255)
-				unsigned char value = static_cast<unsigned char>((h / heightScale) * 255);
+				unsigned char value = static_cast<unsigned char>((h * 0.5f + 0.5f) * 255);
 				imageData[index * 4] = value;     // R
 				imageData[index * 4 + 1] = value; // G
 				imageData[index * 4 + 2] = value; // B
@@ -609,12 +606,9 @@ namespace vk {
 				float xPos = -size + x * step;
 				float zPos = -size + z * step;
 				
-				// Position (centered at origin)
-				// Apply height from heightmap
-				float yPos = heightData[z * gridSize + x];
-				glm::vec3 position = {xPos, yPos, zPos};
+				// offset applied in shader based on heightmap
+				glm::vec3 position = {xPos, 0.0f, zPos};
 				
-				// Color (white)
 				glm::vec3 color = {1.0f, 1.0f, 1.0f};
 				
 				// Calculate normal based on neighboring heights

@@ -110,7 +110,7 @@ namespace physics {
 		// Create physics body
 		this->bodyID = physics_system->GetBodyInterface().CreateBody(*body_settings)->GetID();
 	}
-
+	
 	Terrain::~Terrain() {}
 	
 	void Terrain::addPhysicsBody() {

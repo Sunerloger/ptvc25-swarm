@@ -52,7 +52,7 @@ namespace vk {
         float getTessDistance() const { return tessDistance; }
         float getMinTessDistance() const { return minTessDistance; }
         float getHeightScale() const { return heightScale; }
-        bool hasHeightmap() const { return hasHeightmapTexture; }
+        bool hasHeightmapTexture() const { return m_hasHeightmapTexture; }
         
         static std::unique_ptr<DescriptorPool> descriptorPool;
         static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
@@ -82,7 +82,7 @@ namespace vk {
         VkImage heightmapImage = VK_NULL_HANDLE;
         VkDeviceMemory heightmapImageMemory = VK_NULL_HANDLE;
         VkImageView heightmapImageView = VK_NULL_HANDLE;
-        bool hasHeightmapTexture = false;
+        bool m_hasHeightmapTexture = false;
         
         // Descriptor set
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;

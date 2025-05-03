@@ -144,7 +144,7 @@ namespace vk {
         vkDestroyImage(device.device(), textureImage, nullptr);
         vkFreeMemory(device.device(), textureImageMemory, nullptr);
         
-        if (hasHeightmapTexture) {
+        if (m_hasHeightmapTexture) {
             vkDestroyImageView(device.device(), heightmapImageView, nullptr);
             vkDestroyImage(device.device(), heightmapImage, nullptr);
             vkFreeMemory(device.device(), heightmapImageMemory, nullptr);
@@ -245,7 +245,7 @@ namespace vk {
         vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
         
         // Set flag
-        hasHeightmapTexture = true;
+        m_hasHeightmapTexture = true;
     }
 
     void TessellationMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData, int width, int height, int channels) {
@@ -306,7 +306,7 @@ namespace vk {
     }
 
     void TessellationMaterial::createHeightmapImageView() {
-        if (hasHeightmapTexture) {
+        if (m_hasHeightmapTexture) {
             heightmapImageView = device.createImageView(heightmapImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
         }
     }
@@ -373,7 +373,7 @@ namespace vk {
         heightmapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         
         // Use heightmap if available, otherwise use the color texture as a fallback
-        if (hasHeightmapTexture) {
+        if (m_hasHeightmapTexture) {
             heightmapInfo.imageView = heightmapImageView;
         } else {
             heightmapInfo.imageView = textureImageView; // Fallback to color texture

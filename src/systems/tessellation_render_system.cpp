@@ -1,6 +1,7 @@
 #include "tessellation_render_system.h"
 #include <stdexcept>
 #include <glm/glm.hpp>
+#include "../rendering/materials/TessellationMaterial.h"
 
 namespace vk {
 
@@ -142,13 +143,16 @@ namespace vk {
 			// Trust the implementation - all objects rendered by this system should use TessellationMaterial
 			int hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
 			
-			// Set default tessellation parameters
-			glm::vec2 tileScale = glm::vec2(0.1f, 0.1f);
-			float maxTessLevel = 16.0f;
-			float tessDistance = 20.0f;
-			float minTessDistance = 100.0f;
-			float heightScale = 1.0f;
-			int useHeightmapTexture = 0;
+			// fetch parameters from TessellationMaterial
+			auto tessMat = std::static_pointer_cast<TessellationMaterial>(material);
+			assert(tessMat && "All tess-objects must use TessellationMaterial");
+			
+			glm::vec2 tileScale = tessMat->getTileScale();
+			float maxTessLevel = tessMat->getMaxTessLevel();
+			float tessDistance = tessMat->getTessDistance();
+			float minTessDistance = tessMat->getMinTessDistance();
+			float heightScale = tessMat->getHeightScale();
+			int useHeightmapTexture = tessMat->hasHeightmapTexture() ? 1 : 0;
 			
 			// Pack parameters into vec4s
 			push.params1 = glm::vec4(hasTexture, tileScale.x, tileScale.y, maxTessLevel);
