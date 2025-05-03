@@ -159,7 +159,7 @@ namespace vk {
 		playerSettings->movementSpeed = 10.0f;
 
 		std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-		characterSettings->mGravityFactor = 0.0f;
+		characterSettings->mGravityFactor = 1.0f;
 		characterSettings->mFriction = 10.0f;
 		characterSettings->mShape = characterShape;
 		characterSettings->mLayer = physics::Layers::MOVING;
@@ -198,11 +198,7 @@ namespace vk {
 			"textures:skybox/learnopengl/back.jpg"
 		};
 
-		// Option 1: Create skybox from 6 separate face images
 		auto skybox = std::make_unique<Skybox>(*device, cubemapFaces);
-		
-		// Option 2: Create skybox from a single image (horizontal strip)
-		// auto skybox = std::make_unique<Skybox>(*device, "textures:skybox/crystallotus/SunsetSky.png", true);
 
 		sceneManager->addSpectralObject(std::move(skybox));
 

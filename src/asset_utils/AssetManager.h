@@ -249,7 +249,6 @@ namespace vk {
 		    std::string resolvedPath = resolvePath(filepath);
 		    
 		    // Load the image
-		    #include "stb_image.h"
 		    unsigned char* data = stbi_load(resolvedPath.c_str(), &result.width, &result.height, &result.channels, 0);
 		    
 		    if (!data) {
@@ -267,7 +266,7 @@ namespace vk {
 		    return result;
 		}
 
-	   private:
+	private:
 		AssetManager() = default;
 		~AssetManager() = default;
 
