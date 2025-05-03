@@ -45,7 +45,6 @@ namespace controls {
 
 		bool escKeyPressedLastFrame = false;
 		bool f2KeyPressedLastFrame = false;
-		bool fullScreen = false;
 		int xPos, yPos, width, height, refreshRate;
 		double lastCursorPosX, lastCursorPosY;
 	};

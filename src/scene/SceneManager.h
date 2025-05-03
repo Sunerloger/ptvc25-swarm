@@ -25,7 +25,6 @@ enum SceneClass {
 
 // provides scene information to the renderer and the physics engine
 struct Scene {
-
 	std::shared_ptr<physics::Player> player;
 
 	// not rendered and not in physics engine
@@ -58,17 +57,17 @@ struct Scene {
 
 // manages active scenes
 class SceneManager : public std::enable_shared_from_this<SceneManager>, public ISceneManagerInteraction {
-public:
-
+   public:
 	SceneManager();
 	virtual ~SceneManager() = default;
+
+	void updateUIWindowDimensions(float windowWidth, float windowHeight);
 
 	// always replaces old player!
 	vk::id_t setPlayer(std::unique_ptr<physics::Player> player);
 
 	// always replaces old sun!
 	vk::id_t setSun(std::unique_ptr<lighting::Sun> sun);
-
 
 	// @return false if object could not be added because it already exists
 	vk::id_t addSpectralObject(std::unique_ptr<vk::GameObject> spectralObject);
@@ -88,7 +87,6 @@ public:
 	// @return false if light could not be added because it already exists
 	vk::id_t addLight(std::unique_ptr<lighting::PointLight> light);
 
-
 	// @return true if the game object could be found and added to queue for deletion, does not delete player or sun
 	bool addToStaleQueue(vk::id_t id);
 
@@ -101,14 +99,11 @@ public:
 	// update step of all active enemies according to their behaviour
 	void updateEnemies(float cPhysicsDeltaTime);
 
-
 	// activates detached bodies (added to simulation again)
 	bool activatePhysicsObject(vk::id_t id);
 
 	// removes bodies of scene from simulation but doesn't delete them (preserves state)
 	bool detachPhysicsObject(vk::id_t id);
-
-
 
 	// only change returned enemies with a lock (otherwise not thread safe)
 	std::vector<std::weak_ptr<physics::Enemy>> getActiveEnemies() const;
@@ -118,7 +113,7 @@ public:
 	std::vector<std::weak_ptr<vk::UIComponent>> getUIObjects();
 
 	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
-	std::unique_ptr<std::pair<SceneClass,std::weak_ptr<vk::GameObject>>> getObject(vk::id_t id);
+	std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> getObject(vk::id_t id);
 
 	std::shared_ptr<physics::Player> getPlayer() override;
 
@@ -135,8 +130,7 @@ public:
 	// Get tessellation render objects
 	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 
-private:
-
+   private:
 	// for optimize broad phase -> optimize broad phase before simulation step if bodies in physics system changed
 	bool physicsSceneIsChanged = false;
 

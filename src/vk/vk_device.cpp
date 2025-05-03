@@ -139,15 +139,13 @@ namespace vk {
 	}
 
 	void addInstanceExtensionToVectorIfSupported(const char *extension_name, std::vector<const char *> &ref_vector) {
-		VkResult result;
-
 		// Query how many instance extensions there are:
 		uint32_t instance_extension_count;
-		result = vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, nullptr);
+		vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, nullptr);
 
 		// Get all the instance extension names/properties there are:
 		std::vector<VkExtensionProperties> available_instance_extensions(instance_extension_count);
-		result = vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, available_instance_extensions.data());
+		vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, available_instance_extensions.data());
 
 		for (const VkExtensionProperties &available_extension : available_instance_extensions) {
 			if (strcmp(available_extension.extensionName, extension_name) == 0) {
@@ -158,15 +156,13 @@ namespace vk {
 		}
 	}
 	void addValidationLayerNameToVectorIfSupported(const char *validation_layer_name, std::vector<const char *> &ref_vector) {
-		VkResult result;
-
 		// Query how many validation layers there are:
 		uint32_t layer_count;
-		result = vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+		vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
 
 		// Get all the validation layer names/properties there are:
 		std::vector<VkLayerProperties> available_layers(layer_count);
-		result = vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+		vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
 
 		for (const VkLayerProperties &available_layer : available_layers) {
 			if (strcmp(available_layer.layerName, validation_layer_name) == 0) {

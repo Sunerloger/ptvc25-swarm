@@ -20,7 +20,7 @@ namespace vk {
 		GameObject(const GameObject&) = delete;
 		GameObject& operator=(const GameObject&) = delete;
 		GameObject(GameObject&&) = default;
-		GameObject& operator=(GameObject&&) = default;
+		GameObject& operator=(GameObject&&) = delete;
 
 		inline id_t getId() const {
 			return id;

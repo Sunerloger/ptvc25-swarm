@@ -12,10 +12,14 @@
 #include "rendering/structures/SkyBox.h"
 
 #include "systems/texture_render_system.h"
+#include "systems/ui_render_system.h"
 #include "systems/tessellation_render_system.h"
+
 #include "rendering/materials/TessellationMaterial.h"
 
 #include "keyboard_movement_controller.h"
+#include "keyboard_placement_controller.h"
+#include "keyboard_menu_controller.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -37,8 +41,8 @@
 namespace vk {
 
 	struct ApplicationSettings {
-		int windowWidth = 1600;
-		int windowHeight = 900;
+		int windowWidth = 800;
+		int windowHeight = 800;
 	};
 
 	struct EngineSettings {
@@ -63,6 +67,7 @@ namespace vk {
 		void loadGameObjects();
 
 		std::unique_ptr<Window> window;
+		std::unique_ptr<controls::KeyboardMenuController> menuController;
 		std::unique_ptr<Device> device;
 		std::unique_ptr<Renderer> renderer;
 
