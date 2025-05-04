@@ -14,8 +14,8 @@ namespace controls {
 	   public:
 		KeyboardMovementController(int WIDTH,
 			int HEIGHT) {
-			lastMouseX = WIDTH / 2;
-			lastMouseY = HEIGHT / 2;
+			lastCursorPosX = WIDTH / 2;
+			lastCursorPosY = HEIGHT / 2;
 		}
 
 		struct KeyMappings {
@@ -39,8 +39,6 @@ namespace controls {
 	   private:
 		KeyMappings keys{};
 
-		double lastMouseX = 0;
-		double lastMouseY = {0};
 		bool firstMouse = true;
 
 		bool escKeyPressedLastFrame = false;

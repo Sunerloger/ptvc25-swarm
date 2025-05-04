@@ -8,18 +8,18 @@ namespace controls {
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 
 		if (firstMouse) {
-			lastMouseX = mouseX;
-			lastMouseY = mouseY;
+			lastCursorPosX = mouseX;
+			lastCursorPosY = mouseY;
 			firstMouse = false;
 		}
 
 		// right = negative rotation around y axis
-		double xOffset = lastMouseX - mouseX;
+		double xOffset = lastCursorPosX - mouseX;
 		// down = negative rotation around x axis
-		double yOffset = lastMouseY - mouseY;
+		double yOffset = lastCursorPosY - mouseY;
 
-		lastMouseX = mouseX;
-		lastMouseY = mouseY;
+		lastCursorPosX = mouseX;
+		lastCursorPosY = mouseY;
 
 		// check if rotation is significant enough for processing
 		if (std::numeric_limits<float>::epsilon() < glm::abs(glm::radians(xOffset)) ||
@@ -68,6 +68,7 @@ namespace controls {
 				glfwGetCursorPos(window, &lastCursorPosX, &lastCursorPosY);
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			} else {
+				firstMouse = true;
 				// Game is resuming, restore cursor position
 				glfwSetCursorPos(window, lastCursorPosX, lastCursorPosY);
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

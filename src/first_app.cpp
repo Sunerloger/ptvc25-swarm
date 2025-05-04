@@ -112,59 +112,61 @@ namespace vk {
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
 				}
 
-				float aspect = renderer->getAspectRatio();
-				sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
-
-				if (auto commandBuffer = renderer->beginFrame()) {
-					int frameIndex = renderer->getFrameIndex();
-					FrameInfo frameInfo{ deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager };
-
-					GlobalUbo ubo{};
-					ubo.projection = sceneManager->getPlayer()->getProjMat();
-					ubo.view = sceneManager->getPlayer()->calculateViewMat();
-					ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 100.0f);
-					uboBuffers[frameIndex]->writeToBuffer(&ubo);
-					uboBuffers[frameIndex]->flush();
-
-					renderer->beginSwapChainRenderPass(commandBuffer);
-					textureRenderSystem.renderGameObjects(frameInfo);
-					tessellationRenderSystem.renderGameObjects(frameInfo);
-
-					VkClearAttachment clearAttachment{};
-					clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-					clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0 };
-					VkClearRect clearRect{};
-					clearRect.rect.offset = { 0, 0 };
-					clearRect.rect.extent = {
-						static_cast<uint32_t>(windowWidth),
-						static_cast<uint32_t>(windowHeight) };
-					clearRect.baseArrayLayer = 0;
-					clearRect.layerCount = 1;
-
-					vkCmdClearAttachments(
-						frameInfo.commandBuffer,
-						1,
-						&clearAttachment,
-						1,
-						&clearRect);
-
-					uiRenderSystem.renderGameObjects(frameInfo);
-					renderer->endSwapChainRenderPass(commandBuffer);
-					renderer->endFrame();
-				}
-
-				int fbWidth2, fbHeight2;
-				window->getFramebufferSize(fbWidth2, fbHeight2);
-				float windowWidth2 = static_cast<float>(fbWidth2);
-				float windowHeight2 = static_cast<float>(fbHeight2);
-				if (windowWidth != windowWidth2 || windowHeight != windowHeight2) {
-					windowWidth = windowWidth2;
-					windowHeight = windowHeight2;
-					renderer->recreateSwapChain();
-				}
-
-				vkDeviceWaitIdle(device->device());
 			}
+
+			float aspect = renderer->getAspectRatio();
+			sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
+
+			if (auto commandBuffer = renderer->beginFrame()) {
+				int frameIndex = renderer->getFrameIndex();
+				FrameInfo frameInfo{ deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager };
+
+				GlobalUbo ubo{};
+				ubo.projection = sceneManager->getPlayer()->getProjMat();
+				ubo.view = sceneManager->getPlayer()->calculateViewMat();
+				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 100.0f);
+				uboBuffers[frameIndex]->writeToBuffer(&ubo);
+				uboBuffers[frameIndex]->flush();
+
+				renderer->beginSwapChainRenderPass(commandBuffer);
+				textureRenderSystem.renderGameObjects(frameInfo);
+				tessellationRenderSystem.renderGameObjects(frameInfo);
+
+				VkClearAttachment clearAttachment{};
+				clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+				clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0 };
+				VkClearRect clearRect{};
+				clearRect.rect.offset = { 0, 0 };
+				clearRect.rect.extent = {
+					static_cast<uint32_t>(windowWidth),
+					static_cast<uint32_t>(windowHeight) };
+				clearRect.baseArrayLayer = 0;
+				clearRect.layerCount = 1;
+
+				vkCmdClearAttachments(
+					frameInfo.commandBuffer,
+					1,
+					&clearAttachment,
+					1,
+					&clearRect);
+
+				uiRenderSystem.renderGameObjects(frameInfo);
+				renderer->endSwapChainRenderPass(commandBuffer);
+				renderer->endFrame();
+			}
+
+			int fbWidth2, fbHeight2;
+			window->getFramebufferSize(fbWidth2, fbHeight2);
+			float windowWidth2 = static_cast<float>(fbWidth2);
+			float windowHeight2 = static_cast<float>(fbHeight2);
+			if (windowWidth != windowWidth2 || windowHeight != windowHeight2) {
+				windowWidth = windowWidth2;
+				windowHeight = windowHeight2;
+				renderer->recreateSwapChain();
+			}
+
+			// TODO use fences / semaphores instead (next line forces sync of cpu and gpu and heavily impacts performance):
+			vkDeviceWaitIdle(device->device());
 		}
 	}
 
