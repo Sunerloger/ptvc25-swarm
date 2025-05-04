@@ -11,14 +11,11 @@ namespace vk {
 	   public:
 		std::shared_ptr<Model> model;
 
-		glm::vec2 position;
+		glm::vec3 position;
 		glm::vec3 scale;
 
-		// angle around axis in radians (pitch, yaw, roll)
+		// angle around axis in degrees (pitch, yaw, roll)
 		glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-
-		float windowWidth = 1.0f;
-		float windowHeight = 1.0f;
 
 		// specifies if there is a file to read from / write to
 		bool controllable = false;
@@ -29,14 +26,13 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
-		void updateTransform(int placementTransform = -1);
+		void updateTransform(float deltaTime, int placementTransform = -1);
 
 		glm::mat4 computeModelMatrix() const override;
 
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
-		void updateWindowDimensions(float screenWidth, float screenHeight);
 		
 		// if no filename use ui_state_index.txt
 		void saveData(const std::string& filename = "");
@@ -47,7 +43,7 @@ namespace vk {
 	   private:
 		std::shared_ptr<Model> model;
 
-		glm::vec2 position;
+		glm::vec3 position;
 		glm::quat orientation;
 		glm::vec3 scale;
 

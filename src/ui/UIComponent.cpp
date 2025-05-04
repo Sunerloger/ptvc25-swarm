@@ -12,11 +12,9 @@ namespace vk {
 	int UIComponent::nextIndex = 0;
 
 	UIComponent::UIComponent(UIComponentCreationSettings settings) : model(settings.model),
-		windowWidth(settings.windowWidth),
-		windowHeight(settings.windowHeight),
 		controllable(settings.controllable),
 		position(settings.position),
-		orientation(settings.rotation),
+		orientation(glm::radians(settings.rotation)),
 		scale(settings.scale),
 		index(nextIndex++)
 	{
@@ -26,7 +24,7 @@ namespace vk {
 	}
 
 	glm::mat4 UIComponent::computeModelMatrix() const {
-		glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(position, 0.0f));
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), position);
 		glm::mat4 R = glm::toMat4(orientation);
 		glm::mat4 S = glm::scale(glm::mat4(1.0f), scale);
 		return T * R * S;
@@ -37,59 +35,63 @@ namespace vk {
 	}
 
 	glm::vec3 UIComponent::getPosition() const {
-		return glm::vec3(position, 0.0f);
-	}
-
-	void UIComponent::updateWindowDimensions(float windowWidth, float windowHeight) {
-		this->windowWidth = windowWidth;
-		this->windowHeight = windowHeight;
+		return this->position;
 	}
 
 	std::shared_ptr<Model> UIComponent::getModel() const {
 		return this->model;
 	}
 
-	void UIComponent::updateTransform(int placementTransform) {
+	void UIComponent::updateTransform(float deltaTime, int placementTransform) {
 		if (!controllable) {return;}
 
-		float step = 1.0f;
+		float positionStep = 100.0f * deltaTime;
+		float rotationStep = 5.0f * deltaTime;
+		float scaleStep = 1.25f * deltaTime;
+
 		switch (placementTransform) {
 		case GLFW_KEY_LEFT:
-			position.x -= step;
+			position.x -= positionStep;
 			break;
 		case GLFW_KEY_RIGHT:
-			position.x += step;
+			position.x += positionStep;
 			break;
 		case GLFW_KEY_UP:
-			position.y -= step;
+			position.y += positionStep;
 			break;
 		case GLFW_KEY_DOWN:
-			position.y += step;
+			position.y -= positionStep;
+			break;
+		case GLFW_KEY_COMMA:
+			position.z += positionStep;
+			break;
+		case GLFW_KEY_PERIOD:
+			position.z -= positionStep;
 			break;
 		case GLFW_KEY_EQUAL:
-			scale *= (1.0f + step);
+			scale *= (1.0f + scaleStep);
 			break;
 		case GLFW_KEY_MINUS:
-			scale *= (1.0f - step);
+			scale *= (1.0f - scaleStep);
 			scale = glm::max(scale, glm::vec3(0.0001f));
 			break;
 		case GLFW_KEY_Z:
-			orientation = orientation * glm::angleAxis(step, glm::vec3(1, 0, 0));
+			orientation = orientation * glm::angleAxis(rotationStep, glm::vec3(1, 0, 0));
 			break;
 		case GLFW_KEY_X:
-			orientation = orientation * glm::angleAxis(-step, glm::vec3(1, 0, 0));
+			orientation = orientation * glm::angleAxis(-rotationStep, glm::vec3(1, 0, 0));
 			break;
 		case GLFW_KEY_C:
-			orientation = orientation * glm::angleAxis(step, glm::vec3(0, 1, 0));
+			orientation = orientation * glm::angleAxis(rotationStep, glm::vec3(0, 1, 0));
 			break;
 		case GLFW_KEY_V:
-			orientation = orientation * glm::angleAxis(-step, glm::vec3(0, 1, 0));
+			orientation = orientation * glm::angleAxis(-rotationStep, glm::vec3(0, 1, 0));
 			break;
 		case GLFW_KEY_B:
-			orientation = orientation * glm::angleAxis(step, glm::vec3(0, 0, 1));
+			orientation = orientation * glm::angleAxis(rotationStep, glm::vec3(0, 0, 1));
 			break;
 		case GLFW_KEY_N:
-			orientation = orientation * glm::angleAxis(-step, glm::vec3(0, 0, 1));
+			orientation = orientation * glm::angleAxis(-rotationStep, glm::vec3(0, 0, 1));
 			break;
 		default:
 			break;
@@ -109,7 +111,7 @@ namespace vk {
 		}
 
 		std::stringstream ss;
-		ss << position.x << "," << position.y << ",";
+		ss << position.x << "," << position.y << "," << position.z << ",";
 		ss << orientation.x << "," << orientation.y << "," << orientation.z << "," << orientation.w << ",";
 		ss << scale.x << "," << scale.y << "," << scale.z;
 		AssetManager::getInstance().saveTxtFile("ui/" + name, ss.str());
@@ -136,10 +138,10 @@ namespace vk {
 			try { vals.push_back(std::stof(tok)); }
 			catch (...) { return; }
 		}
-		if (vals.size() != 9) return;
+		if (vals.size() != 10) return;
 
-		position = glm::vec2(vals[0], vals[1]);
-		orientation = glm::quat(vals[5], vals[2], vals[3], vals[4]);
-		scale = glm::vec3(vals[6], vals[7], vals[8]);
+		position = glm::vec3(vals[0], vals[1], vals[2]);
+		orientation = glm::quat(vals[6], vals[3], vals[4], vals[5]);
+		scale = glm::vec3(vals[7], vals[8], vals[9]);
 	}
 }

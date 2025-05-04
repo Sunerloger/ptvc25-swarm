@@ -31,8 +31,8 @@ namespace vk {
         pipelineConfig.fragShaderPath = "ui_shader.frag";
         pipelineConfig.depthStencilInfo = {};
         pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;	 // test against UI’s own depth
-        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;	 // write UI depth so they occlude themselves
+        pipelineConfig.depthStencilInfo.depthTestEnable = VK_FALSE;
+        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
         pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
@@ -55,8 +55,8 @@ namespace vk {
         pipelineConfig.fragShaderPath = fragShaderPath;
         pipelineConfig.depthStencilInfo = {};
         pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;	 // test against UI’s own depth
-        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;	 // write UI depth so they occlude themselves
+        pipelineConfig.depthStencilInfo.depthTestEnable = VK_FALSE;
+        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
         pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
@@ -81,8 +81,8 @@ namespace vk {
         pipelineConfig.fragShaderPath = "ui_shader.frag";
         pipelineConfig.depthStencilInfo = {};
         pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;	 // test against UI’s own depth
-        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;	 // write UI depth so they occlude themselves
+        pipelineConfig.depthStencilInfo.depthTestEnable = VK_FALSE;
+        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
         pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
@@ -108,11 +108,13 @@ namespace vk {
         pipelineConfig.fragShaderPath = fragShaderPath;
         pipelineConfig.depthStencilInfo = {};
         pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;	 // test against UI’s own depth
-        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;	 // write UI depth so they occlude themselves
+        pipelineConfig.depthStencilInfo.depthTestEnable = VK_FALSE;
+        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
         pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
         pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+
+        // pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
     }
 
     UIMaterial::~UIMaterial() {

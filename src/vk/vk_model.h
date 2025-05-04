@@ -39,10 +39,11 @@ namespace vk {
 			tinygltf::Model gltfModelData;
 			int textureMaterialIndex = -1;
 
+			bool isUI = false;
 			void loadModel(const std::string& filename);
 		};
 
-		Model(Device& device, const Model::Builder& builder, bool isUI = false);
+		Model(Device& device, const Model::Builder& builder);
 		~Model();
 		Model(const Model&) = delete;
 		void operator=(const Model&) = delete;

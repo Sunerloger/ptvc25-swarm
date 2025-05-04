@@ -39,12 +39,12 @@ namespace std {
 
 
 namespace vk {
-	Model::Model(Device& device, const Builder& builder, bool isUI) : device(device) {
+	Model::Model(Device& device, const Builder& builder) : device(device) {
 		createVertexBuffers(builder.vertices);
 		createIndexBuffers(builder.indices);
 		if (builder.textureMaterialIndex >= 0) {
 			// Create material from GLTF data
-			if (isUI) {
+			if (builder.isUI) {
 				createUIMaterialFromGltf(builder.gltfModelData, builder.textureMaterialIndex);
 			}
 			else {
@@ -58,8 +58,9 @@ namespace vk {
 
 	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename, bool isUI) {
 		Builder builder{};
+		builder.isUI = isUI;
 		builder.loadModel(filename);
-		return std::make_unique<Model>(device, builder, isUI);
+		return std::make_unique<Model>(device, builder);
 	}
 
 	void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
@@ -260,7 +261,6 @@ namespace vk {
 				const float* pos = reinterpret_cast<const float*>(posData + i * 3 * sizeof(float));
 				
 				// Apply a -90 degree rotation around the X-axis to correct the model orientation
-				// This transforms (x, y, z) to (x, z, -y)
 				vertex.position = { pos[0], pos[2], -pos[1] };
 				
 				if (colorAccessor) {
@@ -289,7 +289,6 @@ namespace vk {
 				if (normAccessor) {
 					const float* norm = reinterpret_cast<const float*>(normData + i * 3 * sizeof(float));
 					
-					// Also rotate the normal vectors to match the rotated position
 					vertex.normal = { norm[0], norm[2], -norm[1] };
 				}
 				else {

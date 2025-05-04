@@ -17,7 +17,6 @@ namespace vk {
 		menuController->setConfigChangeCallback([this]() {
 			int w, h;
 			window->getFramebufferSize(w, h);
-			sceneManager->updateUIWindowDimensions((float)w, (float)h);
 			renderer->recreateSwapChain();
 			});
 
@@ -94,7 +93,7 @@ namespace vk {
 			glfwPollEvents();
 
 			int placementTransform = placementController.updateModelMatrix(window->getGLFWWindow());
-			sceneManager->updateUITransforms(placementTransform);
+			sceneManager->updateUITransforms(deltaTime, placementTransform);
 
 			if (!menuController->isMenuOpen()) {
 				physicsTimeAccumulator += deltaTime;
@@ -161,7 +160,6 @@ namespace vk {
 				if (windowWidth != windowWidth2 || windowHeight != windowHeight2) {
 					windowWidth = windowWidth2;
 					windowHeight = windowHeight2;
-					sceneManager->updateUIWindowDimensions(windowWidth, windowHeight);
 					renderer->recreateSwapChain();
 				}
 
@@ -297,18 +295,18 @@ namespace vk {
 		float windowHeight = static_cast<float>(fbHeight);
 
 		UIComponentCreationSettings hudSettings{};
-		hudSettings.windowWidth = windowWidth;
-		hudSettings.windowHeight = windowHeight;
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
 		hudSettings.position = glm::vec3{ 0.0f, 0.0f, -99.0f };
 		hudSettings.scale = glm::vec3{200.0f, 200.0f, 0.0f};
+		hudSettings.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
 		hudSettings.position = glm::vec3{ 89.5481f, -102.638f, -97.9395f };
 		hudSettings.scale = glm::vec3{ 78.0f, 78.0f, 0.0f };
+		hudSettings.rotation = glm::vec3(0.0f, 180.0f, 180.0f);
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
