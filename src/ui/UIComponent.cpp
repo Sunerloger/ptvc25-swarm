@@ -76,22 +76,22 @@ namespace vk {
 			scale = glm::max(scale, glm::vec3(0.0001f));
 			break;
 		case GLFW_KEY_Z:
-			orientation = orientation * glm::angleAxis(rotationStep, glm::vec3(1, 0, 0));
+			orientation = glm::angleAxis(rotationStep, glm::vec3(1, 0, 0)) * orientation;
 			break;
 		case GLFW_KEY_X:
-			orientation = orientation * glm::angleAxis(-rotationStep, glm::vec3(1, 0, 0));
+			orientation = glm::angleAxis(-rotationStep, glm::vec3(1, 0, 0)) * orientation;
 			break;
 		case GLFW_KEY_C:
-			orientation = orientation * glm::angleAxis(rotationStep, glm::vec3(0, 1, 0));
+			orientation = glm::angleAxis(rotationStep, glm::vec3(0, 1, 0)) * orientation;
 			break;
 		case GLFW_KEY_V:
-			orientation = orientation * glm::angleAxis(-rotationStep, glm::vec3(0, 1, 0));
+			orientation = glm::angleAxis(-rotationStep, glm::vec3(0, 1, 0)) * orientation;
 			break;
 		case GLFW_KEY_B:
-			orientation = orientation * glm::angleAxis(rotationStep, glm::vec3(0, 0, 1));
+			orientation = glm::angleAxis(rotationStep, glm::vec3(0, 0, 1)) * orientation;
 			break;
 		case GLFW_KEY_N:
-			orientation = orientation * glm::angleAxis(-rotationStep, glm::vec3(0, 0, 1));
+			orientation = glm::angleAxis(-rotationStep, glm::vec3(0, 0, 1)) * orientation;
 			break;
 		default:
 			break;
