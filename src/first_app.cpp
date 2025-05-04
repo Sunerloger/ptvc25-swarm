@@ -7,6 +7,8 @@
 #include "stb_image_write.h"
 #include <glm/gtx/string_cast.hpp>
 
+#include "INIReader.h"
+
 namespace vk {
 
 	FirstApp::FirstApp() {
@@ -17,14 +19,14 @@ namespace vk {
 		menuController->setConfigChangeCallback([this]() {
 			int w, h;
 			window->getFramebufferSize(w, h);
-			sceneManager->updateUIWindowDimensions((float)w, (float)h);
+			sceneManager->updateUIWindowDimensions((float) w, (float) h);
 			renderer->recreateSwapChain();
-			});
+		});
 
 		globalPool = DescriptorPool::Builder(*device)
-			.setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
-			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-			.build();
+						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
+						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+						 .build();
 
 		this->sceneManager = make_shared<SceneManager>();
 		this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager, engineSettings.cPhysicsDeltaTime);
@@ -46,8 +48,8 @@ namespace vk {
 		}
 
 		auto globalSetLayout = DescriptorSetLayout::Builder(*device)
-			.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
-			.build();
+								   .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+								   .build();
 
 		std::vector<VkDescriptorSet> globalDescriptorSets(SwapChain::MAX_FRAMES_IN_FLIGHT);
 		for (int i = 0; i < globalDescriptorSets.size(); i++) {
@@ -58,20 +60,20 @@ namespace vk {
 		}
 
 		// Create render systems
-		TextureRenderSystem textureRenderSystem{ *device,
+		TextureRenderSystem textureRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout() };
+			globalSetLayout->getDescriptorSetLayout()};
 
-		TessellationRenderSystem tessellationRenderSystem{ *device,
+		TessellationRenderSystem tessellationRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout() };
+			globalSetLayout->getDescriptorSetLayout()};
 
-		UIRenderSystem uiRenderSystem{ *device,
+		UIRenderSystem uiRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout() };
+			globalSetLayout->getDescriptorSetLayout()};
 
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		controls::KeyboardMovementController movementController{ applicationSettings.windowWidth, applicationSettings.windowHeight };
+		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
 		controls::KeyboardPlacementController placementController;
 
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -118,7 +120,7 @@ namespace vk {
 
 				if (auto commandBuffer = renderer->beginFrame()) {
 					int frameIndex = renderer->getFrameIndex();
-					FrameInfo frameInfo{ deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager };
+					FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
 
 					GlobalUbo ubo{};
 					ubo.projection = sceneManager->getPlayer()->getProjMat();
@@ -133,12 +135,12 @@ namespace vk {
 
 					VkClearAttachment clearAttachment{};
 					clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-					clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0 };
+					clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0};
 					VkClearRect clearRect{};
-					clearRect.rect.offset = { 0, 0 };
+					clearRect.rect.offset = {0, 0};
 					clearRect.rect.extent = {
 						static_cast<uint32_t>(windowWidth),
-						static_cast<uint32_t>(windowHeight) };
+						static_cast<uint32_t>(windowHeight)};
 					clearRect.baseArrayLayer = 0;
 					clearRect.layerCount = 1;
 
@@ -170,20 +172,46 @@ namespace vk {
 		}
 	}
 
+	glm::mat4 loadMatrix(const std::string& path, const std::string& section) {
+		INIReader reader(path);
+		if (reader.ParseError() < 0) {
+			throw std::runtime_error("couldn't load " + path);
+		}
+
+		glm::mat4 M(1.0f);
+		for (int r = 0; r < 4; ++r) {
+			// look in whatever section the caller asked for
+			std::string key = "row" + std::to_string(r);
+			auto s = reader.Get(section, key, "");
+			if (s.empty()) {
+				std::ostringstream os;
+				os << "missing key [" << section << "] " << key;
+				throw std::runtime_error(os.str());
+			}
+			std::istringstream ss(s);
+			for (int c = 0; c < 4; ++c) {
+				char comma;
+				ss >> M[r][c];
+				if (c < 3)
+					ss >> comma;
+			}
+		}
+		return M;
+	}
+
 	void FirstApp::loadGameObjects() {
 		// Parameters for the terrain
-		int samplesPerSide = 200; // Resolution of the heightmap
-		float noiseScale = 30.0f;  // Controls the "frequency" of the noise
-		float heightScale = 10.0f; // Controls the height of the terrain
+		int samplesPerSide = 200;	// Resolution of the heightmap
+		float noiseScale = 30.0f;	// Controls the "frequency" of the noise
+		float heightScale = 10.0f;	// Controls the height of the terrain
 
 		// Generate terrain model with heightmap
 		auto result = Model::createTerrainModel(
 			*device,
 			samplesPerSide,
-			"textures:ground/dirt.png", // Tile texture path
+			"textures:ground/dirt.png",	 // Tile texture path
 			noiseScale,
-			heightScale
-		);
+			heightScale);
 
 		// Extract the model and height data
 		auto& heightData = result.second;
@@ -210,22 +238,21 @@ namespace vk {
 		playerCreationSettings->characterSettings = std::move(characterSettings);
 		playerCreationSettings->cameraSettings = std::move(cameraSettings);
 		playerCreationSettings->playerSettings = std::move(playerSettings);
-		playerCreationSettings->position = JPH::RVec3(0.0f, 15.0f, 0.0f); // Increased Y position to start higher above terrain
+		playerCreationSettings->position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
 
 		sceneManager->setPlayer(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem()));
-		sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), (float)(window->getWidth() / window->getHeight()), 0.1f, 100.0f);
+		sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), (float) (window->getWidth() / window->getHeight()), 0.1f, 100.0f);
 
 		// Create a terrain with procedural heightmap using Perlin noise
 		// Parameters: physics_system, color, model, position, scale, samplesPerSide, noiseScale, heightScale
 		// Create a terrain with our generated heightmap data
 		auto terrain = std::make_unique<physics::Terrain>(
 			physicsSimulation->getPhysicsSystem(),
-			glm::vec3{ 0.569, 0.29, 0 },
-			std::move(result.first),  // Move the model
-			glm::vec3{ 0.0, -2.0, 0.0 },  // Position slightly below origin to prevent falling through
-			glm::vec3{ 500.0f, heightScale, 500.0f }, // Larger size and taller
-			heightData
-		);
+			glm::vec3{0.569, 0.29, 0},
+			std::move(result.first),				 // Move the model
+			glm::vec3{0.0, -2.0, 0.0},				 // Position slightly below origin to prevent falling through
+			glm::vec3{500.0f, heightScale, 500.0f},	 // Larger size and taller
+			heightData);
 
 		sceneManager->addTessellationObject(std::move(terrain));
 
@@ -236,8 +263,7 @@ namespace vk {
 			"textures:skybox/learnopengl/top.jpg",
 			"textures:skybox/learnopengl/bottom.jpg",
 			"textures:skybox/learnopengl/front.jpg",
-			"textures:skybox/learnopengl/back.jpg"
-		};
+			"textures:skybox/learnopengl/back.jpg"};
 
 		auto skybox = std::make_unique<Skybox>(*device, cubemapFaces);
 
@@ -254,28 +280,23 @@ namespace vk {
 		shared_ptr<Model> enemyModel = Model::createModelFromFile(*device, "models:CesiumMan.glb");
 
 		for (int i = 0; i < 15; ++i) {
-
 			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
 
 			std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
 
 			sprinterSettings->model = enemyModel;
 
-
-
 			std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
 
 			enemyCharacterSettings->mLayer = physics::Layers::MOVING;
 
-			enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius); // Accept contacts that touch the lower sphere of the capsule
+			enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // Accept contacts that touch the lower sphere of the capsule
 
 			enemyCharacterSettings->mFriction = 10.0f;
 
 			enemyCharacterSettings->mShape = enemyShape;
 
 			enemyCharacterSettings->mGravityFactor = 1.0f;
-
-
 
 			std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
 
@@ -285,11 +306,13 @@ namespace vk {
 
 			sprinterCreationSettings->position = RVec3(i + 10.0f, 15.0f, 10.0f);
 
-
-
 			sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
-
 		}
+
+		glm::mat4 M = loadMatrix("settings.ini", "QuadTransform");
+		std::cout << "QuadTransform: " << glm::to_string(M) << std::endl;
+		M = loadMatrix("settings.ini", "HelmetTransform");
+		std::cout << "HelmetTransform: " << glm::to_string(M) << std::endl;
 
 		int fbWidth, fbHeight;
 		window->getFramebufferSize(fbWidth, fbHeight);
@@ -301,14 +324,14 @@ namespace vk {
 		hudSettings.windowHeight = windowHeight;
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
-		hudSettings.position = glm::vec3{ 0.0f, 0.0f, -99.0f };
+		hudSettings.position = glm::vec3{0.0f, 0.0f, -99.0f};
 		hudSettings.scale = glm::vec3{200.0f, 200.0f, 0.0f};
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
-		hudSettings.position = glm::vec3{ 89.5481f, -102.638f, -97.9395f };
-		hudSettings.scale = glm::vec3{ 78.0f, 78.0f, 0.0f };
+		hudSettings.position = glm::vec3{89.5481f, -102.638f, -97.9395f};
+		hudSettings.scale = glm::vec3{78.0f, 78.0f, 0.0f};
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
