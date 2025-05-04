@@ -180,7 +180,7 @@ namespace vk {
 		auto result = Model::createTerrainModel(
 			*device,
 			samplesPerSide,
-			"textures:dirt.png", // Tile texture path
+			"textures:ground/dirt.png", // Tile texture path
 			noiseScale,
 			heightScale
 		);
