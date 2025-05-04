@@ -224,6 +224,10 @@ set(LINK_LIBRARIES
     Vulkan::Vulkan
     Vulkan::Headers
     glfw
+    glm
+    Jolt
+    tinygltf
+    tinyobjloader
     $<$<BOOL:${APPLE}>:
         "-framework CoreFoundation"
         "-framework CoreGraphics"
@@ -258,20 +262,9 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${INCLUDE_DIRS}
-    ${tinygltf_SOURCE_DIR}
-    ${glm_SOURCE_DIR}
-    ${glfw_SOURCE_DIR}/include
-    ${tinyobjloader_SOURCE_DIR}
-)
-target_include_directories(${PROJECT_NAME} PUBLIC ${Jolt_SOURCE_DIR}/..)
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${LINK_LIBRARIES}
-    Jolt
 )
-target_link_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIR})
 
 # Setup shader compilation
 # Define shader directories
@@ -360,18 +353,15 @@ if(UNIX AND NOT APPLE)
 endif()
 
 install(
-    TARGETS ${PROJECT_NAME} CONFIGURATIONS Debug DESTINATION "."
+    TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION "."
+    CONFIGURATIONS Debug Release
 )
-install(RUNTIME_DEPENDENCY_SET runtime
-        CONFIGURATIONS Debug
-        DESTINATION "debug")
-
 install(
-    TARGETS ${PROJECT_NAME} CONFIGURATIONS Release DESTINATION "."
+    RUNTIME_DEPENDENCY_SET runtime
+    CONFIGURATIONS Debug Release
+    DESTINATION $<CONFIG>
 )
-install(RUNTIME_DEPENDENCY_SET runtime
-        CONFIGURATIONS Release
-        DESTINATION "release")
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
