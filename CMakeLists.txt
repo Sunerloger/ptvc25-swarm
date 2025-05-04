@@ -65,16 +65,24 @@ endif()
 include(FetchContent)
 
 FetchContent_Declare(
-    JoltPhysics
+    Jolt
     GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
     GIT_TAG "v5.2.0"
     SOURCE_SUBDIR "Build"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(JoltPhysics)
-if(NOT JoltPhysics_POPULATED)
-  FetchContent_MakeAvailable(JoltPhysics)
+FetchContent_GetProperties(Jolt)
+if(NOT Jolt_POPULATED)
+  FetchContent_MakeAvailable(Jolt)
 endif()
+
+if(MSVC)
+  target_compile_options(Jolt PRIVATE
+    $<$<CONFIG:Release>:/WX->         # disable “warnings as errors” in Release for Jolt
+  )
+endif()
+
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
     tinygltf
@@ -98,6 +106,10 @@ if(NOT glm_POPULATED)
   FetchContent_MakeAvailable(glm)
 endif()
 
+set(GLFW_BUILD_DOCS      OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES  OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY "https://github.com/glfw/glfw.git"
@@ -109,16 +121,13 @@ if(NOT glfw_POPULATED)
   FetchContent_MakeAvailable(glfw)
 endif()
 
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
-if(WIN32)
-  # These Windows-specific settings help with runtime library consistency
-  set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF CACHE BOOL "" FORCE)
-endif()
-
 FetchContent_MakeAvailable(glfw)
+if (MSVC)
+  # force GLFW to static CRT (/MTd in Debug, /MT in Release/Distribution)
+  set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY
+    "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+  )
+endif()
 
 FetchContent_Declare(
     tinyobjloader
@@ -146,7 +155,6 @@ if (MSVC)
     endif()
 
     add_compile_options(/FS)
-    add_compile_options("$<$<CONFIG:Debug>:/MTd>$<$<CONFIG:Release>:/MT>")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
 
     if (GENERATE_DEBUG_SYMBOLS)
@@ -257,7 +265,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${glfw_SOURCE_DIR}/include
     ${tinyobjloader_SOURCE_DIR}
 )
-target_include_directories(${PROJECT_NAME} PUBLIC ${JoltPhysics_SOURCE_DIR}/..)
+target_include_directories(${PROJECT_NAME} PUBLIC ${Jolt_SOURCE_DIR}/..)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${LINK_LIBRARIES}
@@ -352,11 +360,18 @@ if(UNIX AND NOT APPLE)
 endif()
 
 install(
-    TARGETS ${PROJECT_NAME} CONFIGURATIONS Debug DESTINATION "debug"
+    TARGETS ${PROJECT_NAME} CONFIGURATIONS Debug DESTINATION "."
 )
+install(RUNTIME_DEPENDENCY_SET runtime
+        CONFIGURATIONS Debug
+        DESTINATION "debug")
+
 install(
-    TARGETS ${PROJECT_NAME} CONFIGURATIONS Release DESTINATION "release"
+    TARGETS ${PROJECT_NAME} CONFIGURATIONS Release DESTINATION "."
 )
+install(RUNTIME_DEPENDENCY_SET runtime
+        CONFIGURATIONS Release
+        DESTINATION "release")
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -369,16 +384,16 @@ install(
 )
 
 install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/models/"
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/models/"
     DESTINATION "assets/models"
 )
 
 install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/textures/"
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/"
     DESTINATION "assets/textures"
 )
 
 install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/settings/"
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/settings/"
     DESTINATION "assets/settings"
 )

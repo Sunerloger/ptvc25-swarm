@@ -173,7 +173,7 @@ namespace vk {
 	void FirstApp::loadGameObjects() {
 		// Parameters for the terrain
 		int samplesPerSide = 200; // Resolution of the heightmap
-		float noiseScale = 3.0f;  // Controls the "frequency" of the noise
+		float noiseScale = 30.0f;  // Controls the "frequency" of the noise
 		float heightScale = 10.0f; // Controls the height of the terrain
 
 		// Generate terrain model with heightmap
@@ -223,7 +223,7 @@ namespace vk {
 			glm::vec3{ 0.569, 0.29, 0 },
 			std::move(result.first),  // Move the model
 			glm::vec3{ 0.0, -2.0, 0.0 },  // Position slightly below origin to prevent falling through
-			glm::vec3{ 50.0f, heightScale, 50.0f }, // Larger size and taller
+			glm::vec3{ 500.0f, heightScale, 500.0f }, // Larger size and taller
 			heightData
 		);
 
@@ -283,7 +283,7 @@ namespace vk {
 
 			sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
 
-			sprinterCreationSettings->position = RVec3(10.0f * i + 10.0f, 15.0f, 10.0f);
+			sprinterCreationSettings->position = RVec3(i + 10.0f, 15.0f, 10.0f);
 
 
 
@@ -301,15 +301,14 @@ namespace vk {
 		hudSettings.windowHeight = windowHeight;
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
-		hudSettings.objectWidth = 200.0f;
-		hudSettings.objectHeight = 200.0f;
-		hudSettings.objectX = 0.0f;
-		hudSettings.objectY = 0.0f;
-		hudSettings.objectZ = -99.0f;
+		hudSettings.position = glm::vec3{ 0.0f, 0.0f, -99.0f };
+		hudSettings.scale = glm::vec3{200.0f, 200.0f, 0.0f};
+		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
-		hudSettings.modelMatrix = glm::mat4(77.8601, -1.2355, 0.0758948, 0, -15.1871, -0.42165, 0.389336, 0, -1.13196, -79.3247, -0.00325152, 0, 89.616, -97.8785, -97.9393, 1);
+		hudSettings.position = glm::vec3{ 89.5481f, -102.638f, -97.9395f };
+		hudSettings.scale = glm::vec3{ 78.0f, 78.0f, 0.0f };
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}

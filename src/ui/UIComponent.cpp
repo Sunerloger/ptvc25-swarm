@@ -1,27 +1,43 @@
 #include "UIComponent.h"
-#include <iostream>
 #include <fstream>
+#include <sstream>
+#include "../asset_utils/AssetManager.h"
+#include <string>
+#include <vector>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace vk {
+
+	int UIComponent::nextIndex = 0;
 
 	UIComponent::UIComponent(UIComponentCreationSettings settings) : model(settings.model),
 		windowWidth(settings.windowWidth),
 		windowHeight(settings.windowHeight),
 		controllable(settings.controllable),
-		modelMatrix(settings.modelMatrix),
-		objectX(settings.objectX),
-		objectY(settings.objectY),
-		objectZ(settings.objectZ),
-		objectWidth(settings.objectWidth),
-		objectHeight(settings.objectHeight),
-		rotation(settings.rotation) {}
+		position(settings.position),
+		orientation(settings.rotation),
+		scale(settings.scale),
+		index(nextIndex++)
+	{
+		if (controllable) {
+			loadData();
+		}
+	}
+
+	glm::mat4 UIComponent::computeModelMatrix() const {
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(position, 0.0f));
+		glm::mat4 R = glm::toMat4(orientation);
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), scale);
+		return T * R * S;
+	}
 
 	glm::mat4 UIComponent::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
 	}
 
 	glm::vec3 UIComponent::getPosition() const {
-		return glm::vec3(objectX, objectY, 0.0f);
+		return glm::vec3(position, 0.0f);
 	}
 
 	void UIComponent::updateWindowDimensions(float windowWidth, float windowHeight) {
@@ -33,96 +49,97 @@ namespace vk {
 		return this->model;
 	}
 
-	void saveModelMatrix(const glm::mat4& matrix, const std::string& filename) {
-		std::ofstream file(filename);
-		if (file.is_open()) {
-			// write the matrix to the file
-			// it should be written so that someone can copy-paste it directly as c++ code
-			file << "glm::mat4(";
-			file << matrix[0][0] << ", " << matrix[0][1] << ", " << matrix[0][2] << ", " << matrix[0][3] << ", ";
-			file << matrix[1][0] << ", " << matrix[1][1] << ", " << matrix[1][2] << ", " << matrix[1][3] << ", ";
-			file << matrix[2][0] << ", " << matrix[2][1] << ", " << matrix[2][2] << ", " << matrix[2][3] << ", ";
-			file << matrix[3][0] << ", " << matrix[3][1] << ", " << matrix[3][2] << ", " << matrix[3][3] << ");";
-			file << std::endl;
-			file.close();
+	void UIComponent::updateTransform(int placementTransform) {
+		if (!controllable) {return;}
+
+		float step = 1.0f;
+		switch (placementTransform) {
+		case GLFW_KEY_LEFT:
+			position.x -= step;
+			break;
+		case GLFW_KEY_RIGHT:
+			position.x += step;
+			break;
+		case GLFW_KEY_UP:
+			position.y -= step;
+			break;
+		case GLFW_KEY_DOWN:
+			position.y += step;
+			break;
+		case GLFW_KEY_EQUAL:
+			scale *= (1.0f + step);
+			break;
+		case GLFW_KEY_MINUS:
+			scale *= (1.0f - step);
+			scale = glm::max(scale, glm::vec3(0.0001f));
+			break;
+		case GLFW_KEY_Z:
+			orientation = orientation * glm::angleAxis(step, glm::vec3(1, 0, 0));
+			break;
+		case GLFW_KEY_X:
+			orientation = orientation * glm::angleAxis(-step, glm::vec3(1, 0, 0));
+			break;
+		case GLFW_KEY_C:
+			orientation = orientation * glm::angleAxis(step, glm::vec3(0, 1, 0));
+			break;
+		case GLFW_KEY_V:
+			orientation = orientation * glm::angleAxis(-step, glm::vec3(0, 1, 0));
+			break;
+		case GLFW_KEY_B:
+			orientation = orientation * glm::angleAxis(step, glm::vec3(0, 0, 1));
+			break;
+		case GLFW_KEY_N:
+			orientation = orientation * glm::angleAxis(-step, glm::vec3(0, 0, 1));
+			break;
+		default:
+			break;
+		}
+
+		saveData();
+	}
+
+	void UIComponent::saveData(const std::string& filename) {
+
+		std::string name;
+		if (filename.empty()) {
+			name = "ui_state_" + std::to_string(index) + ".txt";
 		}
 		else {
-			std::cerr << "Unable to open file: " << filename << std::endl;
+			name = filename;
 		}
+
+		std::stringstream ss;
+		ss << position.x << "," << position.y << ",";
+		ss << orientation.x << "," << orientation.y << "," << orientation.z << "," << orientation.w << ",";
+		ss << scale.x << "," << scale.y << "," << scale.z;
+		AssetManager::getInstance().saveTxtFile("ui/" + name, ss.str());
 	}
+	
+	void UIComponent::loadData(const std::string& filename) {
 
-	void UIComponent::updateTransform(int placementTransform) {
-		if (modelMatrix != glm::mat4(1.0f) && controllable) {
-			float step = 0.01f;
-			switch (placementTransform) {
-			case GLFW_KEY_Q:
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -step));
-				break;
-			case GLFW_KEY_E:
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, step));
-				break;
-			case GLFW_KEY_LEFT:
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(-step, 0.0f, 0.0f));
-				break;
-			case GLFW_KEY_RIGHT:
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(step, 0.0f, 0.0f));
-				break;
-			case GLFW_KEY_UP:
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, step, 0.0f));
-				break;
-			case GLFW_KEY_DOWN:
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -step, 0.0f));
-				break;
-			case GLFW_KEY_EQUAL:
-				modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f + step));
-				break;
-			case GLFW_KEY_MINUS:
-				modelMatrix = glm::scale(modelMatrix, glm::vec3(1.0f - step));
-				break;
-			case GLFW_KEY_Z:
-				modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(1.0f, 0.0f, 0.0f));
-				break;
-			case GLFW_KEY_X:
-				modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(1.0f, 0.0f, 0.0f));
-				break;
-			case GLFW_KEY_C:
-				modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 1.0f, 0.0f));
-				break;
-			case GLFW_KEY_V:
-				modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 1.0f, 0.0f));
-				break;
-			case GLFW_KEY_B:
-				modelMatrix = glm::rotate(modelMatrix, step, glm::vec3(0.0f, 0.0f, 1.0f));
-				break;
-			case GLFW_KEY_N:
-				modelMatrix = glm::rotate(modelMatrix, -step, glm::vec3(0.0f, 0.0f, 1.0f));
-				break;
-			default:
-				break;
-			}
-
-			saveModelMatrix(modelMatrix, "model_matrix.txt");
-			return;
+		std::string name;
+		if (filename.empty()) {
+			name = "ui_state_" + std::to_string(index) + ".txt";
+		}
+		else {
+			name = filename;
 		}
 
-		if (modelMatrix != glm::mat4(1.0f) && !controllable) {
-			return;
+		std::string content = AssetManager::getInstance().readTxtFile("ui/" + name);
+
+		if (content.empty()) return;
+
+		std::vector<float> vals;
+		std::stringstream ss(content);
+		std::string tok;
+		while (std::getline(ss, tok, ',')) {
+			try { vals.push_back(std::stof(tok)); }
+			catch (...) { return; }
 		}
+		if (vals.size() != 9) return;
 
-		glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(objectX, -objectY, objectZ));
-		glm::mat4 pivotOffset = glm::translate(glm::mat4(1.0f),
-			glm::vec3(objectWidth * 0.5f, -objectHeight * 0.5f, 0.0f));
-		glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-		glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 R = Rz * Ry * Rx;
-		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(objectWidth, objectHeight, 1.0f));
-
-		modelMatrix = T * pivotOffset * R * S;
-		saveModelMatrix(modelMatrix, "model_matrix.txt");
-	}
-
-	glm::mat4 UIComponent::computeModelMatrix() const {
-		return modelMatrix;
+		position = glm::vec2(vals[0], vals[1]);
+		orientation = glm::quat(vals[5], vals[2], vals[3], vals[4]);
+		scale = glm::vec3(vals[6], vals[7], vals[8]);
 	}
 }

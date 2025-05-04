@@ -662,12 +662,21 @@ namespace vk {
 			}
 		}
 		
-		// Save the heightmap as a PNG file in the executable directory
-		std::string heightmapPath = "temp_heightmap.png";
-		std::string fullPath = AssetManager::getInstance().getExecutableDir() + "/" + heightmapPath;
-		stbi_write_png(fullPath.c_str(), gridSize, gridSize, 4, imageData.data(), gridSize * 4);
+		// Save the heightmap using the AssetManager
+		std::string heightmapPath = "terrain/temp_heightmap.png";
+		std::string texturePath = AssetManager::getInstance().saveTexture(
+			heightmapPath,
+			imageData.data(),
+			gridSize,
+			gridSize,
+			4  // RGBA format
+		);
 		
-		std::cout << "Generated heightmap texture: " << fullPath << std::endl;
+		if (texturePath.empty()) {
+			std::cerr << "Failed to save heightmap texture!" << std::endl;
+		} else {
+			std::cout << "Generated heightmap texture: " << texturePath << std::endl;
+		}
 		
 		// Create a grid model
 		Builder builder{};
@@ -765,7 +774,7 @@ namespace vk {
 		auto material = std::make_shared<TessellationMaterial>(
 			device,
 			tileTexturePath,
-			fullPath,  // Use the full path to the heightmap
+			texturePath,  // Use the path returned by AssetManager
 			"terrain_shader.vert",
 			"terrain_shader.frag",
 			"terrain_tess_control.tesc",

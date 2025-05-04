@@ -25,7 +25,7 @@ namespace vk {
 		VkPushConstantRange pushConstantRange{};
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(SimplePushConstantData);
+		pushConstantRange.size = sizeof(UIPushConstantData);
 
 		std::vector<VkDescriptorSetLayout> setLayouts = { globalSetLayout, materialSetLayout };
 
@@ -127,7 +127,7 @@ namespace vk {
 			);
 
 			// Set push constants
-			SimplePushConstantData push{};
+			UIPushConstantData push{};
 
 			// Use the game object's model matrix and normal matrix
 			// The skybox GameObject class overrides these methods to return identity matrices
@@ -146,7 +146,7 @@ namespace vk {
 				pipelineInfo.pipelineLayout,
 				stageFlags,
 				0,
-				sizeof(SimplePushConstantData),
+				sizeof(UIPushConstantData),
 				&push
 			);
 

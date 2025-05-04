@@ -28,6 +28,7 @@
 # Executables
 **/bin/
 **/build/
+**/release/
 **/out/
 **/out-release/
 **/out-release-exe/

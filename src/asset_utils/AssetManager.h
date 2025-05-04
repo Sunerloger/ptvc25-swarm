@@ -8,6 +8,7 @@
 // #include "tiny_gltf.h"
 #include "tiny_obj_loader.h"
 #include "stb_image.h"
+#include "stb_image_write.h"
 
 #include <string>
 #include <vector>
@@ -16,6 +17,7 @@
 #include <memory>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cstring>
 
 namespace fs = std::filesystem;
@@ -45,6 +47,7 @@ namespace vk {
 			registerPath("textures", "assets/textures");
 			registerPath("settings", "assets/settings");
 			registerPath("compiledShaders", "assets/shaders_vk/compiled");
+			registerPath("generated", "assets/generated");
 
 // Add project source directory if defined
 #ifdef PROJECT_SOURCE_DIR
@@ -54,9 +57,9 @@ namespace vk {
 			registerPath("projectShaders", std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk");
 			registerPath("projectTextures", std::string(PROJECT_SOURCE_DIR) + "/assets/textures");
 			registerPath("projectSettings", std::string(PROJECT_SOURCE_DIR) + "/assets/settings");
+			registerPath("projectCompiledShaders", std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/compiled");
+			registerPath("projectGenerated", std::string(PROJECT_SOURCE_DIR) + "/assets/generated");
 #endif
-
-			registerPath("buildShaders", (m_executableDir / "assets/shaders_vk/compiled").string());
 
 			// Print registered paths for debugging
 			for (const auto& [key, path] : m_pathRegistry) {
@@ -91,7 +94,10 @@ namespace vk {
 			m_pathRegistry[key] = normalizePath((m_executableDir / relativePath).string());
 		}
 
-		std::string resolvePath(const std::string& filepath) const {
+		// Resolve a path to a file
+		// If forSaving is true, the file doesn't need to exist (used when saving files)
+		std::string resolvePath(const std::string& filepath, bool forSaving = false) const {
+			// If the file exists as-is, return it
 			if (fs::exists(filepath)) {
 				return filepath;
 			}
@@ -101,9 +107,15 @@ namespace vk {
 			if (colonPos != std::string::npos) {
 				std::string pathKey = filepath.substr(0, colonPos);
 				std::string filename = filepath.substr(colonPos + 1);
-				std::string fullPath = normalizePath(getPath(pathKey) + "/" + filename);
-				if (fs::exists(fullPath)) {
-					return fullPath;
+				
+				// If we have this path registered, use it
+				auto it = m_pathRegistry.find(pathKey);
+				if (it != m_pathRegistry.end()) {
+					std::string fullPath = normalizePath(it->second + "/" + filename);
+					// If we're saving or the file exists, return this path
+					if (forSaving || fs::exists(fullPath)) {
+						return fullPath;
+					}
 				}
 			}
 
@@ -264,6 +276,127 @@ namespace vk {
 		    stbi_image_free(data);
 		    
 		    return result;
+		}
+		
+		// Save a texture to a file in the generated directory
+		// Returns the path that can be used to load the texture later
+		std::string saveTexture(const std::string& filename, const unsigned char* data, int width, int height, int channels) {
+		    
+		    // Ensure we save to the generated directory
+		    std::string texturePath = "generated:" + filename;
+		    std::string resolvedPath = resolvePath(texturePath, true);
+		    
+		    // Save the image
+		    if (debugText)
+		        std::cout << "AssetManager: Saving texture to: " << resolvedPath << std::endl;
+		    
+			bool success = false;
+
+			// Create directory if it doesn't exist
+			fs::path dirPath = fs::path(resolvedPath).parent_path();
+			if (!fs::exists(dirPath)) {
+				if (debugText)
+					std::cout << "AssetManager: Creating directory: " << dirPath << std::endl;
+				try {
+					fs::create_directories(dirPath);
+				} catch (const std::exception& e) {
+					std::cerr << "AssetManager: Error creating directory: " << e.what() << std::endl;
+					return "";
+				}
+			}
+			
+			// Now save the image
+			success = stbi_write_png(resolvedPath.c_str(), width, height, channels, data, width * channels);
+
+		    if (!success) {
+		        std::cerr << "AssetManager: Failed to save texture: " << resolvedPath << std::endl;
+		        return "";
+		    }
+		    
+		    if (debugText)
+		        std::cout << "AssetManager: Successfully saved texture: " << resolvedPath << std::endl;
+		    
+		    return resolvedPath;
+		}
+		
+		// Save a text file to the generated directory
+		// Returns the path that can be used to load the file later
+		std::string saveTxtFile(const std::string& filename, const std::string& content) {
+		    // Ensure we save to the generated directory
+		    std::string filePath = "generated:" + filename;
+		    std::string resolvedPath = resolvePath(filePath, true);
+		    
+		    // Create directory if it doesn't exist
+		    fs::path dirPath = fs::path(resolvedPath).parent_path();
+		    if (!fs::exists(dirPath)) {
+		        if (debugText)
+		            std::cout << "AssetManager: Creating directory: " << dirPath << std::endl;
+		        try {
+		            fs::create_directories(dirPath);
+		        } catch (const std::exception& e) {
+		            std::cerr << "AssetManager: Error creating directory: " << e.what() << std::endl;
+		            return "";
+		        }
+		    }
+		    
+		    // Save the file
+		    if (debugText)
+		        std::cout << "AssetManager: Saving text file to: " << resolvedPath << std::endl;
+		    
+		    bool success = false;
+		    try {
+		        std::ofstream file(resolvedPath);
+		        if (file.is_open()) {
+		            file << content;
+		            file.close();
+		            success = true;
+		        }
+		    } catch (const std::exception& e) {
+		        std::cerr << "AssetManager: Exception while saving text file: " << e.what() << std::endl;
+		        return "";
+		    }
+		    
+		    if (!success) {
+		        std::cerr << "AssetManager: Failed to save text file: " << resolvedPath << std::endl;
+		        return "";
+		    }
+		    
+		    if (debugText)
+		        std::cout << "AssetManager: Successfully saved text file: " << resolvedPath << std::endl;
+		    
+		    // Return the resolved path
+		    return resolvedPath;
+		}
+		
+		// Read a text file
+		// Returns the content of the file
+		std::string readTxtFile(const std::string& filepath) {
+		    std::string resolvedPath = resolvePath(filepath);
+		    
+		    if (debugText)
+		        std::cout << "AssetManager: Reading text file from: " << resolvedPath << std::endl;
+		    
+		    std::string content;
+		    try {
+		        std::ifstream file(resolvedPath);
+		        if (!file.is_open()) {
+		            throw std::runtime_error("Failed to open file: " + resolvedPath);
+		        }
+		        
+		        // Read the file content
+		        std::stringstream buffer;
+		        buffer << file.rdbuf();
+		        content = buffer.str();
+		        file.close();
+		    } catch (const std::exception& e) {
+		        std::cerr << "AssetManager: Error reading text file: " << e.what() << std::endl;
+		        return "";
+		    }
+		    
+		    if (debugText)
+		        std::cout << "AssetManager: Successfully read text file: " << resolvedPath << std::endl;
+		    
+		    return content;
 		}
 
 	private:
