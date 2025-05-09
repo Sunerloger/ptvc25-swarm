@@ -65,6 +65,22 @@ endif()
 include(FetchContent)
 
 FetchContent_Declare(
+  inih
+  GIT_REPOSITORY https://github.com/benhoyt/inih.git
+  GIT_TAG r60
+  GIT_SHALLOW ON
+)
+FetchContent_GetProperties(inih)
+if(NOT inih_POPULATED)
+    FetchContent_Populate(inih)
+endif()
+
+add_library(inih STATIC
+  ${inih_SOURCE_DIR}/ini.c
+  ${inih_SOURCE_DIR}/cpp/INIReader.cpp
+)
+
+FetchContent_Declare(
     Jolt
     GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
     GIT_TAG "v5.2.0"
@@ -262,8 +278,14 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
+target_include_directories(inih PUBLIC
+  ${inih_SOURCE_DIR}
+  ${inih_SOURCE_DIR}/cpp
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${LINK_LIBRARIES}
+    inih
 )
 
 # Setup shader compilation

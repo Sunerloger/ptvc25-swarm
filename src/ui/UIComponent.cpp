@@ -12,12 +12,11 @@ namespace vk {
 	int UIComponent::nextIndex = 0;
 
 	UIComponent::UIComponent(UIComponentCreationSettings settings) : model(settings.model),
-		controllable(settings.controllable),
-		position(settings.position),
-		orientation(glm::radians(settings.rotation)),
-		scale(settings.scale),
-		index(nextIndex++)
-	{
+																	 controllable(settings.controllable),
+																	 position(settings.position),
+																	 orientation(glm::radians(settings.rotation)),
+																	 scale(settings.scale),
+																	 index(nextIndex++) {
 		if (controllable) {
 			loadData();
 		}
@@ -43,70 +42,70 @@ namespace vk {
 	}
 
 	void UIComponent::updateTransform(float deltaTime, int placementTransform) {
-		if (!controllable) {return;}
+		if (!controllable) {
+			return;
+		}
 
 		float positionStep = 100.0f * deltaTime;
-		float rotationStep = 5.0f * deltaTime;
+		float rotationStep = 0.1f * deltaTime;
 		float scaleStep = 1.25f * deltaTime;
 
 		switch (placementTransform) {
-		case GLFW_KEY_LEFT:
-			position.x -= positionStep;
-			break;
-		case GLFW_KEY_RIGHT:
-			position.x += positionStep;
-			break;
-		case GLFW_KEY_UP:
-			position.y += positionStep;
-			break;
-		case GLFW_KEY_DOWN:
-			position.y -= positionStep;
-			break;
-		case GLFW_KEY_COMMA:
-			position.z += positionStep;
-			break;
-		case GLFW_KEY_PERIOD:
-			position.z -= positionStep;
-			break;
-		case GLFW_KEY_EQUAL:
-			scale *= (1.0f + scaleStep);
-			break;
-		case GLFW_KEY_MINUS:
-			scale *= (1.0f - scaleStep);
-			scale = glm::max(scale, glm::vec3(0.0001f));
-			break;
-		case GLFW_KEY_Z:
-			orientation = glm::angleAxis(rotationStep, glm::vec3(1, 0, 0)) * orientation;
-			break;
-		case GLFW_KEY_X:
-			orientation = glm::angleAxis(-rotationStep, glm::vec3(1, 0, 0)) * orientation;
-			break;
-		case GLFW_KEY_C:
-			orientation = glm::angleAxis(rotationStep, glm::vec3(0, 1, 0)) * orientation;
-			break;
-		case GLFW_KEY_V:
-			orientation = glm::angleAxis(-rotationStep, glm::vec3(0, 1, 0)) * orientation;
-			break;
-		case GLFW_KEY_B:
-			orientation = glm::angleAxis(rotationStep, glm::vec3(0, 0, 1)) * orientation;
-			break;
-		case GLFW_KEY_N:
-			orientation = glm::angleAxis(-rotationStep, glm::vec3(0, 0, 1)) * orientation;
-			break;
-		default:
-			break;
+			case GLFW_KEY_LEFT:
+				position.x -= positionStep;
+				break;
+			case GLFW_KEY_RIGHT:
+				position.x += positionStep;
+				break;
+			case GLFW_KEY_UP:
+				position.y += positionStep;
+				break;
+			case GLFW_KEY_DOWN:
+				position.y -= positionStep;
+				break;
+			case GLFW_KEY_COMMA:
+				position.z += positionStep;
+				break;
+			case GLFW_KEY_PERIOD:
+				position.z -= positionStep;
+				break;
+			case GLFW_KEY_EQUAL:
+				scale *= (1.0f + scaleStep);
+				break;
+			case GLFW_KEY_MINUS:
+				scale *= (1.0f - scaleStep);
+				scale = glm::max(scale, glm::vec3(0.0001f));
+				break;
+			case GLFW_KEY_Z:
+				orientation = glm::angleAxis(rotationStep, glm::vec3(1, 0, 0)) * orientation;
+				break;
+			case GLFW_KEY_X:
+				orientation = glm::angleAxis(-rotationStep, glm::vec3(1, 0, 0)) * orientation;
+				break;
+			case GLFW_KEY_C:
+				orientation = glm::angleAxis(rotationStep, glm::vec3(0, 1, 0)) * orientation;
+				break;
+			case GLFW_KEY_V:
+				orientation = glm::angleAxis(-rotationStep, glm::vec3(0, 1, 0)) * orientation;
+				break;
+			case GLFW_KEY_B:
+				orientation = glm::angleAxis(rotationStep, glm::vec3(0, 0, 1)) * orientation;
+				break;
+			case GLFW_KEY_N:
+				orientation = glm::angleAxis(-rotationStep, glm::vec3(0, 0, 1)) * orientation;
+				break;
+			default:
+				break;
 		}
 
 		saveData();
 	}
 
 	void UIComponent::saveData(const std::string& filename) {
-
 		std::string name;
 		if (filename.empty()) {
 			name = "ui_state_" + std::to_string(index) + ".txt";
-		}
-		else {
+		} else {
 			name = filename;
 		}
 
@@ -116,29 +115,32 @@ namespace vk {
 		ss << scale.x << "," << scale.y << "," << scale.z;
 		AssetManager::getInstance().saveTxtFile("ui/" + name, ss.str());
 	}
-	
-	void UIComponent::loadData(const std::string& filename) {
 
+	void UIComponent::loadData(const std::string& filename) {
 		std::string name;
 		if (filename.empty()) {
 			name = "ui_state_" + std::to_string(index) + ".txt";
-		}
-		else {
+		} else {
 			name = filename;
 		}
 
 		std::string content = AssetManager::getInstance().readTxtFile("ui/" + name);
 
-		if (content.empty()) return;
+		if (content.empty())
+			return;
 
 		std::vector<float> vals;
 		std::stringstream ss(content);
 		std::string tok;
 		while (std::getline(ss, tok, ',')) {
-			try { vals.push_back(std::stof(tok)); }
-			catch (...) { return; }
+			try {
+				vals.push_back(std::stof(tok));
+			} catch (...) {
+				return;
+			}
 		}
-		if (vals.size() != 10) return;
+		if (vals.size() != 10)
+			return;
 
 		position = glm::vec3(vals[0], vals[1], vals[2]);
 		orientation = glm::quat(vals[6], vals[3], vals[4], vals[5]);

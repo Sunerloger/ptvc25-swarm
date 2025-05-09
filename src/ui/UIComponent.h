@@ -33,7 +33,10 @@ namespace vk {
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
-		
+		bool isControllable() {
+			return controllable;
+		}
+
 		// if no filename use ui_state_index.txt
 		void saveData(const std::string& filename = "");
 		void loadData(const std::string& filename = "");

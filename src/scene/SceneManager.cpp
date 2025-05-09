@@ -3,9 +3,12 @@
 SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
 void SceneManager::updateUITransforms(float deltaTime, int placementTransform) {
+	if (placementTransform == -1) {
+		return;
+	}
 	for (auto& uiObject : this->getUIObjects()) {
 		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
-		if (!uiComponent)
+		if (!uiComponent || !uiComponent->isControllable())
 			continue;
 		uiComponent->updateTransform(deltaTime, placementTransform);
 	}
@@ -205,68 +208,65 @@ void SceneManager::removeStaleObjects() {
 		JPH::BodyID bodyID;
 
 		switch (sceneClass) {
+			case SPECTRAL_OBJECT:
+				scene->spectralObjects.erase(id);
+				this->idToClass.erase(id);
+				continue;
 
-		case SPECTRAL_OBJECT:
-			scene->spectralObjects.erase(id);
-			this->idToClass.erase(id);
-			continue;
+			case UI_COMPONENT:
+				scene->uiObjects.erase(id);
+				this->idToClass.erase(id);
+				continue;
 
-		case UI_COMPONENT:
-			scene->uiObjects.erase(id);
-			this->idToClass.erase(id);
-			continue;
+			case LIGHT:
+				scene->lights.erase(id);
+				this->idToClass.erase(id);
+				continue;
 
-		case LIGHT:
-			scene->lights.erase(id);
-			this->idToClass.erase(id);
-			continue;
+			case ENEMY:
 
-		case ENEMY:
+				// one of the maps contains the enemy
+				if (scene->enemies.count(id)) {
+					bodyID = scene->enemies.at(id)->getBodyID();
+					scene->enemies.erase(id);
+				} else {
+					bodyID = scene->passiveEnemies.at(id)->getBodyID();
+					scene->passiveEnemies.erase(id);
+				}
 
-			// one of the maps contains the enemy
-			if (scene->enemies.count(id)) {
-				bodyID = scene->enemies.at(id)->getBodyID();
-				scene->enemies.erase(id);
-			}
-			else {
-				bodyID = scene->passiveEnemies.at(id)->getBodyID();
-				scene->passiveEnemies.erase(id);
-			}
+				this->idToClass.erase(id);
+				this->bodyIDToObjectId.erase(bodyID);
+				this->physicsSceneIsChanged = true;
+				continue;
 
-			this->idToClass.erase(id);
-			this->bodyIDToObjectId.erase(bodyID);
-			this->physicsSceneIsChanged = true;
-			continue;
+			case PHYSICS_OBJECT:
 
-		case PHYSICS_OBJECT:
+				// one of the maps contains the physics object
+				if (scene->physicsObjects.count(id)) {
+					bodyID = scene->physicsObjects.at(id)->getBodyID();
+					scene->physicsObjects.erase(id);
+				} else {
+					bodyID = scene->passivePhysicsObjects.at(id)->getBodyID();
+					scene->passivePhysicsObjects.erase(id);
+				}
 
-			// one of the maps contains the physics object
-			if (scene->physicsObjects.count(id)) {
-				bodyID = scene->physicsObjects.at(id)->getBodyID();
-				scene->physicsObjects.erase(id);
-			}
-			else {
-				bodyID = scene->passivePhysicsObjects.at(id)->getBodyID();
-				scene->passivePhysicsObjects.erase(id);
-			}
+				this->idToClass.erase(id);
+				this->bodyIDToObjectId.erase(bodyID);
+				this->physicsSceneIsChanged = true;
+				continue;
 
-			this->idToClass.erase(id);
-			this->bodyIDToObjectId.erase(bodyID);
-			this->physicsSceneIsChanged = true;
-			continue;
-			
-		case TESSELLATION_OBJECT:
-			// Handle tessellation objects
-			bodyID = scene->tessellationObjects.at(id)->getBodyID();
-			scene->tessellationObjects.erase(id);
-			
-			this->idToClass.erase(id);
-			this->bodyIDToObjectId.erase(bodyID);
-			this->physicsSceneIsChanged = true;
-			continue;
+			case TESSELLATION_OBJECT:
+				// Handle tessellation objects
+				bodyID = scene->tessellationObjects.at(id)->getBodyID();
+				scene->tessellationObjects.erase(id);
 
-		default:
-			continue;
+				this->idToClass.erase(id);
+				this->bodyIDToObjectId.erase(bodyID);
+				this->physicsSceneIsChanged = true;
+				continue;
+
+			default:
+				continue;
 		}
 	}
 }
@@ -298,8 +298,7 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 		spectralObject->deleteSceneManager();
 
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, spectralObject));
-	}
-	else if (sceneClass == UI_COMPONENT) {
+	} else if (sceneClass == UI_COMPONENT) {
 		this->idToClass.erase(id);
 
 		auto itUIObjects = scene->uiObjects.find(id);
@@ -310,8 +309,7 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 		uiObject->deleteSceneManager();
 
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, uiObject));
-	}
-	else if (sceneClass == LIGHT) {
+	} else if (sceneClass == LIGHT) {
 		this->idToClass.erase(id);
 
 		auto itLights = scene->lights.find(id);
@@ -378,8 +376,7 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 
 			return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, physicsObject));
 		}
-	}
-	else if (sceneClass == TESSELLATION_OBJECT) {
+	} else if (sceneClass == TESSELLATION_OBJECT) {
 		this->idToClass.erase(id);
 		JPH::BodyID bodyID = scene->tessellationObjects.at(id)->getBodyID();
 		this->bodyIDToObjectId.erase(bodyID);
@@ -394,8 +391,7 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 		tessellationObject->deleteSceneManager();
 
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, tessellationObject));
-	}
-	else {
+	} else {
 		return nullptr;
 	}
 }
@@ -405,8 +401,7 @@ bool SceneManager::activatePhysicsObject(vk::id_t id) {
 
 	try {
 		sceneClass = this->idToClass.at(id);
-	}
-	catch (std::out_of_range& e) {
+	} catch (std::out_of_range& e) {
 		return false;
 	}
 
@@ -421,8 +416,7 @@ bool SceneManager::activatePhysicsObject(vk::id_t id) {
 			this->physicsSceneIsChanged = true;
 			return true;
 		}
-	}
-	else if (sceneClass == PHYSICS_OBJECT) {
+	} else if (sceneClass == PHYSICS_OBJECT) {
 		auto itPassivePhysicsObjects = scene->passivePhysicsObjects.find(id);
 		if (itPassivePhysicsObjects != scene->passivePhysicsObjects.end()) {
 			std::shared_ptr<physics::ManagedPhysicsEntity> physicsObject = std::move(itPassivePhysicsObjects->second);
@@ -444,8 +438,7 @@ bool SceneManager::detachPhysicsObject(vk::id_t id) {
 
 	try {
 		sceneClass = this->idToClass.at(id);
-	}
-	catch (std::out_of_range& e) {
+	} catch (std::out_of_range& e) {
 		return false;
 	}
 
@@ -460,8 +453,7 @@ bool SceneManager::detachPhysicsObject(vk::id_t id) {
 			this->physicsSceneIsChanged = true;
 			return true;
 		}
-	}
-	else if (sceneClass == PHYSICS_OBJECT) {
+	} else if (sceneClass == PHYSICS_OBJECT) {
 		auto itPhysicsObjects = scene->physicsObjects.find(id);
 		if (itPhysicsObjects != scene->physicsObjects.end()) {
 			std::shared_ptr<physics::ManagedPhysicsEntity> physicsObject = std::move(itPhysicsObjects->second);
@@ -516,44 +508,35 @@ std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> SceneManag
 
 	try {
 		sceneClass = this->idToClass.at(id);
-	}
-	catch (std::out_of_range& e) {
+	} catch (std::out_of_range& e) {
 		return nullptr;
 	}
 
 	if (sceneClass == PLAYER) {
 		std::weak_ptr<vk::GameObject> player = this->scene->player;
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, player));
-	}
-	else if (sceneClass == SUN) {
+	} else if (sceneClass == SUN) {
 		std::weak_ptr<vk::GameObject> sun = this->scene->sun;
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, sun));
-	}
-	else if (sceneClass == LIGHT) {
+	} else if (sceneClass == LIGHT) {
 		std::weak_ptr<vk::GameObject> light = this->scene->lights.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, light));
-	}
-	else if (sceneClass == ENEMY) {
+	} else if (sceneClass == ENEMY) {
 		std::weak_ptr<vk::GameObject> enemy = this->scene->enemies.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, enemy));
-	}
-	else if (sceneClass == UI_COMPONENT) {
+	} else if (sceneClass == UI_COMPONENT) {
 		std::weak_ptr<vk::GameObject> uiObject = this->scene->uiObjects.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, uiObject));
-	}
-	else if (sceneClass == PHYSICS_OBJECT) {
+	} else if (sceneClass == PHYSICS_OBJECT) {
 		std::weak_ptr<vk::GameObject> physicsObject = this->scene->physicsObjects.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, physicsObject));
-	}
-	else if (sceneClass == SPECTRAL_OBJECT) {
+	} else if (sceneClass == SPECTRAL_OBJECT) {
 		std::weak_ptr<vk::GameObject> spectralObject = this->scene->spectralObjects.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, spectralObject));
-	}
-	else if (sceneClass == TESSELLATION_OBJECT) {
+	} else if (sceneClass == TESSELLATION_OBJECT) {
 		std::weak_ptr<vk::GameObject> tessellationObject = this->scene->tessellationObjects.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, tessellationObject));
-	}
-	else {
+	} else {
 		return nullptr;
 	}
 }
@@ -580,7 +563,6 @@ vk::id_t SceneManager::getIdFromBodyID(JPH::BodyID bodyID) {
 }
 
 std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getStandardRenderObjects() {
-	
 	std::vector<std::weak_ptr<vk::GameObject>> renderObjects = {};
 
 	for (auto& it : this->scene->spectralObjects) {
@@ -602,7 +584,6 @@ std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getStandardRenderObject
 }
 
 std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTessellationRenderObjects() {
-	
 	std::vector<std::weak_ptr<vk::GameObject>> tessellationObjects = {};
 
 	for (auto& it : this->scene->tessellationObjects) {
