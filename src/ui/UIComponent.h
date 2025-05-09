@@ -1,23 +1,25 @@
+// UIComponent.h
 #pragma once
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #include "../GameObject.h"
+#include <memory>
+#include <string>
 
 namespace vk {
+
+	struct Transform {
+		glm::vec3 pos;
+		glm::quat rot;
+		glm::vec3 scale;
+	};
+
 	class UIComponentCreationSettings {
 	   public:
 		std::shared_ptr<Model> model;
-
-		glm::vec3 position;
-		glm::vec3 scale;
-
-		// angle around axis in degrees (pitch, yaw, roll)
-		glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-
-		// specifies if there is a file to read from / write to
+		std::string name;
 		bool controllable = false;
 	};
 
@@ -26,35 +28,25 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
+		// only re-load & save when handling placement keys
 		void updateTransform(float deltaTime, int placementTransform = -1);
 
+		// always read from disk / defaults
 		glm::mat4 computeModelMatrix() const override;
-
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
-		bool isControllable() {
+		bool isControllable() const {
 			return controllable;
 		}
 
-		// if no filename use ui_state_index.txt
-		void saveData(const std::string& filename = "");
-		void loadData(const std::string& filename = "");
-
-		static int nextIndex;
-
 	   private:
+		Transform loadData() const;
+		void saveData(const Transform &t) const;
+
 		std::shared_ptr<Model> model;
-
-		glm::vec3 position;
-		glm::quat orientation;
-		glm::vec3 scale;
-
-		float windowWidth;
-		float windowHeight;
-
-		bool controllable = false;
-
-		int index;
+		std::string name;
+		bool controllable;
 	};
-}
+
+}  // namespace vk

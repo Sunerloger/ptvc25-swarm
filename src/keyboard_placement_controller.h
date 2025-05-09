@@ -12,8 +12,8 @@ namespace controls {
 		static constexpr int moveRight = GLFW_KEY_RIGHT;
 		static constexpr int moveUp = GLFW_KEY_UP;
 		static constexpr int moveDown = GLFW_KEY_DOWN;
-		static constexpr int moveForward = GLFW_KEY_Q;
-		static constexpr int moveBackward = GLFW_KEY_E;
+		static constexpr int moveForward = GLFW_KEY_COMMA;
+		static constexpr int moveBackward = GLFW_KEY_PERIOD;
 		static constexpr int scaleDown = GLFW_KEY_MINUS;
 		static constexpr int scaleUp = GLFW_KEY_EQUAL;
 		static constexpr int rotateUpX = GLFW_KEY_Z;

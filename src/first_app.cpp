@@ -288,9 +288,12 @@ namespace vk {
 		UIComponentCreationSettings hudSettings{};
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
-		hudSettings.position = glm::vec3{89.5481f, -102.638f, -97.9395f};
-		hudSettings.scale = glm::vec3{78.0f, 78.0f, 78.0f};
-		hudSettings.rotation = glm::vec3(45.0f, 45.0f, 45.0f);
+		hudSettings.name = "gray_quad";
+		hudSettings.controllable = true;
+		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
+		hudSettings.name = "damaged_helmet";
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
