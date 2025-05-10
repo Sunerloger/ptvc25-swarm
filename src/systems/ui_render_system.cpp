@@ -1,5 +1,7 @@
 #include "texture_render_system.h"
 #include <stdexcept>
+#include <vector>
+#include <algorithm>
 #include "ui_render_system.h"
 
 namespace vk {
@@ -99,12 +101,24 @@ namespace vk {
 	}
 
 	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
-		// Render all standard objects (non-tessellated)
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getUIObjects()) {
-			std::shared_ptr<GameObject> gameObject = weakObj.lock();
-			if (!gameObject || !gameObject->getModel())
-				continue;
-
+		// Collect UI objects and sort by z-index (back to front)
+		auto uiWeakObjs = frameInfo.sceneManager.getUIObjects();
+		std::vector<std::shared_ptr<GameObject>> uiGameObjects;
+		uiGameObjects.reserve(uiWeakObjs.size());
+		for (auto& weakObj : uiWeakObjs) {
+			if (auto gameObject = weakObj.lock()) {
+				if (gameObject->getModel() && gameObject->getModel()->getMaterial()) {
+					uiGameObjects.push_back(gameObject);
+				}
+			}
+		}
+		// Sort by z position (ascending: furthest first)
+		std::sort(uiGameObjects.begin(), uiGameObjects.end(),
+			[](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
+				return a->getPosition().z < b->getPosition().z;
+			});
+		// Render sorted UI objects
+		for (auto& gameObject : uiGameObjects) {
 			auto material = gameObject->getModel()->getMaterial();
 			if (!material)
 				continue;
