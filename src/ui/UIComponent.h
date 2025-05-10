@@ -40,6 +40,15 @@ namespace vk {
 			return controllable;
 		}
 
+	   protected:
+		/**
+		 * Update the underlying model for this UI component.  Subclasses may rebuild the mesh
+		 * and upload a new Model instance.
+		 */
+		void setModel(std::shared_ptr<Model> m) {
+			model = std::move(m);
+		}
+
 	   private:
 		Transform loadData() const;
 		void saveData(const Transform &t) const;

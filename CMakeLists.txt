@@ -65,6 +65,14 @@ endif()
 include(FetchContent)
 
 FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG        master
+  GIT_SHALLOW    ON
+)
+FetchContent_MakeAvailable(stb)
+
+FetchContent_Declare(
   inih
   GIT_REPOSITORY https://github.com/benhoyt/inih.git
   GIT_TAG r60
@@ -281,6 +289,10 @@ add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 target_include_directories(inih PUBLIC
   ${inih_SOURCE_DIR}
   ${inih_SOURCE_DIR}/cpp
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${stb_SOURCE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

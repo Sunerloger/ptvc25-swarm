@@ -28,8 +28,8 @@ namespace vk {
 
 		// defaults
 		t.pos = {89.9749f, -92.3596f, -97.9395f};
-		t.rot = {0.504159f, 0.495496f, 0.498390f, 0.501947f};  // w,x,y,z
-		t.scale = {182.921f, 182.921f, 182.921f};
+		t.rot = {0.0f, 0.0f, 0.0f, 0.0f};
+		t.scale = {5.0f, 5.0f, 5.0};
 
 		if (reader.ParseError() < 0)
 			return t;

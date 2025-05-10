@@ -9,7 +9,10 @@
 #include "scene/SceneManager.h"
 
 #include "rendering/materials/CubemapMaterial.h"
-#include "rendering/structures/SkyBox.h"
+#include "rendering/structures/Skybox.h"
+
+#define STB_EASY_FONT_IMPLEMENTATION
+#include "stb_easy_font.h"
 
 #include "systems/texture_render_system.h"
 #include "systems/ui_render_system.h"

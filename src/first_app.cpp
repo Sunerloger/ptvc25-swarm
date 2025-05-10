@@ -7,6 +7,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #include <glm/gtx/string_cast.hpp>
+#include "ui/Font.h"
+#include "ui/TextComponent.h"
 
 namespace vk {
 
@@ -73,6 +75,10 @@ namespace vk {
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
 		controls::KeyboardPlacementController placementController;
+		// Create a clock text component (updates each second)
+		Font font;
+		TextComponent* clockText = new TextComponent(*device, font, "Time: 0", "clock", false);
+		sceneManager->addUIObject(std::unique_ptr<UIComponent>(clockText));
 
 		auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = startTime;
@@ -287,14 +293,14 @@ namespace vk {
 
 		UIComponentCreationSettings hudSettings{};
 
-		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
-		hudSettings.name = "gray_quad";
-		hudSettings.controllable = false;
-		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+		// hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
+		// hudSettings.name = "gray_quad";
+		// hudSettings.controllable = false;
+		// sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
-		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
-		hudSettings.name = "damaged_helmet";
-		hudSettings.controllable = true;
-		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+		// hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
+		// hudSettings.name = "damaged_helmet";
+		// hudSettings.controllable = false;
+		// sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }
