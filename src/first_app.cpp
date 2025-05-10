@@ -101,17 +101,18 @@ namespace vk {
 				int newSecond = static_cast<int>(gameTimer);
 				if (engineSettings.debugTime && newSecond > currentSecond) {
 					currentSecond = newSecond;
-					// Debug: std::cout << "Time since start: " << currentSecond << "s" << std::endl;
+					std::cout << "Time since start: " << currentSecond << "s" << std::endl;
 				}
 				movementController.handleRotation(window->getGLFWWindow(), *sceneManager->getPlayer());
 				MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
-				while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
+
+				for (int subSteps = 0; physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime && subSteps < engineSettings.maxPhysicsSubSteps; subSteps++) {
 					physicsSimulation->preSimulation(movementIntent);
 					physicsSimulation->simulate();
 					physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
 				}
-
+				physicsTimeAccumulator = glm::min(physicsTimeAccumulator, engineSettings.cPhysicsDeltaTime);
 			}
 
 			float aspect = renderer->getAspectRatio();
@@ -143,6 +144,7 @@ namespace vk {
 				clearRect.baseArrayLayer = 0;
 				clearRect.layerCount = 1;
 
+				// write values directly into color/depth attachments for ui drawing
 				vkCmdClearAttachments(
 					frameInfo.commandBuffer,
 					1,
@@ -151,6 +153,7 @@ namespace vk {
 					&clearRect);
 
 				uiRenderSystem.renderGameObjects(frameInfo);
+
 				renderer->endSwapChainRenderPass(commandBuffer);
 				renderer->endFrame();
 			}
@@ -164,9 +167,6 @@ namespace vk {
 				windowHeight = windowHeight2;
 				renderer->recreateSwapChain();
 			}
-
-			// TODO use fences / semaphores instead (next line forces sync of cpu and gpu and heavily impacts performance):
-			vkDeviceWaitIdle(device->device());
 		}
 	}
 
@@ -253,7 +253,7 @@ namespace vk {
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 		shared_ptr<Model> enemyModel = Model::createModelFromFile(*device, "models:CesiumMan.glb");
 
-		for (int i = 0; i < 15; ++i) {
+		for (int i = 0; i < 50; ++i) {
 
 			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
 
@@ -283,7 +283,7 @@ namespace vk {
 
 			sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
 
-			sprinterCreationSettings->position = RVec3(i + 10.0f, 15.0f, 10.0f);
+			sprinterCreationSettings->position = RVec3(0.1 * i + 10.0f, 15.0f, 10.0f);
 
 
 

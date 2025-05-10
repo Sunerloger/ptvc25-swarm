@@ -25,6 +25,10 @@ namespace vk {
 
         static void cleanupResources(Device& device);
 
+        static int s_id;
+
+        int getID() const override;
+
     private:
         void createCubemapFromFaces(const std::array<std::string, 6>& facePaths);
         void createCubemapFromSingleImage(const std::string& imagePath, bool isHorizontalStrip);

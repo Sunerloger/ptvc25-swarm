@@ -60,6 +60,10 @@ namespace vk {
         
         static void cleanupResources(Device& device);
 
+        static int s_id;
+
+        int getID() const override;
+
     private:
         void createTextureImage(const std::string& texturePath);
         void createHeightmapImage(const std::string& heightmapPath);

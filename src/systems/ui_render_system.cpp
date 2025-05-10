@@ -9,6 +9,9 @@ namespace vk {
 	}
 
 	UIRenderSystem::~UIRenderSystem() {
+		// wait for the device to finish operations before destroying resources
+		vkDeviceWaitIdle(device.device());
+		
 		for (auto& [key, layout] : pipelineLayoutCache) {
 			vkDestroyPipelineLayout(device.device(), layout, nullptr);
 		}

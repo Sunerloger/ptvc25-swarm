@@ -16,17 +16,17 @@ namespace vk {
 		Renderer& operator=(const Renderer&) = delete;
 
 		VkRenderPass getSwapChainRenderPass() const {
-			return swapChain->getRenderPass();
+			return m_swapChain->getRenderPass();
 		}
 		float getAspectRatio() const {
-			return swapChain->extentAspectRatio();
+			return m_swapChain->extentAspectRatio();
 		}
 		bool isFrameInProgress() const {
 			return isFrameStarted;
 		}
 		VkCommandBuffer getCurrentCommandBuffer() const {
 			assert(isFrameStarted && "Cannot get command buffer when frame not in progress.");
-			return commandBuffers[currentFrameIndex];
+			return m_commandBuffers[currentFrameIndex];
 		}
 
 		VkCommandBuffer beginFrame();
@@ -40,14 +40,16 @@ namespace vk {
 		}
 		void recreateSwapChain();
 
-	   private:
-		void createCommandBuffers();
-		void freeCommandBuffers();
+	private:
+		void createFramePools();
+		void allocateCommandBuffers();
+		void freeFramePoolsAndCommandBuffers();
 
 		Window& window;
 		Device& device;
-		std::unique_ptr<SwapChain> swapChain;
-		std::vector<VkCommandBuffer> commandBuffers;
+		std::unique_ptr<SwapChain> m_swapChain;
+		std::vector<VkCommandPool> m_framePools;
+		std::vector<VkCommandBuffer> m_commandBuffers;
 
 		uint32_t currentImageIndex;
 		int currentFrameIndex{0};

@@ -28,6 +28,10 @@ namespace vk {
         virtual VkDescriptorSet getDescriptorSet() const = 0;
         virtual VkDescriptorSetLayout getDescriptorSetLayout() const = 0;
 
+        virtual int getID() const = 0;
+
+        static int s_nextID;
+
     protected:
         Device& device;
         PipelineConfigInfo pipelineConfig{};  // Initialize in-place

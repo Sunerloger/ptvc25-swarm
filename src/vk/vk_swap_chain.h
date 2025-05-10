@@ -61,7 +61,9 @@ namespace vk {
 				   swapChain.swapChainImageFormat == swapChainImageFormat;
 		}
 
-	   private:
+		void waitForAllFences() const;
+
+		  private:
 		void createSwapChain();
 		void createImageViews();
 		void createDepthResources();

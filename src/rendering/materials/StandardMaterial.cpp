@@ -14,9 +14,16 @@ namespace vk {
     std::unique_ptr<DescriptorPool> StandardMaterial::descriptorPool;
     std::unique_ptr<DescriptorSetLayout> StandardMaterial::descriptorSetLayout;
     int StandardMaterial::instanceCount = 0;
+    int StandardMaterial::s_id = -1;
 
     StandardMaterial::StandardMaterial(Device& device, const std::string& texturePath)
         : Material(device) {
+
+        if (s_id == -1) {
+            s_id = Material::s_nextID;
+            Material::s_nextID++;
+        }
+
         // Increment instance count
         instanceCount++;
         
@@ -34,6 +41,12 @@ namespace vk {
     StandardMaterial::StandardMaterial(Device& device, const std::string& texturePath,
                                      const std::string& vertShaderPath, const std::string& fragShaderPath)
         : Material(device) {
+
+        if (s_id == -1) {
+            s_id = Material::s_nextID;
+            Material::s_nextID++;
+        }
+
         // Increment instance count
         instanceCount++;
         
@@ -51,6 +64,12 @@ namespace vk {
     StandardMaterial::StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
                                      int width, int height, int channels)
         : Material(device) {
+
+        if (s_id == -1) {
+            s_id = Material::s_nextID;
+            Material::s_nextID++;
+        }
+
         // Increment instance count
         instanceCount++;
         
@@ -71,6 +90,12 @@ namespace vk {
                                      int width, int height, int channels,
                                      const std::string& vertShaderPath, const std::string& fragShaderPath)
         : Material(device) {
+
+        if (s_id == -1) {
+            s_id = Material::s_nextID;
+            Material::s_nextID++;
+        }
+
         // Increment instance count
         instanceCount++;
         
@@ -397,5 +422,9 @@ namespace vk {
         if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
             descriptorSetLayout.reset();
         }
+    }
+
+    int StandardMaterial::getID() const {
+        return s_id;
     }
 }

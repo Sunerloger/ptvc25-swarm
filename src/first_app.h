@@ -47,10 +47,14 @@ namespace vk {
 
 	struct EngineSettings {
 		float cPhysicsDeltaTime = 1.0f / 60.0f;
+		int maxPhysicsSubSteps = 5;
 		float maxFrameTime = 0.01f;
+
 		bool debugTime = true;
 		bool debugPlayer = true;
-		bool debugEnemies = true;
+
+		// be careful with this flag, it heavily impacts performance:
+		bool debugEnemies = false;
 	};
 
 	class FirstApp {

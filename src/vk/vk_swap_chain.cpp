@@ -33,6 +33,8 @@ namespace vk {
 	}
 
 	SwapChain::~SwapChain() {
+		waitForAllFences();
+
 		for (auto imageView : swapChainImageViews) {
 			vkDestroyImageView(device.device(), imageView, nullptr);
 		}
@@ -55,12 +57,21 @@ namespace vk {
 
 		vkDestroyRenderPass(device.device(), renderPass, nullptr);
 
-		// cleanup synchronization objects
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
 			vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
 			vkDestroyFence(device.device(), inFlightFences[i], nullptr);
 		}
+	}
+
+	void SwapChain::waitForAllFences() const {
+		vkWaitForFences(
+			device.device(),
+			static_cast<uint32_t>(inFlightFences.size()),
+			inFlightFences.data(),
+			VK_TRUE,
+			std::numeric_limits<uint64_t>::max()
+		);
 	}
 
 	VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) {
@@ -69,13 +80,13 @@ namespace vk {
 			1,
 			&inFlightFences[currentFrame],
 			VK_TRUE,
-			std::numeric_limits<uint64_t>::max());
+			UINT64_MAX);
 
 		VkResult result = vkAcquireNextImageKHR(
 			device.device(),
 			swapChain,
-			std::numeric_limits<uint64_t>::max(),
-			imageAvailableSemaphores[currentFrame],	 // must be a not signaled semaphore
+			UINT64_MAX,
+			imageAvailableSemaphores[currentFrame],
 			VK_NULL_HANDLE,
 			imageIndex);
 

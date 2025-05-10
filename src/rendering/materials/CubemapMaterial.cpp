@@ -7,8 +7,16 @@
 
 namespace vk {
 
+    int CubemapMaterial::s_id = -1;
+
     CubemapMaterial::CubemapMaterial(Device& device, const std::array<std::string, 6>& facePaths)
         : Material(device) {
+
+        if (s_id == -1) {
+            s_id = Material::s_nextID;
+            Material::s_nextID++;
+        }
+
         // Increment instance count
         instanceCount++;
         
@@ -27,6 +35,12 @@ namespace vk {
 
     CubemapMaterial::CubemapMaterial(Device& device, const std::string& singleImagePath, bool isHorizontalStrip)
         : Material(device) {
+
+        if (s_id == -1) {
+            s_id = Material::s_nextID;
+            Material::s_nextID++;
+        }
+
         // Increment instance count
         instanceCount++;
         
@@ -153,7 +167,7 @@ namespace vk {
         );
 
         // Transition image layout for all 6 faces from UNDEFINED to TRANSFER_DST_OPTIMAL
-        VkCommandBuffer initialLayoutCmd = device.beginSingleTimeCommands();
+        VkCommandBuffer initialLayoutCmd = device.beginImmediateCommands();
         
         VkImageMemoryBarrier initialBarrier{};
         initialBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -180,10 +194,10 @@ namespace vk {
             1, &initialBarrier
         );
         
-        device.endSingleTimeCommands(initialLayoutCmd);
+        device.endImmediateCommands(initialLayoutCmd);
 
         // Copy buffer to image
-        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands();
+        VkCommandBuffer commandBuffer = device.beginImmediateCommands();
 
         VkBufferImageCopy regions[6];
         for (int i = 0; i < 6; i++) {
@@ -211,11 +225,11 @@ namespace vk {
             regions
         );
 
-        device.endSingleTimeCommands(commandBuffer);
+        device.endImmediateCommands(commandBuffer);
 
         // Transition to shader read layout for all 6 faces
         // We need to do this manually since the device helper only transitions one layer
-        VkCommandBuffer layoutTransitionCmd = device.beginSingleTimeCommands();
+        VkCommandBuffer layoutTransitionCmd = device.beginImmediateCommands();
         
         VkImageMemoryBarrier finalBarrier{};
         finalBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -242,7 +256,7 @@ namespace vk {
             1, &finalBarrier
         );
         
-        device.endSingleTimeCommands(layoutTransitionCmd);
+        device.endImmediateCommands(layoutTransitionCmd);
 
         // Clean up staging buffer
         vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
@@ -404,7 +418,7 @@ namespace vk {
         );
 
         // Transition image layout for all 6 faces from UNDEFINED to TRANSFER_DST_OPTIMAL
-        VkCommandBuffer singleImageInitialCmd = device.beginSingleTimeCommands();
+        VkCommandBuffer singleImageInitialCmd = device.beginImmediateCommands();
         
         VkImageMemoryBarrier singleImageBarrier{};
         singleImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -431,10 +445,10 @@ namespace vk {
             1, &singleImageBarrier
         );
         
-        device.endSingleTimeCommands(singleImageInitialCmd);
+        device.endImmediateCommands(singleImageInitialCmd);
 
         // Copy buffer to image
-        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands();
+        VkCommandBuffer commandBuffer = device.beginImmediateCommands();
 
         VkBufferImageCopy regions[6];
         for (int i = 0; i < 6; i++) {
@@ -462,11 +476,11 @@ namespace vk {
             regions
         );
 
-        device.endSingleTimeCommands(commandBuffer);
+        device.endImmediateCommands(commandBuffer);
 
         // Transition to shader read layout for all 6 faces
         // We need to do this manually since the device helper only transitions one layer
-        VkCommandBuffer singleImageLayoutCmd = device.beginSingleTimeCommands();
+        VkCommandBuffer singleImageLayoutCmd = device.beginImmediateCommands();
         
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -493,7 +507,7 @@ namespace vk {
             1, &barrier
         );
         
-        device.endSingleTimeCommands(singleImageLayoutCmd);
+        device.endImmediateCommands(singleImageLayoutCmd);
 
         // Clean up staging buffer
         vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
@@ -572,6 +586,9 @@ namespace vk {
     }
 
     void CubemapMaterial::cleanupResources(Device& device) {
+        // wait for the device to finish operations before destroying resources
+        vkDeviceWaitIdle(device.device());
+        
         if (descriptorPool) {
             descriptorPool->resetPool();
             descriptorPool.reset();
@@ -580,5 +597,9 @@ namespace vk {
         if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
             descriptorSetLayout.reset();
         }
+    }
+
+    int CubemapMaterial::getID() const {
+        return s_id;
     }
 }
