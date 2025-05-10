@@ -26,12 +26,16 @@ namespace vk {
 
 		outVertices.clear();
 		outIndices.clear();
-		if (quadCount <= 0) return;
+		if (quadCount <= 0)
+			return;
 		// Each quad -> two triangles -> 6 vertices
 		outVertices.reserve(static_cast<size_t>(quadCount) * 6);
 
 		// Raw vertex layout: x,y,z + 4-byte color = 16 bytes per vertex
-		struct RawVert { float x, y, z; unsigned char r, g, b, a; };
+		struct RawVert {
+			float x, y, z;
+			unsigned char r, g, b, a;
+		};
 		RawVert *vbuf = reinterpret_cast<RawVert *>(buffer.data());
 		// Triangulate quads
 		for (int q = 0; q < quadCount; ++q) {
@@ -39,8 +43,7 @@ namespace vk {
 			auto makeVert = [&](int idx) {
 				RawVert &rv = vbuf[idx];
 				Model::Vertex vert{};
-				// Flip Y because stb_easy_font y increases downward
-				vert.position = glm::vec3(rv.x * scale, -rv.y * scale, 0.0f);
+				vert.position = glm::vec3(rv.x * scale, rv.y * scale, 0.0f);
 				vert.color = glm::vec3(1.0f);
 				vert.normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				vert.uv = glm::vec2(0.0f);
