@@ -43,7 +43,7 @@ namespace vk {
 			auto makeVert = [&](int idx) {
 				RawVert &rv = vbuf[idx];
 				Model::Vertex vert{};
-				vert.position = glm::vec3(rv.x * scale, rv.y * scale, 0.0f);
+				vert.position = glm::vec3(rv.x * scale, -rv.y * scale, 0.0f);
 				vert.color = glm::vec3(1.0f);
 				vert.normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				vert.uv = glm::vec2(0.0f);

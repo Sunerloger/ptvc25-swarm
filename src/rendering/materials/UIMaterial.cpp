@@ -36,6 +36,7 @@ namespace vk {
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
 		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 	}
 
 	UIMaterial::UIMaterial(Device& device, const std::string& texturePath,
@@ -60,6 +61,7 @@ namespace vk {
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
 		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 	}
 
 	UIMaterial::UIMaterial(Device& device, const std::vector<unsigned char>& imageData,
@@ -86,6 +88,7 @@ namespace vk {
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
 		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 	}
 
 	UIMaterial::UIMaterial(Device& device, const std::vector<unsigned char>& imageData,

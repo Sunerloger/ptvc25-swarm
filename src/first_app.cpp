@@ -130,7 +130,7 @@ namespace vk {
 				GlobalUbo ubo{};
 				ubo.projection = sceneManager->getPlayer()->getProjMat();
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
-				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 200.0f);
+				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 500.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
@@ -293,14 +293,14 @@ namespace vk {
 
 		UIComponentCreationSettings hudSettings{};
 
-		// hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
-		// hudSettings.name = "gray_quad";
-		// hudSettings.controllable = false;
-		// sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
+		hudSettings.name = "gray_quad";
+		hudSettings.controllable = false;
+		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
-		// hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
-		// hudSettings.name = "damaged_helmet";
-		// hudSettings.controllable = false;
-		// sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
+		hudSettings.name = "damaged_helmet";
+		hudSettings.controllable = true;
+		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }
