@@ -300,6 +300,11 @@ namespace vk {
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:DamagedHelmet.glb", true);
 		hudSettings.name = "damaged_helmet";
+		hudSettings.controllable = false;
+		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		hudSettings.model = Model::createModelFromFile(*device, "models:USPS.glb", true);
+		hudSettings.name = "usps";
 		hudSettings.controllable = true;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}

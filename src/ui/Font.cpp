@@ -37,26 +37,27 @@ namespace vk {
 			unsigned char r, g, b, a;
 		};
 		RawVert *vbuf = reinterpret_cast<RawVert *>(buffer.data());
-		// Triangulate quads
+		// Triangulate quads (invert winding after Y flip to preserve front-facing order)
 		for (int q = 0; q < quadCount; ++q) {
 			int base = q * 4;
 			auto makeVert = [&](int idx) {
 				RawVert &rv = vbuf[idx];
 				Model::Vertex vert{};
+				// Flip Y axis to correct upside-down text
 				vert.position = glm::vec3(rv.x * scale, -rv.y * scale, 0.0f);
 				vert.color = glm::vec3(1.0f);
 				vert.normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				vert.uv = glm::vec2(0.0f);
 				return vert;
 			};
-			// Triangle 1
+			// Triangle 1 (reverse winding)
 			outVertices.push_back(makeVert(base + 0));
+			outVertices.push_back(makeVert(base + 2));
 			outVertices.push_back(makeVert(base + 1));
-			outVertices.push_back(makeVert(base + 2));
-			// Triangle 2
+			// Triangle 2 (reverse winding)
 			outVertices.push_back(makeVert(base + 0));
-			outVertices.push_back(makeVert(base + 2));
 			outVertices.push_back(makeVert(base + 3));
+			outVertices.push_back(makeVert(base + 2));
 		}
 	}
 
