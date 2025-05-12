@@ -1,6 +1,7 @@
 // UIComponent.cpp
 #include "UIComponent.h"
 #include "INIReader.h"
+#include <GLFW/glfw3.h>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -13,10 +14,21 @@ namespace vk {
 		  name(std::move(settings.name)),
 		  controllable(settings.controllable) {
 		// on construction: if controllable, ensure an .ini entry exists
-		if (controllable) {
-			Transform t = loadData();  // will write defaults if missing
-			saveData(t);
-		}
+       // Store settings
+       window = settings.window;
+       anchorRight = settings.anchorRight;
+       // on construction: if controllable, ensure an .ini entry exists
+       if (controllable) {
+           Transform t = loadData();  // will write defaults if missing
+           saveData(t);
+       }
+       // Compute initial offset-from-right for anchored components
+       if (anchorRight && window) {
+           Transform t = loadData();
+           int w, h;
+           glfwGetFramebufferSize(window, &w, &h);
+           offsetFromRight = static_cast<float>(w) - t.pos.x;
+       }
 	}
 
 	Transform UIComponent::loadData() const {
@@ -90,7 +102,14 @@ namespace vk {
 
 	glm::mat4 UIComponent::computeModelMatrix() const {
 		Transform t = loadData();
-		glm::mat4 T = glm::translate(glm::mat4(1.0f), t.pos);
+		// Handle optional anchoring to right edge
+		glm::vec3 pos = t.pos;
+		if (anchorRight && window) {
+			int w, h;
+			glfwGetFramebufferSize(window, &w, &h);
+			pos.x = static_cast<float>(w) - offsetFromRight;
+		}
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
 		glm::mat4 R = glm::toMat4(t.rot);
 		glm::mat4 S = glm::scale(glm::mat4(1.0f), t.scale);
 		return T * R * S;

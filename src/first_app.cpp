@@ -303,9 +303,13 @@ namespace vk {
 		hudSettings.controllable = false;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
-		hudSettings.model = Model::createModelFromFile(*device, "models:USPS.glb", true);
-		hudSettings.name = "usps";
-		hudSettings.controllable = true;
-		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+           // Add USPS UI, anchored to right
+           hudSettings.model = Model::createModelFromFile(*device, "models:USPS.glb", true);
+           hudSettings.name = "usps";
+           hudSettings.controllable = true;
+           // Set window for anchoring and anchor from right edge
+           hudSettings.window = window->getGLFWWindow();
+           hudSettings.anchorRight = true;
+           sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }

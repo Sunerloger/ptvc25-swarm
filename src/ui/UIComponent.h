@@ -7,6 +7,8 @@
 #include "../GameObject.h"
 #include <memory>
 #include <string>
+// For dynamic anchoring of UI components
+#include <GLFW/glfw3.h>
 
 namespace vk {
 
@@ -16,12 +18,16 @@ namespace vk {
 		glm::vec3 scale;
 	};
 
-	class UIComponentCreationSettings {
-	   public:
-		std::shared_ptr<Model> model;
-		std::string name;
-		bool controllable = false;
-	};
+   class UIComponentCreationSettings {
+   public:
+       std::shared_ptr<Model> model;
+       std::string name;
+       bool controllable = false;
+       // Optional window handle for anchoring
+       GLFWwindow* window = nullptr;
+       // If true, position.x is interpreted relative to right edge
+       bool anchorRight = false;
+   };
 
 	class UIComponent : public GameObject {
 	   public:
@@ -49,13 +55,19 @@ namespace vk {
 			model = std::move(m);
 		}
 
-	   private:
-		Transform loadData() const;
-		void saveData(const Transform &t) const;
+   private:
+       // Load/write transform (pos, rot, scale) from INI
+       Transform loadData() const;
+       void saveData(const Transform &t) const;
 
-		std::shared_ptr<Model> model;
-		std::string name;
-		bool controllable;
+       std::shared_ptr<Model> model;
+       std::string name;
+       bool controllable;
+       // Optional window handle for dynamic anchoring
+       GLFWwindow* window = nullptr;
+       // If true, pos.x is anchored from right edge using offsetFromRight
+       bool anchorRight = false;
+       float offsetFromRight = 0.0f;
 	};
 
 }  // namespace vk
