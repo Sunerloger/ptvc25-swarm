@@ -14,21 +14,21 @@ namespace vk {
 		  name(std::move(settings.name)),
 		  controllable(settings.controllable) {
 		// on construction: if controllable, ensure an .ini entry exists
-       // Store settings
-       window = settings.window;
-       anchorRight = settings.anchorRight;
-       // on construction: if controllable, ensure an .ini entry exists
-       if (controllable) {
-           Transform t = loadData();  // will write defaults if missing
-           saveData(t);
-       }
-       // Compute initial offset-from-right for anchored components
-       if (anchorRight && window) {
-           Transform t = loadData();
-           int w, h;
-           glfwGetFramebufferSize(window, &w, &h);
-           offsetFromRight = static_cast<float>(w) - t.pos.x;
-       }
+		// Store settings
+		window = settings.window;
+		anchorRight = settings.anchorRight;
+		// on construction: if controllable, ensure an .ini entry exists
+		if (controllable) {
+			Transform t = loadData();  // will write defaults if missing
+			saveData(t);
+		}
+		// Compute initial offset-from-right for anchored components
+		if (anchorRight && window) {
+			Transform t = loadData();
+			int w, h;
+			glfwGetFramebufferSize(window, &w, &h);
+			offsetFromRight = static_cast<float>(w) - t.pos.x;
+		}
 	}
 
 	Transform UIComponent::loadData() const {
@@ -187,6 +187,12 @@ namespace vk {
 				break;
 		}
 
+		if (anchorRight && window) {
+			Transform t = loadData();
+			int w, h;
+			glfwGetFramebufferSize(window, &w, &h);
+			offsetFromRight = static_cast<float>(w) - t.pos.x;
+		}
 		saveData(t);
 	}
 
