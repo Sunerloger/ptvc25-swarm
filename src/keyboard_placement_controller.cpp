@@ -1,8 +1,5 @@
 #include "keyboard_placement_controller.h"
 
-#include <iostream>
-#include <fstream>
-
 namespace controls {
 
 	int KeyboardPlacementController::updateModelMatrix(GLFWwindow* window) {

@@ -2,7 +2,6 @@
 #include "../../asset_utils/AssetManager.h"
 #include "../../vk/vk_utils.hpp"
 
-// Include stb_image without the implementation
 #include "stb_image.h"
 
 #include <stdexcept>
@@ -185,7 +184,6 @@ namespace vk {
 		void* data;
 		vkMapMemory(device.device(), stagingBufferMemory, 0, imageSize, 0, &data);
 
-		// Simple copy without rotation - we'll fix the UV coordinates instead
 		memcpy(data, imageData, static_cast<size_t>(imageSize));
 
 		vkUnmapMemory(device.device(), stagingBufferMemory);

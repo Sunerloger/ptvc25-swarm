@@ -6,40 +6,40 @@
 #include "vk/vk_descriptors.h"
 #include "vk/vk_buffer.h"
 
-#include "scene/SceneManager.h"
-
-#include "rendering/materials/CubemapMaterial.h"
-#include "rendering/structures/Skybox.h"
-
-#define STB_EASY_FONT_IMPLEMENTATION
-#include "stb_easy_font.h"
-
-#include "systems/texture_render_system.h"
-#include "systems/ui_render_system.h"
-#include "systems/tessellation_render_system.h"
-
-#include "rendering/materials/TessellationMaterial.h"
-
-#include "keyboard_movement_controller.h"
-#include "keyboard_placement_controller.h"
-#include "keyboard_menu_controller.h"
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "tiny_obj_loader.h"
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Character/Character.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 #include "simulation/objects/actors/Player.h"
 #include "simulation/PhysicsSimulation.h"
 #include "simulation/objects/static/Terrain.h"
 #include "simulation/objects/actors/enemies/Sprinter.h"
 
+#include "ui/Font.h"
+#include "ui/TextComponent.h"
 #include "ui/UIComponent.h"
 
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Character/Character.h>
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include "systems/texture_render_system.h"
+#include "systems/ui_render_system.h"
+#include "systems/tessellation_render_system.h"
+
+#include "keyboard_movement_controller.h"
+#include "keyboard_placement_controller.h"
+#include "keyboard_menu_controller.h"
+
+#include "scene/SceneManager.h"
+
+#include "rendering/materials/CubemapMaterial.h"
+#include "rendering/materials/TessellationMaterial.h"
+#include "rendering/structures/Skybox.h"
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "glm/glm.hpp"
+#include <glm/gtx/string_cast.hpp>
+
+#include "tiny_obj_loader.h"
 
 namespace vk {
 
@@ -51,9 +51,9 @@ namespace vk {
 	struct EngineSettings {
 		float cPhysicsDeltaTime = 1.0f / 60.0f;
 		float maxFrameTime = 0.01f;
-		bool debugTime = true;
-		bool debugPlayer = true;
-		bool debugEnemies = true;
+		bool debugTime = false;
+		bool debugPlayer = false;
+		bool debugEnemies = false;
 	};
 
 	class FirstApp {

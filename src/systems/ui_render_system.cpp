@@ -1,7 +1,3 @@
-#include "texture_render_system.h"
-#include <stdexcept>
-#include <vector>
-#include <algorithm>
 #include "ui_render_system.h"
 
 namespace vk {

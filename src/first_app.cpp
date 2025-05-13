@@ -1,14 +1,4 @@
 #include "first_app.h"
-#include "INIReader.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#include <glm/gtx/string_cast.hpp>
-#include "ui/Font.h"
-#include "ui/TextComponent.h"
 
 namespace vk {
 
@@ -75,7 +65,8 @@ namespace vk {
 		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		controls::KeyboardMovementController movementController{applicationSettings.windowWidth, applicationSettings.windowHeight};
 		controls::KeyboardPlacementController placementController;
-		// Create a clock text component (updates each second)
+
+		// TODO: update every second
 		Font font;
 		TextComponent* clockText = new TextComponent(*device, font, "Time: 0", "clock", false);
 		sceneManager->addUIObject(std::unique_ptr<UIComponent>(clockText));
@@ -103,13 +94,16 @@ namespace vk {
 			sceneManager->updateUITransforms(deltaTime, placementTransform);
 
 			if (!menuController->isMenuOpen()) {
+				// Time
 				physicsTimeAccumulator += deltaTime;
 				gameTimer += deltaTime;
 				int newSecond = static_cast<int>(gameTimer);
 				if (engineSettings.debugTime && newSecond > currentSecond) {
 					currentSecond = newSecond;
-					// Debug: std::cout << "Time since start: " << currentSecond << "s" << std::endl;
+					std::cout << "Time since start: " << currentSecond << "s" << std::endl;
 				}
+
+				// Movement
 				movementController.handleRotation(window->getGLFWWindow(), *sceneManager->getPlayer());
 				MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
 				while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
@@ -120,6 +114,7 @@ namespace vk {
 				}
 			}
 
+			// Camera
 			float aspect = renderer->getAspectRatio();
 			sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
 
@@ -193,7 +188,6 @@ namespace vk {
 		// Extract the model and height data
 		auto& heightData = result.second;
 
-		// 2m player
 		float playerHeight = 1.40f;
 		float playerRadius = 0.3f;
 		Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
@@ -220,6 +214,7 @@ namespace vk {
 		sceneManager->setPlayer(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem()));
 		sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), (float) (window->getWidth() / window->getHeight()), 0.1f, 100.0f);
 
+		// Terrain
 		// Create a terrain with procedural heightmap using Perlin noise
 		// Parameters: physics_system, color, model, position, scale, samplesPerSide, noiseScale, heightScale
 		// Create a terrain with our generated heightmap data
@@ -230,10 +225,9 @@ namespace vk {
 			glm::vec3{0.0, -2.0, 0.0},				 // Position slightly below origin to prevent falling through
 			glm::vec3{500.0f, heightScale, 500.0f},	 // Larger size and taller
 			heightData);
-
 		sceneManager->addTessellationObject(std::move(terrain));
 
-		// add skybox to scene
+		// Skybox
 		std::array<std::string, 6> cubemapFaces = {
 			"textures:skybox/learnopengl/right.jpg",
 			"textures:skybox/learnopengl/left.jpg",
@@ -241,48 +235,30 @@ namespace vk {
 			"textures:skybox/learnopengl/bottom.jpg",
 			"textures:skybox/learnopengl/front.jpg",
 			"textures:skybox/learnopengl/back.jpg"};
-
 		auto skybox = std::make_unique<Skybox>(*device, cubemapFaces);
-
 		sceneManager->addSpectralObject(std::move(skybox));
 
-		// TODO add enemies back in
-		// this must fit the model
-
+		// Enemies
 		float enemyHullHeight = 1.25f;
-
 		float enemyRadius = 0.3f;
-
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 		shared_ptr<Model> enemyModel = Model::createModelFromFile(*device, "models:CesiumMan.glb");
-
 		for (int i = 0; i < 15; ++i) {
 			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
-
 			std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
-
 			sprinterSettings->model = enemyModel;
 
 			std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
-
 			enemyCharacterSettings->mLayer = physics::Layers::MOVING;
-
 			enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // Accept contacts that touch the lower sphere of the capsule
-
 			enemyCharacterSettings->mFriction = 10.0f;
-
 			enemyCharacterSettings->mShape = enemyShape;
-
 			enemyCharacterSettings->mGravityFactor = 1.0f;
 
 			std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
-
 			sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
-
 			sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
-
 			sprinterCreationSettings->position = RVec3(i + 10.0f, 15.0f, 10.0f);
-
 			sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation->getPhysicsSystem())));
 		}
 
@@ -291,8 +267,8 @@ namespace vk {
 		float windowWidth = static_cast<float>(fbWidth);
 		float windowHeight = static_cast<float>(fbHeight);
 
+		// UI
 		UIComponentCreationSettings hudSettings{};
-
 		hudSettings.model = Model::createModelFromFile(*device, "models:gray_quad.glb", true);
 		hudSettings.name = "gray_quad";
 		hudSettings.controllable = false;

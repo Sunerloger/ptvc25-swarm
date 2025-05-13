@@ -1,6 +1,4 @@
 #include "Font.h"
-#include "stb_easy_font.h"
-#include <cstring>
 
 namespace vk {
 
@@ -13,8 +11,6 @@ namespace vk {
 		std::vector<Model::Vertex> &outVertices,
 		std::vector<uint32_t> &outIndices,
 		float scale) const {
-		// Build text mesh using stb_easy_font
-		// Allocate a buffer (~270 bytes per character)
 		int max_buffer_size = static_cast<int>(text.size()) * 270 + 100;
 		std::vector<char> buffer(max_buffer_size);
 		// Generate quad segments (4 vertices each)

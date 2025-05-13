@@ -4,9 +4,14 @@
 #include "../vk/vk_frame_info.h"
 #include "../vk/vk_device.h"
 #include "../rendering/materials/Material.h"
+#include "texture_render_system.h"
 
+#include <stdexcept>
+#include <vector>
+#include <algorithm>
 #include <memory>
 #include <unordered_map>
+
 #include <glm/glm.hpp>
 
 namespace vk {

@@ -1,12 +1,4 @@
-// UIComponent.cpp
 #include "UIComponent.h"
-#include "INIReader.h"
-#include <GLFW/glfw3.h>
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-#include <glm/gtx/quaternion.hpp>
-#include <iostream>
 
 namespace vk {
 
@@ -14,14 +6,11 @@ namespace vk {
 		: model(std::move(settings.model)),
 		  name(std::move(settings.name)),
 		  controllable(settings.controllable) {
-		// on construction: if controllable, ensure an .ini entry exists
-		// Store settings
 		window = settings.window;
 		anchorRight = settings.anchorRight;
 		anchorBottom = settings.anchorBottom;
-		// on construction: if controllable, ensure an .ini entry exists
 		if (controllable) {
-			Transform t = loadData();  // will write defaults if missing
+			Transform t = loadData();
 			saveData(t);
 		}
 		if ((anchorRight || anchorBottom) && window) {
@@ -53,19 +42,16 @@ namespace vk {
 		if (reader.Get(section, "pos", "") == "")
 			return t;
 
-		// parse pos
 		{
 			std::stringstream ss(reader.Get(section, "pos", ""));
 			char c;
 			ss >> t.pos.x >> c >> t.pos.y >> c >> t.pos.z;
 		}
-		// parse rot
 		{
 			std::stringstream ss(reader.Get(section, "rot", ""));
 			char c;
 			ss >> t.rot.x >> c >> t.rot.y >> c >> t.rot.z >> c >> t.rot.w;
 		}
-		// parse scale
 		{
 			std::stringstream ss(reader.Get(section, "scale", ""));
 			char c;
@@ -77,7 +63,6 @@ namespace vk {
 	void UIComponent::saveData(const Transform &t) const {
 		auto iniPath = std::filesystem::current_path() / "ui_placements.ini";
 
-		// read all lines except our section
 		std::vector<std::string> lines;
 		std::ifstream ifs(iniPath);
 		std::string header = "[UIComponent_" + name + "]";
@@ -95,7 +80,6 @@ namespace vk {
 		}
 		ifs.close();
 
-		// write back + our section
 		std::ofstream ofs(iniPath, std::ios::trunc);
 		for (auto &l : lines) ofs << l << "\n";
 
@@ -114,13 +98,10 @@ namespace vk {
 			glfwGetFramebufferSize(window, &w, &h);
 
 			if (anchorRight) {
-				// keep the same margin-from-right on resize:
 				pos.x = w - t.pos.x;
 			}
 			if (anchorBottom) {
-				// keep the same margin-from-bottom on resize:
 				pos.y = t.pos.y - h;
-				std::cout << "pos.y: " << pos.y << std::endl;
 			}
 		}
 

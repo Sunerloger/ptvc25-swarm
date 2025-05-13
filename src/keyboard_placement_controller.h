@@ -2,9 +2,12 @@
 
 #include "vk/vk_window.h"
 #include "vk/vk_frame_info.h"
-
 #include "vk/vk_model.h"
+
 #include <GLFW/glfw3.h>
+
+#include <iostream>
+#include <fstream>
 
 namespace controls {
 	struct PlacementKeyMappings {
