@@ -1,4 +1,5 @@
 #include "UIComponent.h"
+#include "../asset_utils/AssetManager.h"
 
 namespace vk {
 
@@ -9,10 +10,6 @@ namespace vk {
 		window = settings.window;
 		anchorRight = settings.anchorRight;
 		anchorBottom = settings.anchorBottom;
-		if (controllable) {
-			Transform t = loadData();
-			saveData(t);
-		}
 		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
 			int w, h;
@@ -26,8 +23,8 @@ namespace vk {
 	}
 
 	Transform UIComponent::loadData() const {
-		auto iniPath = std::filesystem::current_path() / "ui_placements.ini";
-		INIReader reader(iniPath.string());
+		auto iniPath = vk::AssetManager::getInstance().resolvePath("settings:ui_placements.ini");
+		INIReader reader(iniPath);
 
 		Transform t;
 		std::string section = "UIComponent_" + name;
@@ -61,7 +58,7 @@ namespace vk {
 	}
 
 	void UIComponent::saveData(const Transform &t) const {
-		auto iniPath = std::filesystem::current_path() / "ui_placements.ini";
+		auto iniPath = vk::AssetManager::getInstance().resolvePath("settings:ui_placements.ini", true);
 
 		std::vector<std::string> lines;
 		std::ifstream ifs(iniPath);
