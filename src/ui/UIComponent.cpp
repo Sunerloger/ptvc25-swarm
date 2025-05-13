@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <glm/gtx/quaternion.hpp>
+#include <iostream>
 
 namespace vk {
 
@@ -113,10 +114,13 @@ namespace vk {
 			glfwGetFramebufferSize(window, &w, &h);
 
 			if (anchorRight) {
-				pos.x = float(w) - t.pos.x;
+				// keep the same margin-from-right on resize:
+				pos.x = w - t.pos.x;
 			}
 			if (anchorBottom) {
-				pos.y = float(h) - t.pos.y;
+				// keep the same margin-from-bottom on resize:
+				pos.y = t.pos.y - h;
+				std::cout << "pos.y: " << pos.y << std::endl;
 			}
 		}
 
