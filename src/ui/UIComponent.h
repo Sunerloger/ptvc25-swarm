@@ -18,16 +18,17 @@ namespace vk {
 		glm::vec3 scale;
 	};
 
-   class UIComponentCreationSettings {
-   public:
-       std::shared_ptr<Model> model;
-       std::string name;
-       bool controllable = false;
-       // Optional window handle for anchoring
-       GLFWwindow* window = nullptr;
-       // If true, position.x is interpreted relative to right edge
-       bool anchorRight = false;
-   };
+	class UIComponentCreationSettings {
+	   public:
+		std::shared_ptr<Model> model;
+		std::string name;
+		bool controllable = false;
+		// Optional window handle for anchoring
+		GLFWwindow* window = nullptr;
+		// If true, position.x is interpreted relative to right edge
+		bool anchorRight = false;
+		bool anchorBottom = false;
+	};
 
 	class UIComponent : public GameObject {
 	   public:
@@ -55,19 +56,21 @@ namespace vk {
 			model = std::move(m);
 		}
 
-   private:
-       // Load/write transform (pos, rot, scale) from INI
-       Transform loadData() const;
-       void saveData(const Transform &t) const;
+	   private:
+		// Load/write transform (pos, rot, scale) from INI
+		Transform loadData() const;
+		void saveData(const Transform& t) const;
 
-       std::shared_ptr<Model> model;
-       std::string name;
-       bool controllable;
-       // Optional window handle for dynamic anchoring
-       GLFWwindow* window = nullptr;
-       // If true, pos.x is anchored from right edge using offsetFromRight
-       bool anchorRight = false;
-       float offsetFromRight = 0.0f;
+		std::shared_ptr<Model> model;
+		std::string name;
+		bool controllable;
+		// Optional window handle for dynamic anchoring
+		GLFWwindow* window = nullptr;
+		// If true, pos.x is anchored from right edge using offsetFromRight
+		bool anchorRight = false;
+		float offsetFromRight = 0.0f;
+		bool anchorBottom = false;
+		float offsetFromBottom = 0.0f;
 	};
 
 }  // namespace vk

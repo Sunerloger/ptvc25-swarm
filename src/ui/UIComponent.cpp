@@ -17,17 +17,21 @@ namespace vk {
 		// Store settings
 		window = settings.window;
 		anchorRight = settings.anchorRight;
+		anchorBottom = settings.anchorBottom;
 		// on construction: if controllable, ensure an .ini entry exists
 		if (controllable) {
 			Transform t = loadData();  // will write defaults if missing
 			saveData(t);
 		}
-		// Compute initial offset-from-right for anchored components
-		if (anchorRight && window) {
+		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
 			int w, h;
 			glfwGetFramebufferSize(window, &w, &h);
-			offsetFromRight = static_cast<float>(w) - t.pos.x;
+
+			if (anchorRight)
+				offsetFromRight = static_cast<float>(w) - t.pos.x;
+			if (anchorBottom)
+				offsetFromBottom = static_cast<float>(h) - t.pos.y;
 		}
 	}
 
@@ -102,13 +106,20 @@ namespace vk {
 
 	glm::mat4 UIComponent::computeModelMatrix() const {
 		Transform t = loadData();
-		// Handle optional anchoring to right edge
 		glm::vec3 pos = t.pos;
-		if (anchorRight && window) {
+
+		if (window) {
 			int w, h;
 			glfwGetFramebufferSize(window, &w, &h);
-			pos.x = static_cast<float>(w) - offsetFromRight;
+
+			if (anchorRight) {
+				pos.x = float(w) - t.pos.x;
+			}
+			if (anchorBottom) {
+				pos.y = float(h) - t.pos.y;
+			}
 		}
+
 		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
 		glm::mat4 R = glm::toMat4(t.rot);
 		glm::mat4 S = glm::scale(glm::mat4(1.0f), t.scale);
@@ -187,11 +198,14 @@ namespace vk {
 				break;
 		}
 
-		if (anchorRight && window) {
+		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
 			int w, h;
 			glfwGetFramebufferSize(window, &w, &h);
-			offsetFromRight = static_cast<float>(w) - t.pos.x;
+			if (anchorBottom)
+				offsetFromBottom = static_cast<float>(h) - t.pos.y;
+			if (anchorRight)
+				offsetFromRight = static_cast<float>(w) - t.pos.x;
 		}
 		saveData(t);
 	}
