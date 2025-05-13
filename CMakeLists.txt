@@ -78,15 +78,18 @@ FetchContent_Declare(
   GIT_TAG r60
   GIT_SHALLOW ON
 )
-FetchContent_GetProperties(inih)
-if(NOT inih_POPULATED)
-    FetchContent_Populate(inih)
-endif()
 
+# no cmake support in inih
+FetchContent_Populate(inih)
 add_library(inih STATIC
   ${inih_SOURCE_DIR}/ini.c
   ${inih_SOURCE_DIR}/cpp/INIReader.cpp
 )
+if(MSVC)
+  set_target_properties(inih PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+  )
+endif()
 
 FetchContent_Declare(
     Jolt
@@ -95,10 +98,7 @@ FetchContent_Declare(
     SOURCE_SUBDIR "Build"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(Jolt)
-if(NOT Jolt_POPULATED)
-  FetchContent_MakeAvailable(Jolt)
-endif()
+FetchContent_MakeAvailable(Jolt)
 
 if(MSVC)
   target_compile_options(Jolt PRIVATE
@@ -114,10 +114,7 @@ FetchContent_Declare(
     GIT_TAG "v2.9.5"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(tinygltf)
-if(NOT tinygltf_POPULATED)
-  FetchContent_MakeAvailable(tinygltf)
-endif()
+FetchContent_MakeAvailable(tinygltf)
 
 FetchContent_Declare(
     glm
@@ -125,10 +122,7 @@ FetchContent_Declare(
     GIT_TAG "0.9.9.8"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(glm)
-if(NOT glm_POPULATED)
-  FetchContent_MakeAvailable(glm)
-endif()
+FetchContent_MakeAvailable(glm)
 
 set(GLFW_BUILD_DOCS      OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
@@ -140,12 +134,8 @@ FetchContent_Declare(
     GIT_TAG "3.3.8"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(glfw)
-if(NOT glfw_POPULATED)
-  FetchContent_MakeAvailable(glfw)
-endif()
-
 FetchContent_MakeAvailable(glfw)
+
 if (MSVC)
   # force GLFW to static CRT (/MTd in Debug, /MT in Release/Distribution)
   set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY
@@ -159,10 +149,7 @@ FetchContent_Declare(
     GIT_TAG "v1.0.6"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(tinyobjloader)
-if(NOT tinyobjloader_POPULATED)
-  FetchContent_MakeAvailable(tinyobjloader)
-endif()
+FetchContent_MakeAvailable(tinyobjloader)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
