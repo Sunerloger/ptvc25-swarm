@@ -242,7 +242,7 @@ namespace vk {
 			std::unique_ptr<Model> waterModelUnique = Model::createGridModel(*device, 2);
 			std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(std::move(waterModelUnique));
 			// Create water material (scrolling UV) and assign to model
-			auto waterMaterial = std::make_shared<WaterMaterial>(*device, "textures:skybox/learnopengl/bottom.jpg");
+			auto waterMaterial = std::make_shared<WaterMaterial>(*device, "textures:water.png");
 			waterModel->setMaterial(waterMaterial);
 			// Define a simple GameObject for water
 			class WaterGameObject : public GameObject {
@@ -267,8 +267,8 @@ namespace vk {
 				glm::mat4 transformMat;
 			};
 			// Position and scale the water plane to surround terrain
-			float waterSize = 600.0f;  // a bit larger than terrain extents
-			float waterHeight = 0.0f;  // height of water plane
+			float waterSize = 1000.0f;	// a bit larger than terrain extents
+			float waterHeight = 10.0f;	// height of water plane
 			glm::mat4 waterTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, waterHeight, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(waterSize, 1.0f, waterSize));
 			// Wrap in GameObject pointer for scene management
 			std::unique_ptr<GameObject> waterObject = std::make_unique<WaterGameObject>(waterModel, waterTransform);
