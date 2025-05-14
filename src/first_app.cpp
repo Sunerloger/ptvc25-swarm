@@ -328,7 +328,7 @@ namespace vk {
 
 		hudSettings.model = Model::createModelFromFile(*device, "models:USPS.glb", true);
 		hudSettings.name = "usps";
-		hudSettings.controllable = true;
+		hudSettings.controllable = false;
 		hudSettings.window = window->getGLFWWindow();
 		hudSettings.anchorRight = true;
 		hudSettings.anchorBottom = true;
