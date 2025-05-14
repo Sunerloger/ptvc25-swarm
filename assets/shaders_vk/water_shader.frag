@@ -15,12 +15,14 @@ layout(location = 0) out vec4 outColor;
 layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
+    // UV offset for texture animation
+    vec2 uvOffset;
     int hasTexture;
 } push;
 
 void main() {
-    if (push.hasTexture == 1) {
-        outColor = vec4(fragColor, 1.0) * texture(texSampler, fragUV);
+    if(push.hasTexture == 1) {
+        outColor = texture(texSampler, fragUV);
     } else {
         outColor = vec4(fragColor, 1.0);
     }

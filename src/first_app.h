@@ -21,6 +21,7 @@
 #include "ui/UIComponent.h"
 
 #include "systems/texture_render_system.h"
+#include "systems/water_render_system.h"
 #include "systems/ui_render_system.h"
 #include "systems/tessellation_render_system.h"
 

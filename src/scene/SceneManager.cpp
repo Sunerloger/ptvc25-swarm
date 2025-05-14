@@ -48,6 +48,22 @@ vk::id_t SceneManager::setSun(std::unique_ptr<lighting::Sun> sun) {
 	return scene->sun->getId();
 }
 
+vk::id_t SceneManager::addWaterObject(std::unique_ptr<vk::GameObject> waterObject) {
+	vk::id_t id = waterObject->getId();
+
+	std::weak_ptr<SceneManager> weakThis = shared_from_this();
+	waterObject->setSceneManager(weakThis);
+
+	std::pair result = this->scene->waterObjects.emplace(id, std::move(waterObject));
+
+	if (result.second) {
+		this->idToClass.emplace(id, WATER);
+		return id;
+	} else {
+		return vk::INVALID_OBJECT_ID;
+	}
+}
+
 vk::id_t SceneManager::addSpectralObject(std::unique_ptr<vk::GameObject> spectralObject) {
 	vk::id_t id = spectralObject->getId();
 
@@ -501,6 +517,14 @@ std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
 	}
 
 	return uiObjects;
+}
+// Get water objects for rendering
+std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getWaterObjects() {
+    std::vector<std::weak_ptr<vk::GameObject>> waterObjs;
+    for (auto& it : this->scene->waterObjects) {
+        waterObjs.push_back(it.second);
+    }
+    return waterObjs;
 }
 
 std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> SceneManager::getObject(vk::id_t id) {

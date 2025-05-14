@@ -13,6 +13,8 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
 layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
+    // UV offset for texture animation
+    vec2 uvOffset;
     int hasTexture;
 } push;
 
@@ -21,6 +23,6 @@ layout(location = 1) out vec3 fragColor;
 
 void main() {
     gl_Position = ubo.projection * ubo.view * push.modelMatrix * vec4(position, 1.0);
-    fragUV = uv;
+    fragUV = uv + push.uvOffset;
     fragColor = color;
 }

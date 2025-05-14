@@ -1,4 +1,11 @@
 #include "first_app.h"
+// Needed for transformations and shared pointers
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <memory>
+#include "rendering/materials/WaterMaterial.h"
+#include "rendering/materials/UIMaterial.h"
+#include "rendering/materials/StandardMaterial.h"
 
 namespace vk {
 
@@ -53,11 +60,12 @@ namespace vk {
 		TextureRenderSystem textureRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
-
+		WaterRenderSystem waterRenderSystem{*device,
+			renderer->getSwapChainRenderPass(),
+			globalSetLayout->getDescriptorSetLayout()};
 		TessellationRenderSystem tessellationRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
-
 		UIRenderSystem uiRenderSystem{*device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
@@ -131,6 +139,7 @@ namespace vk {
 
 				renderer->beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
+				waterRenderSystem.renderGameObjects(frameInfo);
 				tessellationRenderSystem.renderGameObjects(frameInfo);
 
 				VkClearAttachment clearAttachment{};
@@ -196,10 +205,10 @@ namespace vk {
 		cameraSettings->cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
 
 		std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
-		playerSettings->movementSpeed = 10.0f;
+		playerSettings->movementSpeed = 100.0f;
 
 		std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-		characterSettings->mGravityFactor = 1.0f;
+		characterSettings->mGravityFactor = 0.0f;
 		characterSettings->mFriction = 10.0f;
 		characterSettings->mShape = characterShape;
 		characterSettings->mLayer = physics::Layers::MOVING;
@@ -226,6 +235,45 @@ namespace vk {
 			glm::vec3{500.0f, heightScale, 500.0f},	 // Larger size and taller
 			heightData);
 		sceneManager->addTessellationObject(std::move(terrain));
+		// Water plane around terrain
+		{
+			// Create a simple grid model for water
+			// Use small grid for water so UV animation is visible
+			std::unique_ptr<Model> waterModelUnique = Model::createGridModel(*device, 2);
+			std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(std::move(waterModelUnique));
+			// Create water material (scrolling UV) and assign to model
+			auto waterMaterial = std::make_shared<WaterMaterial>(*device, "textures:skybox/learnopengl/bottom.jpg");
+			waterModel->setMaterial(waterMaterial);
+			// Define a simple GameObject for water
+			class WaterGameObject : public GameObject {
+			   public:
+				WaterGameObject(std::shared_ptr<Model> m, glm::mat4 transform)
+					: modelPtr(std::move(m)), transformMat(transform) {}
+				glm::mat4 computeModelMatrix() const override {
+					return transformMat;
+				}
+				glm::mat4 computeNormalMatrix() const override {
+					return glm::transpose(glm::inverse(transformMat));
+				}
+				glm::vec3 getPosition() const override {
+					return glm::vec3(transformMat[3]);
+				}
+				std::shared_ptr<Model> getModel() const override {
+					return modelPtr;
+				}
+
+			   private:
+				std::shared_ptr<Model> modelPtr;
+				glm::mat4 transformMat;
+			};
+			// Position and scale the water plane to surround terrain
+			float waterSize = 600.0f;  // a bit larger than terrain extents
+			float waterHeight = 0.0f;  // height of water plane
+			glm::mat4 waterTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, waterHeight, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(waterSize, 1.0f, waterSize));
+			// Wrap in GameObject pointer for scene management
+			std::unique_ptr<GameObject> waterObject = std::make_unique<WaterGameObject>(waterModel, waterTransform);
+			sceneManager->addWaterObject(std::move(waterObject));
+		}
 
 		// Skybox
 		std::array<std::string, 6> cubemapFaces = {
@@ -264,8 +312,6 @@ namespace vk {
 
 		int fbWidth, fbHeight;
 		window->getFramebufferSize(fbWidth, fbHeight);
-		float windowWidth = static_cast<float>(fbWidth);
-		float windowHeight = static_cast<float>(fbHeight);
 
 		// UI
 		UIComponentCreationSettings hudSettings{};
