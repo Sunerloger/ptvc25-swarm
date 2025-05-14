@@ -8,6 +8,8 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
+    vec4 sunDirection;
+    vec4 sunColor;
 } ubo;
 
 layout(push_constant) uniform Push {
@@ -35,10 +37,10 @@ void main() {
     vec4 worldPos0 = push.modelMatrix * vec4(position, 1.0);
     vec3 planePos = worldPos0.xyz;
     // Compute multi-directional wave in world space
-    float wave1 = sin(planePos.x * 20.0 + push.time * 2.0) * 0.3;
-    float wave2 = sin(planePos.z * 20.0 + push.time * 1.5) * 0.2;
+    float wave1 = sin(planePos.x * 40.0 + push.time * 2.0) * 0.3;
+    float wave2 = sin(planePos.z * 40.0 + push.time * 1.5) * 0.2;
     float wave3 = sin((planePos.x + planePos.z) * 15.0 + push.time * 1.0) * 0.1;
-    float wave = (wave1 + wave2 + wave3) * 3.0;
+    float wave = (wave1 + wave2 + wave3) * 5.0;
     // Apply vertical displacement in world space
     vec3 displacedWorld = planePos + vec3(0.0, wave, 0.0);
     // Compute view-space position

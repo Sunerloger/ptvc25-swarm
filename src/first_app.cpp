@@ -130,10 +130,21 @@ namespace vk {
 				int frameIndex = renderer->getFrameIndex();
 				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
 
+				// Update global uniform buffer
 				GlobalUbo ubo{};
 				ubo.projection = sceneManager->getPlayer()->getProjMat();
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 500.0f);
+				if (auto sun = sceneManager->getSun()) {
+					// Directional light: direction stored in world space, and intensity in w
+					glm::vec3 dir = glm::normalize(sun->getDirection());
+					ubo.sunDirection = glm::vec4(dir, 1.0f);
+					ubo.sunColor = glm::vec4(sun->color, 1.0f);
+				} else {
+					// Default light
+					ubo.sunDirection = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+					ubo.sunColor = glm::vec4(0.5f, 0.5f, 1.0f, 1.0f);
+				}
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
@@ -220,6 +231,16 @@ namespace vk {
 		playerCreationSettings->playerSettings = std::move(playerSettings);
 		playerCreationSettings->position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
 
+		// Create and register a directional sun light (diagonal from sky)
+		// {
+		// Position is unused for directional light, direction is normalized
+		// 	glm::vec3 sunDir = glm::normalize(glm::vec3(-1.0f, -1.0f, -0.5f));
+		// 	glm::vec3 sunColor = glm::vec3(0.0f, 1.0f, 0.9f);
+		// 	float intensity = 1.0f;
+		// 	auto sun = std::make_unique<lighting::Sun>(
+		// 		glm::vec3(0.0f), sunDir, sunColor, intensity);
+		// 	sceneManager->setSun(std::move(sun));
+		// }
 		sceneManager->setPlayer(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation->getPhysicsSystem()));
 		sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), (float) (window->getWidth() / window->getHeight()), 0.1f, 100.0f);
 
