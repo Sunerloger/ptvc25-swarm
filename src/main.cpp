@@ -1,4 +1,5 @@
-#include "first_app.h"
+#include "Engine.h"
+#include "Swarm.h"
 #include "asset_utils/AssetManager.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -20,9 +21,9 @@ int main(int argc, char **argv) {
 
 		// Additional custom paths can be registered if needed
 		// vk::AssetManager::getInstance().registerPath("customModels", "/path/to/custom/models");
-
-		vk::FirstApp app{};
-		app.run();
+		std::shared_ptr<Swarm> swarm{};
+		vk::Engine engine{swarm};
+		engine.run();
 	} catch (const std::exception &e) {
 		std::cerr << e.what() << '\n';
 		return EXIT_FAILURE;
