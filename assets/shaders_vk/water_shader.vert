@@ -25,8 +25,8 @@ layout(location = 0) out vec2 fragUV;
 layout(location = 1) out vec3 fragColor;
 
 void main() {
-    // Simple wave displacement using elapsed time
-    float wave = sin((position.x + position.z) * 5.0 + push.time) * 0.2;
+    // Simple wave displacement using elapsed time (increased amplitude and speed)
+    float wave = sin((position.x + position.z) * 5.0 + push.time * 2.0) * 0.5;
     vec3 displacedPos = position + vec3(0.0, wave, 0.0);
     gl_Position = ubo.projection * ubo.view * push.modelMatrix * vec4(displacedPos, 1.0);
     // Tile UV and scroll

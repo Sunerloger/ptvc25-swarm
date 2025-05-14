@@ -239,7 +239,8 @@ namespace vk {
 		{
 			// Create a simple grid model for water
 			// Use small grid for water so UV animation is visible
-			std::unique_ptr<Model> waterModelUnique = Model::createGridModel(*device, 2);
+			// Create a sufficiently subdivided grid model for visible water waves
+			std::unique_ptr<Model> waterModelUnique = Model::createGridModel(*device, 50);
 			std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(std::move(waterModelUnique));
 			// Create water material (scrolling UV) and assign to model
 			auto waterMaterial = std::make_shared<WaterMaterial>(*device, "textures:water.png");
