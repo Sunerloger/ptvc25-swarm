@@ -89,5 +89,13 @@ void main() {
     // 4) boost so you actually see it
     vec3  dbg       = spec;
 
-    outColor = vec4(dbg, 1.0);
+    // now add the texture
+    vec4 texColor = texture(texSampler, fragUV + push.uvOffset);
+    if (push.hasTexture == 1) {
+        dbg += texColor.rgb;
+    } else {
+        dbg += fragColor;
+    }
+
+    outColor = vec4(dbg, 0.7);
 }

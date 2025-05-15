@@ -267,7 +267,7 @@ namespace vk {
 		playerCreationSettings->characterSettings = std::move(characterSettings);
 		playerCreationSettings->cameraSettings = std::move(cameraSettings);
 		playerCreationSettings->playerSettings = std::move(playerSettings);
-		playerCreationSettings->position = JPH::RVec3(0.0f, 50.0f, 0.0f);  // Increased Y position to start higher above terrain
+		playerCreationSettings->position = JPH::RVec3(0.0f, 10.0f, 0.0f);  // Increased Y position to start higher above terrain
 
 		// Create and register a directional sun light (diagonal from sky)
 		// {
@@ -327,7 +327,7 @@ namespace vk {
 				glm::mat4 transformMat;
 			};
 			// Position and scale the water plane to surround terrain
-			float waterSize = 1000.0f;	// a bit larger than terrain extents
+			float waterSize = 2000.0f;	// a bit larger than terrain extents
 			float waterHeight = 10.0f;	// height of water plane
 			glm::mat4 waterTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, waterHeight, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(waterSize, 1.0f, waterSize));
 			// Wrap in GameObject pointer for scene management

@@ -46,7 +46,9 @@ void main() {
     float w3 = sin((worldPos0.x + worldPos0.z) * 15.0 + push.time * 1.0) * 0.1;
     float wave = (w1 + w2 + w3) * 0.5;
     vec3 displaced = worldPos0 + vec3(0.0, wave, 0.0);
-
+    // Amplify the wave height
+    float waveHeight = 2.0; // Increase this value to make waves higher
+    displaced.y += wave * waveHeight;
     // 3) Analytical normal via partial derivatives
     float dYdx = cos(worldPos0.x * 20.0 + push.time*2.0)*20.0*0.3
                + cos((worldPos0.x+worldPos0.z)*15.0+push.time*1.0)*15.0*0.1;
