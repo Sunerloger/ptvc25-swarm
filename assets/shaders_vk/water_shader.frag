@@ -2,24 +2,17 @@
 
 layout(location = 0) in vec2  fragUV;
 layout(location = 1) in vec3 fragColor;
-layout(location = 2) in vec3 posWorld;   // from your VS
-layout(location = 3) in vec3 normWorld;  // from your VS
+layout(location = 2) in vec3 posWorld;
+layout(location = 3) in vec3 normWorld;
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler;
-
-struct PointLight {
-    vec3 position;
-    float intensity;
-    float radius;
-};
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
-    vec4 sunDirection;  // in view‐space, points *towards* the light
+    vec4 sunDirection;  // in view‐space, points towards the light
     vec4 sunColor;      // rgb + intensity in .w
-    PointLight pointLights[50];
 } ubo;
 
 layout(push_constant) uniform Push {
@@ -86,16 +79,14 @@ void main() {
         vec3(1.0)     // unused
     );
 
-    // 4) boost so you actually see it
-    vec3  dbg       = spec;
+    vec3 light = spec;
 
-    // now add the texture
     vec4 texColor = texture(texSampler, fragUV + push.uvOffset);
     if (push.hasTexture == 1) {
-        dbg += texColor.rgb;
+        light += texColor.rgb;
     } else {
-        dbg += fragColor;
+        light += fragColor;
     }
 
-    outColor = vec4(dbg, 0.7);
+    outColor = vec4(light, 0.8);
 }
