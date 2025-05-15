@@ -174,7 +174,7 @@ namespace vk {
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 500.0f);
 				ubo.sunDirection = glm::vec4(loadData(), 0.0f);
-				ubo.sunColor = glm::vec4(0.5f, 0.5f, 1.0f, 1.0f);
+				ubo.sunColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
@@ -311,7 +311,7 @@ namespace vk {
 				glm::mat4 transformMat;
 			};
 			float waterSize = 2000.0f;
-			float waterHeight = -5.0f;
+			float waterHeight = -10.0f;
 			glm::mat4 waterTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, waterHeight, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(waterSize, 1.0f, waterSize));
 			std::unique_ptr<GameObject> waterObject = std::make_unique<WaterGameObject>(waterModel, waterTransform);
 			sceneManager->addWaterObject(std::move(waterObject));

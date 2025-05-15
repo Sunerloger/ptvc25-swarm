@@ -63,30 +63,34 @@ void main() {
     vec3 sunDirVS = normalize((ubo.view * vec4(ubo.sunDirection.xyz, 0.0)).xyz);
     vec3 L = -sunDirVS;
 
-    // 3) compute **only** the specular term:
-    //    zero out diffuse by diffuseF = 0
-    float shininess = 64.0;
-    vec3 spec = phong(
-        N,             // normal
-        L,             // light dir
-        V,             // view dir
-        vec3(0.0),     // diffuse color (ignored)
-        0.0,           // diffuse factor = 0
-        ubo.sunColor.rgb,      // specular color
-        ubo.sunColor.w,        // specular factor = sun intensity
-        shininess,    // shininess exponent
-        false,        // no attenuation
-        vec3(1.0)     // unused
+    const float ka = 0.3; // ambient factor
+    const float kd = 0.5; // diffuse factor
+    const float ks = 0.3; // specular factor
+    const float shininess = 64.0; // for specular exponent
+
+    const vec3 baseColor = (push.hasTexture == 1)
+        ? texture(texSampler, fragUV + push.uvOffset).rgb
+        : fragColor;
+
+    vec3 ambient = ka * baseColor;
+
+    vec3 diffuse = phong(
+        N, L, V,
+        baseColor, kd,         // diffuse
+        vec3(0.0), 0.0,        // no spec
+        shininess,
+        false, vec3(1.0)
     );
 
-    vec3 light = spec;
+    vec3 spec = phong(
+        N, L, V,
+        vec3(0.0), 0.0,         // no diffuse
+        ubo.sunColor.rgb, ks,   // specular
+        shininess,
+        false, vec3(1.0)
+    );
 
-    vec4 texColor = texture(texSampler, fragUV + push.uvOffset);
-    if (push.hasTexture == 1) {
-        light += texColor.rgb;
-    } else {
-        light += fragColor;
-    }
+    vec3 light = ambient + diffuse + spec;
 
     outColor = vec4(light, 0.8);
 }
