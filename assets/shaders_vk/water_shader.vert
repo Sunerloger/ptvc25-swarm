@@ -1,8 +1,15 @@
 #version 450
+
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 color;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec2 uv;
+
+struct PointLight {
+    vec3 position;
+    float intensity;
+    float radius;
+};
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
@@ -10,6 +17,7 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 uiOrthographicProjection;
     vec4 sunDirection;
     vec4 sunColor;
+    PointLight pointLights[50];
 } ubo;
 
 layout(push_constant) uniform Push {
@@ -25,38 +33,34 @@ layout(push_constant) uniform Push {
 
 layout(location = 0) out vec2 fragUV;
 layout(location = 1) out vec3 fragColor;
-// View-space position for lighting
-// View-space position for lighting
-layout(location = 2) out vec3 fragPosView;
-// View-space normal for lighting
-layout(location = 3) out vec3 fragNormalView;
+layout(location = 2) out vec3 posWorld;
+layout(location = 3) out vec3 normWorld;
 
 void main() {
-    // (Wave calculations moved below using world-space positions)
-    // Transform local position to world space
-    vec4 worldPos0 = push.modelMatrix * vec4(position, 1.0);
-    vec3 planePos = worldPos0.xyz;
-    // Compute multi-directional wave in world space
-    float wave1 = sin(planePos.x * 40.0 + push.time * 2.0) * 0.3;
-    float wave2 = sin(planePos.z * 40.0 + push.time * 1.5) * 0.2;
-    float wave3 = sin((planePos.x + planePos.z) * 15.0 + push.time * 1.0) * 0.1;
-    float wave = (wave1 + wave2 + wave3) * 5.0;
-    // Apply vertical displacement in world space
-    vec3 displacedWorld = planePos + vec3(0.0, wave, 0.0);
-    // Compute view-space position
-    vec4 viewPos = ubo.view * vec4(displacedWorld, 1.0);
-    fragPosView = viewPos.xyz;
-    // Analytic normal in world space via wave derivatives
-    float dYdx = cos(planePos.x * 20.0 + push.time * 2.0) * 20.0 * 0.3
-               + cos((planePos.x + planePos.z) * 15.0 + push.time * 1.0) * 15.0 * 0.1;
-    float dYdz = cos(planePos.z * 20.0 + push.time * 1.5) * 20.0 * 0.2
-               + cos((planePos.x + planePos.z) * 15.0 + push.time * 1.0) * 15.0 * 0.1;
-    vec3 normalWorld = normalize(vec3(-dYdx, 1.0, -dYdz));
-    // Transform normal to view space (ignore model scale)
-    fragNormalView = normalize(mat3(ubo.view) * normalWorld);
-    // Final clip position
-    gl_Position = ubo.projection * viewPos;
-    // Tile UV and scroll
-    fragUV = uv * 10.0 + push.uvOffset;
+    // 1) Base world-space position
+    vec3 worldPos0 = (push.modelMatrix * vec4(position,1.0)).xyz;
+
+    // 2) Wave displacement in world-space
+    float w1 = sin(worldPos0.x * 40.0 + push.time * 2.0) * 0.3;
+    float w2 = sin(worldPos0.z * 40.0 + push.time * 1.5) * 0.2;
+    float w3 = sin((worldPos0.x + worldPos0.z) * 15.0 + push.time * 1.0) * 0.1;
+    float wave = (w1 + w2 + w3) * 0.5;
+    vec3 displaced = worldPos0 + vec3(0.0, wave, 0.0);
+
+    // 3) Analytical normal via partial derivatives
+    float dYdx = cos(worldPos0.x * 20.0 + push.time*2.0)*20.0*0.3
+               + cos((worldPos0.x+worldPos0.z)*15.0+push.time*1.0)*15.0*0.1;
+    float dYdz = cos(worldPos0.z * 20.0 + push.time*1.5)*20.0*0.2
+               + cos((worldPos0.x+worldPos0.z)*15.0+push.time*1.0)*15.0*0.1;
+    vec3 nW = normalize(vec3(-dYdx, 1.0, -dYdz));
+
+    // 4) Output for frag stage
+    posWorld  = displaced;
+    normWorld = normalize((push.normalMatrix * vec4(nW,0.0)).xyz);
+    fragUV    = uv * 10.0 + push.uvOffset;
     fragColor = color;
+
+    // 5) Finally compute clip‐space position
+    vec4 viewPos = ubo.view * vec4(displaced,1.0);
+    gl_Position = ubo.projection * viewPos;
 }

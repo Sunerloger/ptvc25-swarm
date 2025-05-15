@@ -7,6 +7,22 @@
 #include "rendering/materials/UIMaterial.h"
 #include "rendering/materials/StandardMaterial.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+#include <memory>
+#include <string>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h>
+#include "INIReader.h"
+
 namespace vk {
 
 	FirstApp::FirstApp() {
@@ -32,6 +48,29 @@ namespace vk {
 	}
 
 	FirstApp::~FirstApp() {}
+
+	glm::vec3 loadData() {
+		auto iniPath = std::filesystem::current_path() / "sun.ini";
+		INIReader reader(iniPath.string());
+
+		glm::vec3 dir;
+		std::string section = "Sun";
+
+		// defaults
+		dir = {0.0f, -1.0f, 0.0f};
+
+		if (reader.ParseError() < 0)
+			return dir;
+		if (reader.Get(section, "dir", "") == "")
+			return dir;
+
+		{
+			std::stringstream ss(reader.Get(section, "dir", ""));
+			char c;
+			ss >> dir.x >> c >> dir.y >> c >> dir.z;
+		}
+		return dir;
+	}
 
 	void FirstApp::run() {
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -141,8 +180,7 @@ namespace vk {
 					ubo.sunDirection = glm::vec4(dir, 1.0f);
 					ubo.sunColor = glm::vec4(sun->color, 1.0f);
 				} else {
-					// Default light
-					ubo.sunDirection = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+					ubo.sunDirection = glm::vec4(loadData(), 0.0f);
 					ubo.sunColor = glm::vec4(0.5f, 0.5f, 1.0f, 1.0f);
 				}
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
@@ -229,7 +267,7 @@ namespace vk {
 		playerCreationSettings->characterSettings = std::move(characterSettings);
 		playerCreationSettings->cameraSettings = std::move(cameraSettings);
 		playerCreationSettings->playerSettings = std::move(playerSettings);
-		playerCreationSettings->position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
+		playerCreationSettings->position = JPH::RVec3(0.0f, 50.0f, 0.0f);  // Increased Y position to start higher above terrain
 
 		// Create and register a directional sun light (diagonal from sky)
 		// {
@@ -347,12 +385,19 @@ namespace vk {
 		hudSettings.controllable = false;
 		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
-		hudSettings.model = Model::createModelFromFile(*device, "models:USPS.glb", true);
-		hudSettings.name = "usps";
-		hudSettings.controllable = false;
-		hudSettings.window = window->getGLFWWindow();
-		hudSettings.anchorRight = true;
-		hudSettings.anchorBottom = true;
-		sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+		// hudSettings.model = Model::createModelFromFile(*device, "models:USPS.glb", true);
+		// hudSettings.name = "usps";
+		// hudSettings.controllable = false;
+		// hudSettings.window = window->getGLFWWindow();
+		// hudSettings.anchorRight = true;
+		// hudSettings.anchorBottom = true;
+		// sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		// Pointlights
+		glm::vec3 pointLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+		for (int i = 0; i < 50; ++i) {
+			auto pointLight = std::make_unique<lighting::PointLight>(1000.0f, 1000.0f, pointLightColor, glm::vec3(i * 50.0f, 15.0f, i * 50.0f));
+			sceneManager->addLight(std::move(pointLight));
+		}
 	}
 }
