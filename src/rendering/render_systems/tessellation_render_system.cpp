@@ -1,7 +1,7 @@
 #include "tessellation_render_system.h"
 #include <stdexcept>
 #include <glm/glm.hpp>
-#include "../rendering/materials/TessellationMaterial.h"
+#include "../materials/TessellationMaterial.h"
 
 namespace vk {
 

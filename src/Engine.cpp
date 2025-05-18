@@ -2,34 +2,29 @@
 
 namespace vk {
 
-	Engine::Engine(shared_ptr<IGame> game) {
+	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device)
+		: physicsSimulation(physicsSimulation), game(game), sceneManager(sceneManager), window(window), device(device) {
 
 		// TODO inject window, device and physics simulation
 		// TODO create windowSettings in window and load with ini reader
 		// TODO create physicsSettings in physicsSimulation and load with ini reader
 		// TODO boolean flags for testing directly in physicsSimulation settings
 
-		this->game = game;
-
-		window = std::make_unique<Window>(windowWidth, windowHeight, game->getName());
-		menuController = std::make_unique<controls::KeyboardMenuController>(window->getGLFWWindow());
-		device = std::make_unique<Device>(*window);
-		renderer = std::make_unique<Renderer>(*window, *device);
-		menuController->setConfigChangeCallback([this]() {
+		menuController = std::make_unique<controls::KeyboardMenuController>(window.getGLFWWindow());
+		
+		renderer = std::make_unique<Renderer>(window, device);
+		menuController->setConfigChangeCallback([&]() {
 			int w, h;
-			window->getFramebufferSize(w, h);
+			window.getFramebufferSize(w, h);
 			renderer->recreateSwapChain();
 		});
 
-		globalPool = DescriptorPool::Builder(*device)
+		globalPool = DescriptorPool::Builder(device)
 						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .build();
 
-		this->sceneManager = make_shared<SceneManager>();
-		this->physicsSimulation = make_unique<physics::PhysicsSimulation>(this->sceneManager, engineSettings.cPhysicsDeltaTime);
-
-		game->init();
+		game.init();
 	}
 
 	Engine::~Engine() {}
@@ -37,7 +32,7 @@ namespace vk {
 	void Engine::run() {
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
 		for (int i = 0; i < uboBuffers.size(); i++) {
-			uboBuffers[i] = std::make_unique<Buffer>(*device,
+			uboBuffers[i] = std::make_unique<Buffer>(device,
 				sizeof(GlobalUbo),
 				1,
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -45,7 +40,7 @@ namespace vk {
 			uboBuffers[i]->map();
 		}
 
-		auto globalSetLayout = DescriptorSetLayout::Builder(*device)
+		auto globalSetLayout = DescriptorSetLayout::Builder(device)
 								   .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
 								   .build();
 
@@ -57,22 +52,24 @@ namespace vk {
 				.build(globalDescriptorSets[i]);
 		}
 
+		// TODO create an additional uniform buffer for lighting information stored in sceneManager (updated every frame)
+
 		// Create render systems
-		TextureRenderSystem textureRenderSystem{*device,
+		TextureRenderSystem textureRenderSystem{device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
 
-		TessellationRenderSystem tessellationRenderSystem{*device,
+		TessellationRenderSystem tessellationRenderSystem{device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
 
-		UIRenderSystem uiRenderSystem{*device,
+		UIRenderSystem uiRenderSystem{device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
 
-		// TODO callback on player.shootStraight() with flexible input mapping
-		glfwSetInputMode(window->getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		controls::KeyboardMovementController movementController{windowWidth, windowHeight};
+		glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		
+		// TODO maybe also handle this via the specific game instead of in the engine
 		controls::KeyboardPlacementController placementController;
 
 		startTime = std::chrono::high_resolution_clock::now();
@@ -81,11 +78,11 @@ namespace vk {
 		float physicsTimeAccumulator = 0.0f;
 
 		int fbWidth, fbHeight;
-		window->getFramebufferSize(fbWidth, fbHeight);
+		window.getFramebufferSize(fbWidth, fbHeight);
 		float windowWidth = static_cast<float>(fbWidth);
 		float windowHeight = static_cast<float>(fbHeight);
 
-		while (!window->shouldClose()) {
+		while (!window.shouldClose()) {
 			auto newTime = std::chrono::high_resolution_clock::now();
 			float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
 			currentTime = newTime;
@@ -93,7 +90,7 @@ namespace vk {
 
 			glfwPollEvents();
 
-			int placementTransform = placementController.updateModelMatrix(window->getGLFWWindow());
+			int placementTransform = placementController.updateModelMatrix(window.getGLFWWindow());
 			sceneManager->updateUITransforms(deltaTime, placementTransform);
 
 			if (!menuController->isMenuOpen()) {
@@ -105,29 +102,29 @@ namespace vk {
 				physicsTimeAccumulator += deltaTime;
 				gameTime += deltaTime;
 
-				// Movement
-				movementController.handleRotation(window->getGLFWWindow(), *sceneManager->getPlayer());
-				MovementIntent movementIntent = movementController.getMovementIntent(window->getGLFWWindow());
-
-				game->prePhysicsUpdate();
+				game.gameActiveUpdate(deltaTime);
 
 				while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
-					physicsSimulation->preSimulation(movementIntent);
-					physicsSimulation->simulate();
-					physicsSimulation->postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
+					game.prePhysicsUpdate();
+					
+					physicsSimulation.preSimulation();
+					physicsSimulation.simulate();
+					physicsSimulation.postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
+					
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
+
+					game.postPhysicsUpdate();
 				}
-				game->postPhysicsUpdate();
 			}
 			else {
-				game->menuUpdate();
+				game.gamePauseUpdate(deltaTime);
 			}
 
 			// Camera
 			float aspect = renderer->getAspectRatio();
 			sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
 
-			// TODO menuRenderSystem that only draws when menu open but other systems dont draw + death render system if player dead
+			// menu / death screen is just rendered on top of game while physics / logic is disabled
 			if (auto commandBuffer = renderer->beginFrame()) {
 				int frameIndex = renderer->getFrameIndex();
 				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
@@ -167,7 +164,7 @@ namespace vk {
 			}
 
 			int fbWidth2, fbHeight2;
-			window->getFramebufferSize(fbWidth2, fbHeight2);
+			window.getFramebufferSize(fbWidth2, fbHeight2);
 			float windowWidth2 = static_cast<float>(fbWidth2);
 			float windowHeight2 = static_cast<float>(fbHeight2);
 			if (windowWidth != windowWidth2 || windowHeight != windowHeight2) {
@@ -177,7 +174,7 @@ namespace vk {
 			}
 
 			// TODO use fences / semaphores instead (next line forces sync of cpu and gpu and heavily impacts performance):
-			vkDeviceWaitIdle(device->device());
+			vkDeviceWaitIdle(device.device());
 		}
 	}
 }

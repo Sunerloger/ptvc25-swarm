@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../vk/vk_pipeline.h"
-#include "../vk/vk_frame_info.h"
-#include "../vk/vk_device.h"
-#include "../rendering/materials/Material.h"
+#include "../../vk/vk_pipeline.h"
+#include "../../vk/vk_frame_info.h"
+#include "../../vk/vk_device.h"
+#include "../../rendering/materials/Material.h"
 
 #include <memory>
 #include <unordered_map>

@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "Swarm.h"
+#include "asset_utils/AssetLoader.h"
 #include "asset_utils/AssetManager.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -17,13 +18,34 @@
 
 int main(int argc, char **argv) {
 	try {
-		vk::AssetManager::getInstance().initialize(argv[0]);
 
+		vk::AssetLoader::getInstance().initialize(argv[0]);
 		// Additional custom paths can be registered if needed
-		// vk::AssetManager::getInstance().registerPath("customModels", "/path/to/custom/models");
-		std::shared_ptr<Swarm> swarm{};
-		vk::Engine engine{swarm};
+		// vk::AssetLoader::getInstance().registerPath("customModels", "/path/to/custom/models");
+
+
+		std::shared_ptr<SceneManager> sceneManager = std::make_shared<SceneManager>();
+		AssetManager assetManager{};
+
+		physics::PhysicsSimulation physicsSimulation{sceneManager};
+
+		// TODO read via ini file
+		int initialWindowWidth = 800;
+		int initialWindowHeight = 800;
+
+		// TODO abstract this into another class to not directly inject low level details into the game logic
+		vk::Window window{ initialWindowWidth, initialWindowHeight, Swarm::Name };
+		vk::Device device{ window };
+
+		// TODO advanced input system
+		controls::KeyboardMovementController movementController{ initialWindowWidth, initialWindowHeight };
+
+		Swarm game{ physicsSimulation, sceneManager, assetManager, window, device, movementController };
+
+		vk::Engine engine{game, physicsSimulation, sceneManager, window, device};
+
 		engine.run();
+
 	} catch (const std::exception &e) {
 		std::cerr << e.what() << '\n';
 		return EXIT_FAILURE;

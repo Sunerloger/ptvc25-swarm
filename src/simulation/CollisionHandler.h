@@ -12,7 +12,7 @@ namespace physics {
 
 	public:
 
-		MyContactListener(std::weak_ptr<SceneManager> sceneManager);
+		MyContactListener(SceneManager& sceneManager);
 		virtual ~MyContactListener();
 
 		JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override;
@@ -24,7 +24,7 @@ namespace physics {
 
 	private:
 
-		std::weak_ptr<SceneManager> weak_sceneManager;
+		SceneManager& sceneManager;
 	};
 
 
@@ -33,7 +33,7 @@ namespace physics {
 
 	public:
 
-		MyBodyActivationListener(std::weak_ptr<SceneManager> sceneManager);
+		MyBodyActivationListener(SceneManager& sceneManager);
 		virtual ~MyBodyActivationListener();
 
 		void OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override;
@@ -42,7 +42,7 @@ namespace physics {
 
 	private:
 
-		std::weak_ptr<SceneManager> weak_sceneManager;
+		SceneManager& sceneManager;
 	};
 
 }

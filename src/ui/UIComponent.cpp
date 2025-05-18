@@ -1,5 +1,5 @@
 #include "UIComponent.h"
-#include "../asset_utils/AssetManager.h"
+#include "../asset_utils/AssetLoader.h"
 
 namespace vk {
 
@@ -23,7 +23,7 @@ namespace vk {
 	}
 
 	Transform UIComponent::loadData() const {
-		auto iniPath = vk::AssetManager::getInstance().resolvePath("settings:ui_placements.ini");
+		auto iniPath = vk::AssetLoader::getInstance().resolvePath("settings:ui_placements.ini");
 		INIReader reader(iniPath);
 
 		Transform t;
@@ -58,7 +58,7 @@ namespace vk {
 	}
 
 	void UIComponent::saveData(const Transform &t) const {
-		auto iniPath = vk::AssetManager::getInstance().resolvePath("settings:ui_placements.ini", true);
+		auto iniPath = vk::AssetLoader::getInstance().resolvePath("settings:ui_placements.ini", true);
 
 		std::vector<std::string> lines;
 		std::ifstream ifs(iniPath);

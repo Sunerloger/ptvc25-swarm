@@ -26,7 +26,7 @@ namespace physics {
 		
 		// Constructor with externally provided heightmap data
 		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model,
-		        glm::vec3 position, glm::vec3 scale, const std::vector<float>& heightfieldData);
+		        glm::vec3 position, glm::vec3 scale, std::vector<float> heightfieldData);
 		
 		virtual ~Terrain();
 

@@ -3,7 +3,7 @@
 #include "vk_buffer.h"
 #include "vk_descriptors.h"
 
-#include "../asset_utils/AssetManager.h"
+#include "../asset_utils/AssetLoader.h"
 #include "../rendering/materials/StandardMaterial.h"
 #include "../rendering/materials/UIMaterial.h"
 #include "../rendering/materials/TessellationMaterial.h"
@@ -166,7 +166,7 @@ namespace vk {
 		vertices.clear();
 		indices.clear();
 
-		std::string resolvedPath = AssetManager::getInstance().resolvePath(filename);
+		std::string resolvedPath = AssetLoader::getInstance().resolvePath(filename);
 
 		tinygltf::TinyGLTF loader;
 		tinygltf::Model gltfModel;
@@ -326,7 +326,7 @@ namespace vk {
 						// Check if the image has a URI (external texture)
 						if (!gltfImage.uri.empty()) {
 							// Use AssetManager to resolve the texture path
-							texturePath = AssetManager::getInstance().resolvePath(gltfImage.uri);
+							texturePath = AssetLoader::getInstance().resolvePath(gltfImage.uri);
 							std::cout << "Loading external texture from: " << texturePath << std::endl;
 							hasTexture = true;
 						}
@@ -405,7 +405,7 @@ namespace vk {
 						// Check if the image has a URI (external texture)
 						if (!gltfImage.uri.empty()) {
 							// Use AssetManager to resolve the texture path
-							texturePath = AssetManager::getInstance().resolvePath(gltfImage.uri);
+							texturePath = AssetLoader::getInstance().resolvePath(gltfImage.uri);
 							std::cout << "Loading external texture from: " << texturePath << std::endl;
 							hasTexture = true;
 						}
@@ -639,7 +639,7 @@ namespace vk {
 
 		// Save the heightmap using the AssetManager
 		std::string heightmapPath = "terrain/temp_heightmap.png";
-		std::string texturePath = AssetManager::getInstance().saveTexture(
+		std::string texturePath = AssetLoader::getInstance().saveTexture(
 			heightmapPath,
 			imageData.data(),
 			gridSize,
@@ -750,7 +750,7 @@ namespace vk {
 		auto material = std::make_shared<TessellationMaterial>(
 			device,
 			tileTexturePath,
-			texturePath,  // Use the path returned by AssetManager
+			texturePath,  // Use the path returned by the AssetLoader
 			"terrain_shader.vert",
 			"terrain_shader.frag",
 			"terrain_tess_control.tesc",

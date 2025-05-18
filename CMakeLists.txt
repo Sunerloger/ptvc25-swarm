@@ -1,5 +1,68 @@
 cmake_minimum_required(VERSION 3.22)
+
 project(Swarm)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (MSVC)
+    set(CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE "x64")
+    if (USE_STATIC_MSVC_RUNTIME_LIBRARY)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    endif()
+
+    add_compile_options(/FS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
+
+    if (GENERATE_DEBUG_SYMBOLS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
+    endif()
+
+    string(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+
+    if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+    endif()
+
+    set(CMAKE_CXX_FLAGS_DEBUG "/GS /Od /Ob0 /RTC1")
+    set(CMAKE_CXX_FLAGS_RELEASE "/GS- /Gy /O2 /Oi /Ot")
+    set(CMAKE_CXX_FLAGS_DISTRIBUTION "/GS- /Gy /O2 /Oi /Ot")
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        if (CROSS_PLATFORM_DETERMINISTIC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast")
+        endif()
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /showFilenames")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
+    endif()
+else()
+    # Unix/Mac compilers
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    if (GENERATE_DEBUG_SYMBOLS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    endif()
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-stringop-overflow -ffp-contract=off")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
+        if (CMAKE_CXX_COMPILER_VERSION LESS 14 OR CROSS_PLATFORM_DETERMINISTIC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
+        endif()
+    endif()
+
+    # Disable error for missing override
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=inconsistent-missing-override")
+endif()
+
+message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -85,11 +148,6 @@ add_library(inih STATIC
   ${inih_SOURCE_DIR}/ini.c
   ${inih_SOURCE_DIR}/cpp/INIReader.cpp
 )
-if(MSVC)
-  set_target_properties(inih PROPERTIES
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-  )
-endif()
 
 FetchContent_Declare(
     Jolt
@@ -136,13 +194,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glfw)
 
-if (MSVC)
-  # force GLFW to static CRT (/MTd in Debug, /MT in Release/Distribution)
-  set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY
-    "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-  )
-endif()
-
 FetchContent_Declare(
     tinyobjloader
     GIT_REPOSITORY "https://github.com/tinyobjloader/tinyobjloader.git"
@@ -150,68 +201,6 @@ FetchContent_Declare(
     GIT_SHALLOW ON
 )
 FetchContent_MakeAvailable(tinyobjloader)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
-
-if (MSVC)
-    set(CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE "x64")
-    if (USE_STATIC_MSVC_RUNTIME_LIBRARY)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    else()
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-    endif()
-
-    add_compile_options(/FS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
-
-    if (GENERATE_DEBUG_SYMBOLS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
-    endif()
-
-    string(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
-
-    if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
-    endif()
-
-    set(CMAKE_CXX_FLAGS_DEBUG "/GS /Od /Ob0 /RTC1")
-    set(CMAKE_CXX_FLAGS_RELEASE "/GS- /Gy /O2 /Oi /Ot")
-    set(CMAKE_CXX_FLAGS_DISTRIBUTION "/GS- /Gy /O2 /Oi /Ot")
-
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-        if (CROSS_PLATFORM_DETERMINISTIC)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise")
-        else()
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast")
-        endif()
-    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /showFilenames")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
-    endif()
-else()
-    # Unix/Mac compilers
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-    if (GENERATE_DEBUG_SYMBOLS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    endif()
-
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-stringop-overflow -ffp-contract=off")
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
-        if (CMAKE_CXX_COMPILER_VERSION LESS 14 OR CROSS_PLATFORM_DETERMINISTIC)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
-        endif()
-    endif()
-
-    # Disable error for missing override
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=inconsistent-missing-override")
-endif()
 
 # Platform-specific pthread linking
 if(UNIX AND NOT APPLE)

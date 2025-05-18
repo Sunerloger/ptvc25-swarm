@@ -31,13 +31,14 @@ namespace physics {
 	}
 	
 	Terrain::Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model,
-	                 glm::vec3 position, glm::vec3 scale, const std::vector<float>& heightfieldData)
+	                 glm::vec3 position, glm::vec3 scale, std::vector<float> heightfieldData)
 		: ManagedPhysicsEntity(physics_system), model(model), useHeightfield(true) {
 		std::cout << "Creating heightfield-based terrain with provided height data (3D collision)" << std::endl;
 		this->color = color;
 		this->scale = scale;
 		
-		heightfieldSamples = heightfieldData;
+		// pointer swap
+		heightfieldSamples = std::move(heightfieldData);
 		
 		// create a temporary array with the correct size
 		float* heightData = this->heightfieldSamples.data();
@@ -48,8 +49,8 @@ namespace physics {
 		
 		// Copy our height samples directly into the array
 		for (int i = 0; i < numSamplesPerSide * numSamplesPerSide; i++) {
-			if (i < heightfieldData.size()) {
-				heightData[i] = heightfieldData[i];
+			if (i < heightfieldSamples.size()) {
+				heightData[i] = heightfieldSamples[i];
 			} else {
 				heightData[i] = 0.0f;  // Default height if we run out of samples
 			}
@@ -57,10 +58,10 @@ namespace physics {
 		
 		// Print some debug info
 		std::cout << "Height samples min/max: ";
-		if (!heightfieldData.empty()) {
-			float min = heightfieldData[0];
-			float max = heightfieldData[0];
-			for (const auto& h : heightfieldData) {
+		if (!heightfieldSamples.empty()) {
+			float min = heightfieldSamples[0];
+			float max = heightfieldSamples[0];
+			for (const auto& h : heightfieldSamples) {
 				min = std::min(min, h);
 				max = std::max(max, h);
 			}

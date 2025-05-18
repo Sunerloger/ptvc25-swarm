@@ -39,14 +39,17 @@ using namespace JPH::literals;
 namespace physics {
 	class PhysicsSimulation {
 	public:
-		PhysicsSimulation(std::shared_ptr<SceneManager> sceneManager, float cPhysicsDeltaTime);
+		PhysicsSimulation(std::shared_ptr<SceneManager> sceneManager);
 		virtual ~PhysicsSimulation();
 
 		std::shared_ptr<PhysicsSystem> getPhysicsSystem();
 
 		void simulate();
-		void preSimulation(MovementIntent movementIntent);
+		void preSimulation();
 		void postSimulation(bool debugPlayer = false, bool debugEnemies = false);
+
+		// We simulate the physics world in discrete time steps. e.g. 60 Hz is a good rate to update the physics system.
+		const float cPhysicsDeltaTime = 1.0f / 60.0f;
 
 	private:
 
@@ -103,10 +106,6 @@ namespace physics {
 		// Note that this is called from a job so whatever you do here needs to be thread safe.
 		// Registering one is entirely optional. KEEP THIS ALIVE
 		shared_ptr<MyContactListener> contact_listener;
-
-
-		// We simulate the physics world in discrete time steps. e.g. 60 Hz is a good rate to update the physics system.
-		const float cPhysicsDeltaTime;
 
 		// If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
 		const int cCollisionSteps = 1;

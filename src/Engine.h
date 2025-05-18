@@ -10,9 +10,9 @@
 
 #include "simulation/PhysicsSimulation.h"
 
-#include "systems/texture_render_system.h"
-#include "systems/ui_render_system.h"
-#include "systems/tessellation_render_system.h"
+#include "rendering/render_systems/texture_render_system.h"
+#include "rendering/render_systems/ui_render_system.h"
+#include "rendering/render_systems/tessellation_render_system.h"
 
 #include "keyboard_movement_controller.h"
 #include "keyboard_placement_controller.h"
@@ -29,7 +29,7 @@ namespace vk {
 
 	struct EngineSettings {
 		float cPhysicsDeltaTime = 1.0f / 60.0f;
-		float maxFrameTime = 0.01f;
+		float maxFrameTime = 0.2f; // 5 fps
 		bool debugTime = false;
 		bool debugPlayer = false;
 		bool debugEnemies = false;
@@ -37,7 +37,7 @@ namespace vk {
 
 	class Engine {
 	   public:
-		Engine(shared_ptr<IGame> game);
+		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device);
 		~Engine();
 
 		Engine(const Engine&) = delete;
@@ -47,24 +47,22 @@ namespace vk {
 
 	   private:
 
-		std::shared_ptr<IGame> game;
+		IGame& game;
+		physics::PhysicsSimulation& physicsSimulation;
+		std::shared_ptr<SceneManager> sceneManager;
+
+		vk::Window& window;
+		vk::Device& device;
 		
-		std::unique_ptr<Window> window;
 		std::unique_ptr<controls::KeyboardMenuController> menuController;
-		std::unique_ptr<Device> device;
+		
 		std::unique_ptr<Renderer> renderer;
 
 		std::unique_ptr<DescriptorPool> globalPool{};
-
-		std::unique_ptr<physics::PhysicsSimulation> physicsSimulation;
-
-		std::shared_ptr<SceneManager> sceneManager;
 
 		chrono::steady_clock::time_point startTime;
 		
 		// TODO read via ini file
 		EngineSettings engineSettings = {};
-		int windowWidth = 800;
-		int windowHeight = 800;
 	};
 }

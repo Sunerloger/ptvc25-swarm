@@ -2,6 +2,7 @@
 
 #include <map>
 #include <queue>
+#include <memory>
 
 #include "../GameObject.h"
 #include "../simulation/objects/ManagedPhysicsEntity.h"
@@ -22,6 +23,12 @@ enum SceneClass {
 	SPECTRAL_OBJECT,
 	TESSELLATION_OBJECT  // New class for tessellation objects
 };
+
+// TODO simplify GameObject and SceneManager
+// TODO GameObject stores SceneClass
+// TODO make singleton
+// TODO store assets + models + materials in sceneManager
+// TODO sceneGraph
 
 // provides scene information to the renderer and the physics engine
 struct Scene {
@@ -53,6 +60,9 @@ struct Scene {
 
 	// objects scheduled for deletion from scene manager
 	std::queue<vk::id_t> staleQueue = {};
+
+	// TODO + store information if timer is running only when game is running in timers themselves
+	// std::vector<Timer> timers;
 };
 
 // manages active scenes

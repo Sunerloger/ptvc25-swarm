@@ -11,6 +11,9 @@
 #include "simulation/objects/actors/Player.h"
 #include "simulation/objects/static/Terrain.h"
 #include "simulation/objects/actors/enemies/Sprinter.h"
+#include "simulation/PhysicsSimulation.h"
+
+#include "asset_utils/AssetManager.h"
 
 #include "ui/Font.h"
 #include "ui/TextComponent.h"
@@ -36,24 +39,37 @@ class Swarm : public IGame {
 
 public:
 
-	Swarm() = default;
+	Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, controls::KeyboardMovementController& movementController);
 	~Swarm() = default;
 
 	Swarm(const Swarm&) = delete;
 	Swarm& operator=(const Swarm&) = delete;
 
 	void init() override;
+
 	void prePhysicsUpdate() override;
 	void postPhysicsUpdate() override;
-	void menuUpdate() override;
 
-	const string getName() const override { return name; }
+	void gameActiveUpdate(float deltaTime) override;
+	void gamePauseUpdate(float deltaTime) override;
+
+	static inline std::string Name = "Swarm";
+
+	std::string getName() const override { return Name; }
 
 private:
 
 	id_t gameTimeTextID;
+	float elapsedTime = 0;
 	int oldSecond = 0;
 
-	const string name = "Swarm";
+	physics::PhysicsSimulation& physicsSimulation;
+	std::shared_ptr<SceneManager> sceneManager;
+	AssetManager& assetManager;
+
+	Window& window;
+	Device& device;
+
+	controls::KeyboardMovementController& movementController;
 
 };

@@ -1,9 +1,10 @@
 #include "CubemapMaterial.h"
-#include "../../asset_utils/AssetManager.h"
+#include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
 // Include stb_image without the implementation
 #include "stb_image.h"
 #include <stdexcept>
+#include <iostream>
 
 namespace vk {
 
@@ -95,7 +96,7 @@ namespace vk {
         stbi_uc* faceData[6];
 
         for (int i = 0; i < 6; i++) {
-            std::string resolvedPath = AssetManager::getInstance().resolvePath(facePaths[i]);
+            std::string resolvedPath = AssetLoader::getInstance().resolvePath(facePaths[i]);
             faceData[i] = stbi_load(resolvedPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
             if (!faceData[i]) {
                 throw std::runtime_error("Failed to load cubemap face: " + resolvedPath);
@@ -252,7 +253,7 @@ namespace vk {
     void CubemapMaterial::createCubemapFromSingleImage(const std::string& imagePath, bool isHorizontalStrip) {
         // Load the single image containing all 6 faces
         int width, height, channels;
-        std::string resolvedPath = AssetManager::getInstance().resolvePath(imagePath);
+        std::string resolvedPath = AssetLoader::getInstance().resolvePath(imagePath);
         stbi_uc* imageData = stbi_load(resolvedPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
         
         if (!imageData) {
