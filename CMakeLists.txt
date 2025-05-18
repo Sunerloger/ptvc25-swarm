@@ -136,6 +136,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(stb)
 
 FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_TAG        master
+  GIT_SHALLOW    ON
+)
+FetchContent_MakeAvailable(fmt)
+
+FetchContent_Declare(
   inih
   GIT_REPOSITORY https://github.com/benhoyt/inih.git
   GIT_TAG r60
@@ -228,6 +236,7 @@ set(LINK_LIBRARIES
     Jolt
     tinygltf
     tinyobjloader
+    fmt
     $<$<BOOL:${APPLE}>:
         "-framework CoreFoundation"
         "-framework CoreGraphics"

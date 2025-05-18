@@ -1,5 +1,7 @@
 #include "Swarm.h"
 
+#include <fmt/format.h>
+
 
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, controls::KeyboardMovementController& movementController)
 	: physicsSimulation(physicsSimulation), sceneManager(sceneManager), assetManager(assetManager), window(window), device(device), movementController(movementController) {}
@@ -112,7 +114,7 @@ void Swarm::init() {
 	sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	Font font;
-	TextComponent* gameTimeText = new TextComponent(device, font, "Time: 0", "clock", false);
+	TextComponent* gameTimeText = new TextComponent(device, font, "Time: 00:00", "clock", false);
 	gameTimeTextID = sceneManager->addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
 
 	// TODO handle clicking (raycast + damage) -> register callback in player with input system
@@ -137,7 +139,7 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 			if (auto ui = objPair->second.lock()) {
 				// TODO this is unsafe and terrible -> just store type in GameObject variable when creating a subclass (enum Type) and check it before static casting + remove the distinctions in sceneManager
 				if (auto text = static_cast<TextComponent*>(ui.get())) {
-					text->setText("Time: " + std::to_string(newSecond));
+					text->setText(fmt::format("Time: {:02}:{:02}", newSecond / 60, newSecond % 60));
 				}
 			}
 		}
@@ -146,6 +148,8 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 }
 
 void Swarm::prePhysicsUpdate() {
+
+	// TODO jump + shoot callback to not miss short input
 
 	MovementIntent movementIntent = movementController.getMovementIntent(window.getGLFWWindow());
 
