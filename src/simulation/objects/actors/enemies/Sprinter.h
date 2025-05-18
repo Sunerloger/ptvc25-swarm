@@ -26,8 +26,8 @@ namespace physics {
 	struct SprinterCreationSettings {
 		JPH::RVec3 position = JPH::RVec3::sZero();
 
-		std::unique_ptr<JPH::CharacterSettings> characterSettings;
-		std::unique_ptr<SprinterSettings> sprinterSettings;
+		JPH::CharacterSettings characterSettings;
+		SprinterSettings sprinterSettings;
 
 		JPH::uint64 inUserData = 0;
 	};
@@ -36,7 +36,7 @@ namespace physics {
 
 	public:
 		
-		Sprinter(std::unique_ptr<SprinterCreationSettings> sprinterCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system);
+		Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system);
 		virtual ~Sprinter();
 
 		JPH::BodyID getBodyID() override;
@@ -65,12 +65,12 @@ namespace physics {
 
 		float currentHealth;
 
-		std::unique_ptr<JPH::CharacterSettings> characterSettings;
-		std::unique_ptr<SprinterSettings> sprinterSettings;
+		JPH::CharacterSettings characterSettings;
+		SprinterSettings sprinterSettings;
 
 		std::unique_ptr<JPH::Character> character;
 
-		std::shared_ptr<JPH::PhysicsSystem> physics_system;
+		JPH::PhysicsSystem& physics_system;
 
 		float calculateTargetAngle();
 

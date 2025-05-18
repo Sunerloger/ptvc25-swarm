@@ -6,8 +6,7 @@ Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<Scen
 
 void Swarm::init() {
 
-	// TODO be careful that nothing important falls out of scope
-	// TODO remove pointers -> references
+	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
 
 	// Parameters for the terrain
 	int samplesPerSide = 200;	// Resolution of the heightmap
@@ -26,40 +25,36 @@ void Swarm::init() {
 	float playerRadius = 0.3f;
 	Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
-	std::unique_ptr<CharacterCameraSettings> cameraSettings = std::make_unique<CharacterCameraSettings>();
-	cameraSettings->cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
+	CharacterCameraSettings cameraSettings = {};
+	cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
 
-	std::unique_ptr<physics::PlayerSettings> playerSettings = std::make_unique<physics::PlayerSettings>();
-	playerSettings->movementSpeed = 10.0f;
+	physics::PlayerSettings playerSettings = {};
+	playerSettings.movementSpeed = 10.0f;
 
-	// TODO remove all the unnecessary moves
+	JPH::CharacterSettings characterSettings = {};
+	characterSettings.mGravityFactor = 1.0f;
+	characterSettings.mFriction = 10.0f;
+	characterSettings.mShape = characterShape;
+	characterSettings.mLayer = physics::Layers::MOVING;
+	characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius);  // Accept contacts that touch the lower sphere of the capsule
 
-	std::unique_ptr<JPH::CharacterSettings> characterSettings = std::make_unique<JPH::CharacterSettings>();
-	characterSettings->mGravityFactor = 1.0f;
-	characterSettings->mFriction = 10.0f;
-	characterSettings->mShape = characterShape;
-	characterSettings->mLayer = physics::Layers::MOVING;
-	characterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius);  // Accept contacts that touch the lower sphere of the capsule
+	physics::PlayerCreationSettings playerCreationSettings = {};
+	playerCreationSettings.characterSettings = characterSettings;
+	playerCreationSettings.cameraSettings = cameraSettings;
+	playerCreationSettings.playerSettings = playerSettings;
+	playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
 
-	std::unique_ptr<physics::PlayerCreationSettings> playerCreationSettings = std::make_unique<physics::PlayerCreationSettings>();
-	playerCreationSettings->characterSettings = std::move(characterSettings);
-	playerCreationSettings->cameraSettings = std::move(cameraSettings);
-	playerCreationSettings->playerSettings = std::move(playerSettings);
-	playerCreationSettings->position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
+	sceneManager->setPlayer(std::make_unique<physics::Player>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
-	sceneManager->setPlayer(std::make_unique<physics::Player>(std::move(playerCreationSettings), physicsSimulation.getPhysicsSystem()));
-
-	// Terrain
-	// Create a terrain with procedural heightmap using Perlin noise
-	// Parameters: physics_system, color, model, position, scale, samplesPerSide, noiseScale, heightScale
-	// Create a terrain with our generated heightmap data
+	// create terrain with procedural heightmap using perlin noise
+	// create terrain with the generated heightmap data
 	auto terrain = std::make_unique<physics::Terrain>(
 		physicsSimulation.getPhysicsSystem(),
 		glm::vec3{ 0.569, 0.29, 0 },
-		std::move(result.first),				 // Move the model
-		glm::vec3{ 0.0, -2.0, 0.0 },				 // Position slightly below origin to prevent falling through
-		glm::vec3{ 500.0f, heightScale, 500.0f },	 // Larger size and taller
-		result.second);
+		std::move(result.first),
+		glm::vec3{ 0.0, -2.0, 0.0 },				 // position slightly below origin to prevent falling through
+		glm::vec3{ 500.0f, heightScale, 500.0f },
+		std::move(result.second));
 	sceneManager->addTessellationObject(std::move(terrain));
 
 	// Skybox
@@ -70,8 +65,7 @@ void Swarm::init() {
 		"textures:skybox/learnopengl/bottom.jpg",
 		"textures:skybox/learnopengl/front.jpg",
 		"textures:skybox/learnopengl/back.jpg" };
-	auto skybox = std::make_unique<Skybox>(device, cubemapFaces);
-	sceneManager->addSpectralObject(std::move(skybox));
+	sceneManager->addSpectralObject(std::make_unique<Skybox>(device, cubemapFaces));
 
 	// Enemies
 	float enemyHullHeight = 1.25f;
@@ -80,21 +74,21 @@ void Swarm::init() {
 	shared_ptr<Model> enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
 	for (int i = 0; i < 15; ++i) {
 		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
-		std::unique_ptr<physics::SprinterSettings> sprinterSettings = std::make_unique<physics::SprinterSettings>();
-		sprinterSettings->model = enemyModel;
+		physics::SprinterSettings sprinterSettings = {};
+		sprinterSettings.model = enemyModel;
 
-		std::unique_ptr<JPH::CharacterSettings> enemyCharacterSettings = std::make_unique<JPH::CharacterSettings>();
-		enemyCharacterSettings->mLayer = physics::Layers::MOVING;
-		enemyCharacterSettings->mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // Accept contacts that touch the lower sphere of the capsule
-		enemyCharacterSettings->mFriction = 10.0f;
-		enemyCharacterSettings->mShape = enemyShape;
-		enemyCharacterSettings->mGravityFactor = 1.0f;
+		JPH::CharacterSettings enemyCharacterSettings = {};
+		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
+		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // Accept contacts that touch the lower sphere of the capsule
+		enemyCharacterSettings.mFriction = 10.0f;
+		enemyCharacterSettings.mShape = enemyShape;
+		enemyCharacterSettings.mGravityFactor = 1.0f;
 
-		std::unique_ptr<physics::SprinterCreationSettings> sprinterCreationSettings = std::make_unique<physics::SprinterCreationSettings>();
-		sprinterCreationSettings->sprinterSettings = std::move(sprinterSettings);
-		sprinterCreationSettings->characterSettings = std::move(enemyCharacterSettings);
-		sprinterCreationSettings->position = RVec3(i + 10.0f, 15.0f, 10.0f);
-		sceneManager->addEnemy(std::move(make_unique<physics::Sprinter>(std::move(sprinterCreationSettings), physicsSimulation.getPhysicsSystem())));
+		physics::SprinterCreationSettings sprinterCreationSettings = {};
+		sprinterCreationSettings.sprinterSettings = sprinterSettings;
+		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
+		sprinterCreationSettings.position = RVec3(i + 10.0f, 15.0f, 10.0f);
+		sceneManager->addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
 	}
 
 	// UI

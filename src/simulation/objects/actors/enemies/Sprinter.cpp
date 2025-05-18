@@ -4,13 +4,11 @@
 
 namespace physics {
 
-	Sprinter::Sprinter(std::unique_ptr<SprinterCreationSettings> sprinterCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
-		this->sprinterSettings = std::move(sprinterCreationSettings->sprinterSettings);
-		this->characterSettings = std::move(sprinterCreationSettings->characterSettings);
-		this->physics_system = physics_system;
-		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(this->characterSettings.get(), sprinterCreationSettings->position, JPH::Quat::sIdentity(), sprinterCreationSettings->inUserData, this->physics_system.get()));
+	Sprinter::Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system) : 
+		sprinterSettings(sprinterCreationSettings.sprinterSettings), characterSettings(sprinterCreationSettings.characterSettings), physics_system(physics_system) {
+		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, sprinterCreationSettings.position, JPH::Quat::sIdentity(), sprinterCreationSettings.inUserData, &this->physics_system));
 
-		this->currentHealth = this->sprinterSettings->maxHealth;
+		this->currentHealth = sprinterSettings.maxHealth;
 	}
 
 	Sprinter::~Sprinter() {
@@ -48,7 +46,7 @@ namespace physics {
 		// 		<< " diff=" << angleDiff
 		// 		<< std::endl;
 
-		bool isLockedOnPlayer = std::fabs(angleDiff) <= this->sprinterSettings->movementAngle;
+		bool isLockedOnPlayer = std::fabs(angleDiff) <= this->sprinterSettings.movementAngle;
 
 		// std::cout << "  isLockedOnPlayer=" << (isLockedOnPlayer ? "true" : "false") << std::endl;
 
@@ -87,14 +85,14 @@ namespace physics {
 			}
 			
 			// Calculate desired horizontal velocity
-			JPH::Vec3 desiredVelocity = horizontalDirection * sprinterSettings->maxMovementSpeed;
+			JPH::Vec3 desiredVelocity = horizontalDirection * sprinterSettings.maxMovementSpeed;
 			
 			// Preserve current Y velocity (gravity)
 			desiredVelocity.SetY(currentVelocity.GetY());
 			
 			// Blend current and desired velocity (with acceleration)
 			JPH::Vec3 newVelocity = currentVelocity + cPhysicsDeltaTime *
-				this->sprinterSettings->accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
+				this->sprinterSettings.accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
 			
 			// Apply a small upward force when on ground to help with slopes
 			if (ground_state == JPH::Character::EGroundState::OnGround &&
@@ -106,7 +104,7 @@ namespace physics {
 		}
 
 		// rad/s
-		float rotationSpeed = glm::pi<float>() * sprinterSettings->rotationTime;
+		float rotationSpeed = glm::pi<float>() * sprinterSettings.rotationTime;
 
 		float updatedAngle;
 
@@ -179,7 +177,7 @@ namespace physics {
 	}
 
 	void Sprinter::postSimulation() {
-		character->PostSimulation(sprinterSettings->maxFloorSeparationDistance);
+		character->PostSimulation(sprinterSettings.maxFloorSeparationDistance);
 	}
 
 	glm::mat4 Sprinter::computeModelMatrix() const {
@@ -218,7 +216,7 @@ namespace physics {
 	}
 
 	float Sprinter::getMaxHealth() const {
-		return this->sprinterSettings->maxHealth;
+		return this->sprinterSettings.maxHealth;
 	}
 
 	float Sprinter::getCurrentHealth() const {
@@ -226,6 +224,6 @@ namespace physics {
 	}
 
 	std::shared_ptr<vk::Model> Sprinter::getModel() const {
-		return this->sprinterSettings->model;
+		return this->sprinterSettings.model;
 	}
 }

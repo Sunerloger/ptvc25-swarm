@@ -2,7 +2,7 @@
 
 namespace physics {
 
-	ManagedPhysicsEntity::ManagedPhysicsEntity(std::shared_ptr<JPH::PhysicsSystem> physics_system) : physics_system(physics_system) {}
+	ManagedPhysicsEntity::ManagedPhysicsEntity(JPH::PhysicsSystem& physics_system) : physics_system(physics_system) {}
 
 	ManagedPhysicsEntity::~ManagedPhysicsEntity() {
 		
@@ -11,7 +11,7 @@ namespace physics {
 
 		removePhysicsBody();
 
-		JPH::BodyInterface& body_interface = physics_system->GetBodyInterface();
+		JPH::BodyInterface& body_interface = physics_system.GetBodyInterface();
 		body_interface.DestroyBody(bodyID);
 	}
 
@@ -21,6 +21,6 @@ namespace physics {
 		if (bodyID.IsInvalid()) { return; }
 
 		// checks automatically if body is added or active
-		physics_system->GetBodyInterface().RemoveBody(bodyID);
+		physics_system.GetBodyInterface().RemoveBody(bodyID);
 	}
 }

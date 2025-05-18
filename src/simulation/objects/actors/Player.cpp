@@ -4,12 +4,9 @@
 
 namespace physics {
 
-	Player::Player(std::unique_ptr<PlayerCreationSettings> playerCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
-		this->settings = std::move(playerCreationSettings->playerSettings);
-		this->characterSettings = std::move(playerCreationSettings->characterSettings);
-		this->physics_system = physics_system;
-		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(this->characterSettings.get(), playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, this->physics_system.get()));
-		this->camera = std::unique_ptr<CharacterCamera>(new CharacterCamera(std::move(playerCreationSettings->cameraSettings)));
+	Player::Player(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) :
+	settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
+		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, playerCreationSettings.position, playerCreationSettings.rotation, playerCreationSettings.inUserData, &this->physics_system));
 	}
 
 	Player::~Player() {
@@ -27,7 +24,7 @@ namespace physics {
 	void Player::handleMovement(JPH::Vec3 movementDirectionCharacter, bool isJump, float cPhysicsDeltaTime) {
 		// deltaTime can be used for e.g. setting a fixed time it should take for the character to reach max velocity
 
-		float yaw = glm::radians(camera->getYaw());
+		float yaw = glm::radians(camera.getYaw());
 		JPH::RMat44 rotation_matrix = JPH::RMat44::sIdentity().sRotationY(yaw);
 
 		JPH::Vec3 movementDirectionWorld = JPH::Vec3(rotation_matrix * JPH::Vec4(movementDirectionCharacter, 1));
@@ -46,16 +43,16 @@ namespace physics {
 			}
 		}
 
-		if (settings->controlMovementDuringJump || character->IsSupported()) {
+		if (settings.controlMovementDuringJump || character->IsSupported()) {
 			// Update velocity
 			JPH::Vec3 current_velocity = character->GetLinearVelocity();
-			JPH::Vec3 desired_velocity = settings->movementSpeed * movementDirectionWorld;
+			JPH::Vec3 desired_velocity = settings.movementSpeed * movementDirectionWorld;
 			desired_velocity.SetY(current_velocity.GetY());
 			JPH::Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
 
 			// Jump - OnGround also means you have friction
 			if (isJump && ground_state == JPH::Character::EGroundState::OnGround) {
-				new_velocity.SetY(std::sqrt(2 * settings->jumpHeight * characterSettings->mGravityFactor * 9.81f));
+				new_velocity.SetY(std::sqrt(2 * settings.jumpHeight * characterSettings.mGravityFactor * 9.81f));
 			}
 
 			// Update the velocity
@@ -65,17 +62,17 @@ namespace physics {
 	}
 
 	void Player::handleRotation(float deltaYaw, float deltaPitch) {
-		camera->addRotation(deltaYaw, deltaPitch);
+		camera.addRotation(deltaYaw, deltaPitch);
 	}
 
 	void Player::postSimulation() {
-		character->PostSimulation(settings->maxFloorSeparationDistance);
+		character->PostSimulation(settings.maxFloorSeparationDistance);
 
-		camera->setPhysicsPosition(character->GetPosition());
+		camera.setPhysicsPosition(character->GetPosition());
 	}
 
 	const glm::vec3 Player::getCameraPosition() const {
-		return camera->getPosition();
+		return camera.getPosition();
 	}
 
 	void Player::printInfo(int iterationStep) const {

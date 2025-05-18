@@ -42,7 +42,7 @@ namespace physics {
 		PhysicsSimulation(std::shared_ptr<SceneManager> sceneManager);
 		virtual ~PhysicsSimulation();
 
-		std::shared_ptr<PhysicsSystem> getPhysicsSystem();
+		PhysicsSystem& getPhysicsSystem();
 
 		void simulate();
 		void preSimulation();
@@ -95,7 +95,7 @@ namespace physics {
 		// Note: As this is an interface, PhysicsSystem will take a reference to this so THIS INSTANCE NEEDS TO STAY ALIVE!
 		shared_ptr<ObjectLayerPairFilterImpl> object_vs_object_layer_filter;
 
-		shared_ptr<PhysicsSystem> physics_system;
+		PhysicsSystem physics_system;
 
 		// A body activation listener gets notified when bodies activate and go to sleep
 		// Note that this is called from a job so whatever you do here needs to be thread safe.

@@ -22,11 +22,11 @@ namespace physics {
 	class Terrain : public ManagedPhysicsEntity {
 	   public:
 		// Constructor for simple box terrain
-		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale = {1.0f, 1.0f, 1.0f});
+		Terrain(PhysicsSystem& physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale = {1.0f, 1.0f, 1.0f});
 		
 		// Constructor with externally provided heightmap data
-		Terrain(std::shared_ptr<PhysicsSystem> physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model,
-		        glm::vec3 position, glm::vec3 scale, std::vector<float> heightfieldData);
+		Terrain(PhysicsSystem& physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model,
+		        glm::vec3 position, glm::vec3 scale, std::vector<float>&& heightfieldData);
 		
 		virtual ~Terrain();
 
@@ -47,7 +47,7 @@ namespace physics {
 		// For Perlin noise generation
 		std::vector<int> p; // Permutation table for Perlin noise
 		
-		std::unique_ptr<BodyCreationSettings> body_settings;
+		BodyCreationSettings body_settings;
 	};
 }
 

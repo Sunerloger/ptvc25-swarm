@@ -19,7 +19,7 @@ struct CharacterCameraSettings {
 
 class CharacterCamera {
    public:
-	CharacterCamera(std::unique_ptr<CharacterCameraSettings> cameraSettings);
+	CharacterCamera(CharacterCameraSettings cameraSettings);
 	virtual ~CharacterCamera();
 
 	const glm::mat4 calculateViewMat() const;
@@ -46,7 +46,7 @@ class CharacterCamera {
 	static glm::mat4 getPerspectiveProjection(float fov, float aspect, float, float);
 
    private:
-	std::unique_ptr<CharacterCameraSettings> settings;
+	CharacterCameraSettings settings;
 
 	glm::vec3 position = glm::vec3(0);
 	glm::mat4 projMatrix = glm::mat4(1);
