@@ -1,27 +1,4 @@
 #include "first_app.h"
-// Needed for transformations and shared pointers
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
-#include <memory>
-#include "rendering/materials/WaterMaterial.h"
-#include "rendering/materials/UIMaterial.h"
-#include "rendering/materials/StandardMaterial.h"
-
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
-
-#include <memory>
-#include <string>
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3.h>
-#include "INIReader.h"
 
 namespace vk {
 
@@ -173,7 +150,7 @@ namespace vk {
 				ubo.projection = sceneManager->getPlayer()->getProjMat();
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 500.0f);
-				ubo.sunDirection = glm::vec4(loadData(), 0.0f);
+				ubo.sunDirection = glm::vec4(1.7, -1, 3.0, 0.0f);
 				ubo.sunColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();

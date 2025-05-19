@@ -33,6 +33,7 @@
 
 #include "rendering/materials/CubemapMaterial.h"
 #include "rendering/materials/TessellationMaterial.h"
+#include "rendering/materials/WaterMaterial.h"
 #include "rendering/structures/Skybox.h"
 
 #define GLM_FORCE_RADIANS

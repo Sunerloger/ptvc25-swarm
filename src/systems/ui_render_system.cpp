@@ -139,10 +139,8 @@ namespace vk {
 			UIPushConstantData push{};
 
 			// Use the game object's model matrix and normal matrix
-			// The skybox GameObject class overrides these methods to return identity matrices
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
-
 			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
 
 			// No type checking - trust the implementation

@@ -11,7 +11,7 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
-    vec4 sunDirection;  // in view‐space, points towards the light
+    vec4 sunDirection;
     vec4 sunColor;      // rgb + intensity in .w
 } ubo;
 
@@ -51,7 +51,6 @@ vec3 phong(vec3 n, vec3 l, vec3 v,
 
 void main() {
     // 1) reconstruct view‐space normal & view‐space position
-    //    use your full normalMatrix (M⁻ᵀ) to get correct view‐space normal:
     vec3 Nw = normalize(normWorld);
     vec3 N  = normalize( (push.normalMatrix * vec4(Nw,0.0)).xyz );
 
@@ -59,7 +58,6 @@ void main() {
     vec3 V = normalize(-viewPos); // toward camera at origin
 
     // 2) directional‐light direction (sunDirection in view‐space)
-        //    make sure sunDirection was stored with w=0!  If not, reproject it here:
     vec3 sunDirVS = normalize((ubo.view * vec4(ubo.sunDirection.xyz, 0.0)).xyz);
     vec3 L = -sunDirVS;
 

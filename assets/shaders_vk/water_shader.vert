@@ -6,9 +6,11 @@ layout(location = 2) in vec3  normal;  // unused now
 layout(location = 3) in vec2  uv;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
-    mat4 projection, view, uiOrthographicProjection;
-    vec4 sunDirection, sunColor;
-    // …
+    mat4 projection;
+    mat4 view;
+    mat4 uiOrthographicProjection;
+    vec4 sunDirection;
+    vec4 sunColor;
 } ubo;
 
 layout(push_constant) uniform Push {
@@ -16,7 +18,7 @@ layout(push_constant) uniform Push {
     mat4 normalMatrix;
     vec2 uvOffset;
     float time;
-    int   hasTexture;
+    int  hasTexture;
 } push;
 
 layout(location = 0) out vec2  fragUV;
@@ -28,13 +30,11 @@ void main() {
     // 1) Base world‐space position
     vec3 worldPos0 = (push.modelMatrix * vec4(position, 1.0)).xyz;
 
-    // === Tweakable parameters ===
-    float waveFrequency = 100.0;   // ↑ Larger = more waves per unit (narrower waves)
-    float waveHeight    = 5.0;    // ↑ Larger = taller crests/troughs
-    float timeScale1    = 2.0;    // speed of wave1
+    float waveFrequency = 100.0;
+    float waveHeight    = 5.0;
+    float timeScale1    = 2.0;
     float timeScale2    = 1.5;
     float timeScale3    = 1.0;
-    // ============================
 
     // 2) Three superposed wave components
     float w1 = sin(worldPos0.x * waveFrequency + push.time * timeScale1) * 0.3;
@@ -46,7 +46,6 @@ void main() {
     vec3 displaced = worldPos0 + vec3(0.0, baseWave * waveHeight, 0.0);
 
     // 4) Compute derivatives for analytic normal
-    //    dYdx & dYdz must include the same amplitude scaling
     float amp = waveHeight * 0.5;
     float dYdx = ( cos(worldPos0.x * waveFrequency + push.time * timeScale1) * waveFrequency * 0.3
                  + cos((worldPos0.x + worldPos0.z) * 15.0 + push.time * timeScale3) * 15.0 * 0.1 )
@@ -58,7 +57,7 @@ void main() {
 
     // 5) Pass to fragment shader
     posWorld  = displaced;
-    normWorld = nW;                        // world-space normal
+    normWorld = nW;
     fragUV    = uv * 1.0 + push.uvOffset;
     fragColor = color;
 

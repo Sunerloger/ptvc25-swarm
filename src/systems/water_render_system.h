@@ -11,16 +11,13 @@
 
 namespace vk {
 
-    struct WaterPushConstantData {
-        glm::mat4 modelMatrix{1.0f};
-        glm::mat4 normalMatrix{1.0f};
-        // UV offset for animating water texture (scroll)
-        glm::vec2 uvOffset{0.0f};
-        // Animation time for wave calculation
-        float time = 0.0f;
-        // Texture usage flag
-        int hasTexture = 0;
-    };
+	struct WaterPushConstantData {
+		glm::mat4 modelMatrix{1.0f};
+		glm::mat4 normalMatrix{1.0f};
+		glm::vec2 uvOffset{0.0f};
+		float time = 0.0f;
+		int hasTexture = 0;
+	};
 
 	class WaterRenderSystem {
 	   public:
@@ -70,10 +67,10 @@ namespace vk {
 		VkRenderPass renderPass;
 		VkDescriptorSetLayout globalSetLayout;
 
-        std::unordered_map<PipelineKey, PipelineInfo, PipelineKeyHash> pipelineCache;
-        std::unordered_map<VkDescriptorSetLayout, VkPipelineLayout> pipelineLayoutCache;
-        // Accumulated time for UV animation
-        float elapsedTime{0.0f};
+		std::unordered_map<PipelineKey, PipelineInfo, PipelineKeyHash> pipelineCache;
+		std::unordered_map<VkDescriptorSetLayout, VkPipelineLayout> pipelineLayoutCache;
+		// Accumulated time for UV animation
+		float elapsedTime{0.0f};
 	};
 
 }  // namespace vk
