@@ -15,12 +15,13 @@
 enum SceneClass {
 	PLAYER,
 	SUN,
+	WATER,
 	LIGHT,
 	ENEMY,
 	UI_COMPONENT,
 	PHYSICS_OBJECT,
 	SPECTRAL_OBJECT,
-	TESSELLATION_OBJECT  // New class for tessellation objects
+	TESSELLATION_OBJECT	 // New class for tessellation objects
 };
 
 // provides scene information to the renderer and the physics engine
@@ -29,6 +30,9 @@ struct Scene {
 
 	// not rendered and not in physics engine
 	std::shared_ptr<lighting::Sun> sun;
+
+	// rendered and not in physics engine
+	std::unordered_map<vk::id_t, std::shared_ptr<vk::GameObject>> waterObjects = {};
 
 	// not rendered and not in physics engine
 	std::unordered_map<vk::id_t, std::shared_ptr<lighting::PointLight>> lights = {};
@@ -41,7 +45,7 @@ struct Scene {
 
 	// non actor physics objects (e.g. terrain, drops, bullets, ...)
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::ManagedPhysicsEntity>> physicsObjects = {};
-	
+
 	// objects that use tessellation shaders
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::ManagedPhysicsEntity>> tessellationObjects = {};
 
@@ -70,6 +74,8 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	// always replaces old sun!
 	vk::id_t setSun(std::unique_ptr<lighting::Sun> sun);
 
+	vk::id_t addWaterObject(std::unique_ptr<vk::GameObject> waterObject);
+
 	// @return false if object could not be added because it already exists
 	vk::id_t addSpectralObject(std::unique_ptr<vk::GameObject> spectralObject);
 
@@ -81,7 +87,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 
 	// @return false if object could not be added because it already exists
 	vk::id_t addManagedPhysicsEntity(std::unique_ptr<physics::ManagedPhysicsEntity> managedPhysicsEntity);
-	
+
 	// @return false if object could not be added because it already exists
 	vk::id_t addTessellationObject(std::unique_ptr<physics::ManagedPhysicsEntity> tessellationObject);
 
@@ -120,6 +126,8 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 
 	std::shared_ptr<lighting::Sun> getSun();
 
+	std::vector<std::weak_ptr<vk::GameObject>> getWaterObjects();
+
 	// returns the boolean and resets it to false
 	bool isBroadPhaseOptimizationNeeded();
 
@@ -127,7 +135,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 
 	// Get standard render objects (non-tessellated)
 	std::vector<std::weak_ptr<vk::GameObject>> getStandardRenderObjects();
-	
+
 	// Get tessellation render objects
 	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 

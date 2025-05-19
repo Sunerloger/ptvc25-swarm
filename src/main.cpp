@@ -1,6 +1,15 @@
 #include "first_app.h"
 #include "asset_utils/AssetManager.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
+#define STB_EASY_FONT_IMPLEMENTATION
+#include "stb_easy_font.h"
+
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>

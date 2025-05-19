@@ -1,24 +1,39 @@
 #pragma once
 
+#include "../GameObject.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
-#include "../GameObject.h"
+#include <memory>
+#include <string>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h>
+#include "INIReader.h"
 
 namespace vk {
+
+	struct Transform {
+		glm::vec3 pos;
+		glm::quat rot;
+		glm::vec3 scale;
+	};
+
 	class UIComponentCreationSettings {
 	   public:
 		std::shared_ptr<Model> model;
-
-		glm::vec3 position;
-		glm::vec3 scale;
-
-		// angle around axis in degrees (pitch, yaw, roll)
-		glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-
-		// specifies if there is a file to read from / write to
+		std::string name;
 		bool controllable = false;
+		GLFWwindow* window = nullptr;
+		bool anchorRight = false;
+		bool anchorBottom = false;
 	};
 
 	class UIComponent : public GameObject {
@@ -29,29 +44,30 @@ namespace vk {
 		void updateTransform(float deltaTime, int placementTransform = -1);
 
 		glm::mat4 computeModelMatrix() const override;
-
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
-		
-		// if no filename use ui_state_index.txt
-		void saveData(const std::string& filename = "");
-		void loadData(const std::string& filename = "");
+		bool isControllable() const {
+			return controllable;
+		}
 
-		static int nextIndex;
+	   protected:
+		void setModel(std::shared_ptr<Model> m) {
+			model = std::move(m);
+		}
 
 	   private:
+		Transform loadData() const;
+		void saveData(const Transform& t) const;
+
 		std::shared_ptr<Model> model;
-
-		glm::vec3 position;
-		glm::quat orientation;
-		glm::vec3 scale;
-
-		float windowWidth;
-		float windowHeight;
-
-		bool controllable = false;
-
-		int index;
+		std::string name;
+		bool controllable;
+		GLFWwindow* window = nullptr;
+		bool anchorRight = false;
+		float offsetFromRight = 0.0f;
+		bool anchorBottom = false;
+		float offsetFromBottom = 0.0f;
 	};
-}
+
+}  // namespace vk
