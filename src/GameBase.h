@@ -9,28 +9,23 @@
 
 class GameBase : public IGame {
 public:
-    GameBase(std::shared_ptr<input::IInputController> ctrl)
-        : inputController(std::move(ctrl)), paused(false) {}
+    GameBase(input::IInputController& ctrl)
+        : inputController(ctrl) {}
 
-    void setupInput(input::InputManager& im) override {
-        inputController->setup(im);
-        bindInput(im);
+    void setupInput() override {
+        inputController.setup();
+        bindInput();
     }
-    void togglePause() override { paused = !paused; }
-    bool isPaused()   const override { return paused; }
 
-    void setInputController(std::shared_ptr<input::IInputController> newCtrl,
-        input::InputManager& im)
+    void setInputController(input::IInputController& newCtrl)
     {
-        inputController->deregister(im);
-        inputController = std::move(newCtrl);
-        setupInput(im);
+        inputController.deregister();
+        inputController = newCtrl;
+        setupInput();
     }
 
 protected:
-    virtual void bindInput(input::InputManager& im) = 0;
-    std::shared_ptr<input::IInputController> inputController;
+    virtual void bindInput() = 0;
 
-private:
-    bool paused;
+    input::IInputController& inputController;
 };

@@ -34,7 +34,7 @@ namespace vk {
 
 	class Engine {
 	   public:
-		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device);
+		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device, input::InputManager& inputManager);
 		~Engine();
 
 		Engine(const Engine&) = delete;
@@ -47,7 +47,7 @@ namespace vk {
 		IGame& game;
 		physics::PhysicsSimulation& physicsSimulation;
 		std::shared_ptr<SceneManager> sceneManager;
-		input::InputManager m_inputManager;
+		input::InputManager& inputManager;
 
 		vk::Window& window;
 		vk::Device& device;

@@ -3,8 +3,8 @@
 #include <fmt/format.h>
 
 
-Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, std::shared_ptr<input::SwarmInputController> inputController)
-	: GameBase(std::move(inputController)), physicsSimulation(physicsSimulation), sceneManager(sceneManager), assetManager(assetManager), window(window), device(device) {}
+Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController)
+	: GameBase(inputController), physicsSimulation(physicsSimulation), sceneManager(sceneManager), assetManager(assetManager), window(window), device(device) {}
 
 void Swarm::init() {
 
@@ -118,14 +118,13 @@ void Swarm::init() {
 	gameTimeTextID = sceneManager->addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
 }
 
-void Swarm::bindInput(input::InputManager& im) {
-	input::SwarmInputController* swarmInput = static_cast<input::SwarmInputController*>(inputController.get());
-	swarmInput->onMove = [this](const glm::vec3& dir) { sceneManager->getPlayer()->setInputDirection(dir); };
+void Swarm::bindInput() {
+	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
+	swarmInput.onMove = [this](const glm::vec3& dir) { sceneManager->getPlayer()->setInputDirection(dir); };
 	// swarmInput->onMoveUI = [this](float deltaTime, const glm::vec2 uiPlacementTransform) {sceneManager->updateUITransforms(deltaTime, uiPlacementTransform);};
-	swarmInput->onLook = [this](float dx, float dy) {sceneManager->getPlayer()->handleRotation(-dx, -dy);};
-	swarmInput->onJump = [this]() { sceneManager->getPlayer()->handleJump(); };
-	swarmInput->onShoot = [this]() { sceneManager->getPlayer()->handleShoot(); };
-	swarmInput->onPause = [this]() { togglePause(); };
+	swarmInput.onLook = [this](float dx, float dy) {sceneManager->getPlayer()->handleRotation(-dx, -dy);};
+	swarmInput.onJump = [this]() { sceneManager->getPlayer()->handleJump(); };
+	swarmInput.onShoot = [this]() { sceneManager->getPlayer()->handleShoot(); };
 
 	// TODO other polling for menu, placement, window rescaling, etc.
 }

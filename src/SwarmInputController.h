@@ -10,23 +10,36 @@
 
 
 namespace input {
+
     class SwarmInputController : public IInputController {
     public:
-        SwarmInputController(vk::Window& w);
 
-        void setup(InputManager& im) override;
-        void deregister(InputManager& im) override;
+        enum ContextID {
+            Gameplay = 0,
+            MainMenu = 1
+        };
+
+        SwarmInputController(vk::Window& w, InputManager& im);
+
+        void setup() override;
+        void deregister() override;
+
+        bool isPaused() const override;
+
+        void setContext(ContextID ctx);
+        int getContext() const;
 
         // define input actions
         std::function<void(const glm::vec3& dir)>           onMove;
         std::function<void(float dx, float dy)>             onLook;
         std::function<void()>                               onJump;
         std::function<void()>                               onShoot;
-        std::function<void()>                               onPause;
         // TODO
 
     private:
         vk::Window& window;
+
+        input::InputManager& inputManager;
 
         double lastX, lastY;
     };

@@ -36,11 +36,12 @@ int main(int argc, char **argv) {
 		vk::Window window{ initialWindowWidth, initialWindowHeight, Swarm::Name };
 		vk::Device device{ window };
 
-		std::shared_ptr<input::SwarmInputController> inputController = std::make_shared<input::SwarmInputController>(window);
+		input::InputManager inputManager{window.getGLFWWindow()};
+		input::SwarmInputController inputController{window, inputManager};
 
 		Swarm game{ physicsSimulation, sceneManager, assetManager, window, device, inputController };
 
-		vk::Engine engine{game, physicsSimulation, sceneManager, window, device};
+		vk::Engine engine{game, physicsSimulation, sceneManager, window, device, inputManager};
 
 		engine.run();
 

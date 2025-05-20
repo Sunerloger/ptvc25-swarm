@@ -33,94 +33,99 @@ namespace input {
             });
     }
 
-    void InputManager::registerKeyCallback(int c, KeyCallback cb, void* o) {
-        keyBindings[c].push_back({ std::move(cb), o });
+    void InputManager::registerKeyCallback(int c, KeyCallback cb, void* o, int ctx) {
+        keyBindings[ctx][c].push_back({std::move(cb), o});
     }
-    void InputManager::registerMouseButtonCallback(int c, KeyCallback cb, void* o) {
-        mouseBindings[c].push_back({ std::move(cb), o });
+    void InputManager::registerMouseButtonCallback(int c, KeyCallback cb, void* o, int ctx) {
+        mouseBindings[ctx][c].push_back({std::move(cb), o});
     }
-    void InputManager::registerCharCallback(CharCallback cb, void* o) {
-        charBindings.push_back({ std::move(cb), o });
+    void InputManager::registerCharCallback(CharCallback cb, void* o, int ctx) {
+        charBindings[ctx].push_back({std::move(cb), o});
     }
-    void InputManager::registerCursorPosCallback(CursorPosCallback cb, void* o) {
-        cursorBindings.push_back({ std::move(cb), o });
+    void InputManager::registerCursorPosCallback(CursorPosCallback cb, void* o, int ctx) {
+        cursorBindings[ctx].push_back({std::move(cb), o});
     }
-    void InputManager::registerScrollCallback(ScrollCallback cb, void* o) {
-        scrollBindings.push_back({ std::move(cb), o });
+    void InputManager::registerScrollCallback(ScrollCallback cb, void* o, int ctx) {
+        scrollBindings[ctx].push_back({std::move(cb), o});
     }
-    void InputManager::registerPollingAction(PollingFunc pf, void* o) {
-        pollers.push_back({ std::move(pf), o });
+    void InputManager::registerPollingAction(PollingFunc pf, void* o, int ctx) {
+        pollers[ctx].push_back({std::move(pf), o});
     }
 
     void InputManager::deregisterOwner(void* o) {
-        for (auto& kv : keyBindings)
-            kv.second.erase(std::remove_if(
-                kv.second.begin(), kv.second.end(),
-                [&](auto& c) { return c.owner == o; }),
-                kv.second.end());
-        for (auto& kv : mouseBindings)
-            kv.second.erase(std::remove_if(
-                kv.second.begin(), kv.second.end(),
-                [&](auto& c) { return c.owner == o; }),
-                kv.second.end());
-        charBindings.erase(std::remove_if(
-            charBindings.begin(), charBindings.end(),
-            [&](auto& c) { return c.owner == o; }),
-            charBindings.end());
-        cursorBindings.erase(std::remove_if(
-            cursorBindings.begin(), cursorBindings.end(),
-            [&](auto& c) { return c.owner == o; }),
-            cursorBindings.end());
-        scrollBindings.erase(std::remove_if(
-            scrollBindings.begin(), scrollBindings.end(),
-            [&](auto& c) { return c.owner == o; }),
-            scrollBindings.end());
-        pollers.erase(std::remove_if(
-            pollers.begin(), pollers.end(),
-            [&](auto& p) { return p.owner == o; }),
-            pollers.end());
+        for (auto& [ctx, map] : keyBindings)
+            for (auto& [k, vec] : map)
+                vec.erase(std::remove_if(vec.begin(), vec.end(), [&](auto& c) { return c.owner == o; }), vec.end());
+
+        for (auto& [ctx, map] : mouseBindings)
+            for (auto& [b, vec] : map)
+                vec.erase(std::remove_if(vec.begin(), vec.end(), [&](auto& c) { return c.owner == o; }), vec.end());
+
+        for (auto& [ctx, v] : charBindings)
+            v.erase(std::remove_if(v.begin(), v.end(), [&](auto& c) { return c.owner == o; }), v.end());
+
+        for (auto& [ctx, v] : cursorBindings)
+            v.erase(std::remove_if(v.begin(), v.end(), [&](auto& c) { return c.owner == o; }), v.end());
+
+        for (auto& [ctx, v] : scrollBindings)
+            v.erase(std::remove_if(v.begin(), v.end(), [&](auto& c) { return c.owner == o; }), v.end());
+
+        for (auto& [ctx, v] : pollers)
+            v.erase(std::remove_if(v.begin(), v.end(), [&](auto& p) { return p.owner == o; }), v.end());
     }
 
-    void InputManager::deregisterKey(int code, void* o) {
-        if (auto it = keyBindings.find(code); it != keyBindings.end()) {
-            auto& v = it->second;
-            v.erase(std::remove_if(v.begin(), v.end(),
-                [&](auto& c) { return c.owner == o; }),
-                v.end());
+    void InputManager::deregisterKey(int code, void* o, int ctx) {
+        if (auto mit = keyBindings.find(ctx); mit != keyBindings.end()) {
+            if (auto fit = mit->second.find(code); fit != mit->second.end()) {
+                auto& v = fit->second;
+                v.erase(std::remove_if(v.begin(), v.end(),
+                    [&](auto& c) { return c.owner == o; }),
+                    v.end());
+            }
         }
-        deregisterOwner(o);
+        if (auto mit = mouseBindings.find(ctx); mit != mouseBindings.end()) {
+            if (auto fit = mit->second.find(code); fit != mit->second.end()) {
+                auto& v = fit->second;
+                v.erase(std::remove_if(v.begin(), v.end(),
+                    [&](auto& c) { return c.owner == o; }),
+                    v.end());
+            }
+        }
     }
 
     void InputManager::onKey(int code, int, int action, int) {
         if (action == GLFW_PRESS)   pressedKeys.insert(code);
         else if (action == GLFW_RELEASE) pressedKeys.erase(code);
         if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
-        if (auto it = keyBindings.find(code); it != keyBindings.end())
+
+        auto& ctxMap = keyBindings[activeContext];
+        if (auto it = ctxMap.find(code); it != ctxMap.end())
             for (auto& c : it->second) c.cb();
     }
 
     void InputManager::onMouseButton(int b, int action, int) {
         if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
-        if (auto it = mouseBindings.find(b); it != mouseBindings.end())
+        auto& ctxMap = mouseBindings[activeContext];
+        if (auto it = ctxMap.find(b); it != ctxMap.end())
             for (auto& c : it->second) c.cb();
     }
 
     void InputManager::onChar(unsigned int cp) {
-        for (auto& c : charBindings) c.cb(cp);
+        for (auto& c : charBindings[activeContext]) c.cb(cp);
     }
 
     void InputManager::onCursorPos(double x, double y) {
         cursorX = x; cursorY = y;
-        for (auto& c : cursorBindings) c.cb(x, y);
+        for (auto& c : cursorBindings[activeContext]) c.cb(x, y);
     }
 
     void InputManager::onScroll(double xoffset, double yoffset) {
         scrollX += xoffset; scrollY += yoffset;
-        for (auto& c : scrollBindings) c.cb(xoffset, yoffset);
+        for (auto& c : scrollBindings[activeContext]) c.cb(xoffset, yoffset);
     }
 
     void InputManager::processPolling(float deltaTime) {
-        for (auto& p : pollers) p.pf(deltaTime);
+        for (auto& p : pollers[activeContext]) p.pf(deltaTime);
     }
 
     bool InputManager::isKeyPressed(int code) const {

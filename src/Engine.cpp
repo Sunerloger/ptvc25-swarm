@@ -2,8 +2,8 @@
 
 namespace vk {
 
-	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device)
-		: physicsSimulation(physicsSimulation), game(game), sceneManager(sceneManager), window(window), device(device), m_inputManager(window.getGLFWWindow()) {
+	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
+		: physicsSimulation(physicsSimulation), game(game), sceneManager(sceneManager), window(window), device(device), inputManager(inputManager) {
 		
 		renderer = std::make_unique<Renderer>(window, device);
 
@@ -12,7 +12,7 @@ namespace vk {
 						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .build();
 
-		game.setupInput(m_inputManager);
+		game.setupInput();
 		game.init();
 	}
 
@@ -69,7 +69,7 @@ namespace vk {
 
 			glfwPollEvents();
 
-			m_inputManager.processPolling(deltaTime);
+			inputManager.processPolling(deltaTime);
 
 			if (window.framebufferResized) {
 				renderer->recreateSwapChain();

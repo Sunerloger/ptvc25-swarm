@@ -6,7 +6,8 @@ namespace input {
 
     struct IInputController {
         virtual ~IInputController() = default;
-        virtual void setup(InputManager& im) = 0;
-        virtual void deregister(InputManager& im) = 0;
+        virtual void setup() = 0;
+        virtual void deregister() = 0;
+        virtual bool isPaused() const = 0;
     };
 }
