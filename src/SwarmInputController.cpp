@@ -62,7 +62,49 @@ namespace input {
             this,
             ContextID::Gameplay
         );
-        // int placementTransform = placementController.updateModelMatrix(window.getGLFWWindow());
+
+        inputManager.registerPollingAction(
+            [this](float dt) {
+                // UI movement
+                glm::vec3 dir{ 0.0f };
+                if (this->inputManager.isKeyPressed(GLFW_KEY_LEFT)) dir.x -= 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_RIGHT)) dir.x += 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_UP)) dir.y += 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_DOWN)) dir.y -= 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_COMMA)) dir.z += 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_PERIOD)) dir.z -= 1;
+                if (auto len = glm::length(dir); len > 0.0f) dir /= len;
+                if (dir != glm::vec3(0.0f) && onMoveUI) onMoveUI(dt, dir);
+            },
+            this,
+            ContextID::MainMenu
+        );
+        inputManager.registerPollingAction(
+            [this](float dt) {
+                // UI rotation
+                glm::vec3 rotDir{ 0.0f };
+                if (this->inputManager.isKeyPressed(GLFW_KEY_Z)) rotDir.x -= 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_X)) rotDir.x += 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_C)) rotDir.y -= 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_V)) rotDir.y += 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_B)) rotDir.z -= 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_N)) rotDir.z += 1;
+                if (rotDir != glm::vec3(0.0f) && onRotateUI) onRotateUI(dt, rotDir);
+            },
+            this,
+            ContextID::MainMenu
+        );
+        inputManager.registerPollingAction(
+            [this](float dt) {
+                // UI scale
+                int scaleDir = 0;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_EQUAL)) scaleDir += 1;
+                if (this->inputManager.isKeyPressed(GLFW_KEY_MINUS)) scaleDir -= 1;
+                if (scaleDir != 0 && onScaleUI) onScaleUI(dt, scaleDir);
+            },
+            this,
+            ContextID::MainMenu
+        );
     }
 
     void SwarmInputController::deregister() {

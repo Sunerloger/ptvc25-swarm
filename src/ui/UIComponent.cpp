@@ -120,65 +120,14 @@ namespace vk {
 		return model;
 	}
 
-	void UIComponent::updateTransform(float deltaTime, int placementTransform) {
-		if (!controllable || placementTransform == -1)
-			return;
-
+	void UIComponent::updatePosition(float deltaTime, glm::vec3 dir) {
+		if (!controllable || dir == glm::vec3(0.0f)) return;
+		
 		Transform t = loadData();
 
 		float ps = 100.0f * deltaTime;
-		float rs = 0.1f * deltaTime;
-		float ss = 1.25f * deltaTime;
 
-		switch (placementTransform) {
-			case GLFW_KEY_LEFT:
-				t.pos.x -= ps;
-				break;
-			case GLFW_KEY_RIGHT:
-				t.pos.x += ps;
-				break;
-			case GLFW_KEY_UP:
-				t.pos.y += ps;
-				break;
-			case GLFW_KEY_DOWN:
-				t.pos.y -= ps;
-				break;
-			case GLFW_KEY_COMMA:
-				t.pos.z += ps;
-				break;
-			case GLFW_KEY_PERIOD:
-				t.pos.z -= ps;
-				break;
-
-			case GLFW_KEY_EQUAL:
-				t.scale *= (1.0f + ss);
-				break;
-			case GLFW_KEY_MINUS:
-				t.scale *= (1.0f - ss);
-				t.scale = glm::max(t.scale, glm::vec3(0.0001f));
-				break;
-
-			case GLFW_KEY_Z:
-				t.rot = glm::angleAxis(rs, glm::vec3(1, 0, 0)) * t.rot;
-				break;
-			case GLFW_KEY_X:
-				t.rot = glm::angleAxis(-rs, glm::vec3(1, 0, 0)) * t.rot;
-				break;
-			case GLFW_KEY_C:
-				t.rot = glm::angleAxis(rs, glm::vec3(0, 1, 0)) * t.rot;
-				break;
-			case GLFW_KEY_V:
-				t.rot = glm::angleAxis(-rs, glm::vec3(0, 1, 0)) * t.rot;
-				break;
-			case GLFW_KEY_B:
-				t.rot = glm::angleAxis(rs, glm::vec3(0, 0, 1)) * t.rot;
-				break;
-			case GLFW_KEY_N:
-				t.rot = glm::angleAxis(-rs, glm::vec3(0, 0, 1)) * t.rot;
-				break;
-			default:
-				break;
-		}
+		t.pos += ps * dir;
 
 		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
@@ -192,4 +141,28 @@ namespace vk {
 		saveData(t);
 	}
 
-}  // namespace vk
+	void UIComponent::updateRotation(float deltaTime, glm::vec3 rotDir) {
+		if (!controllable || rotDir == glm::vec3(0.0f)) return;
+
+		Transform t = loadData();
+
+		float rs = 0.1f * deltaTime;
+
+		t.rot = glm::angleAxis(rs, rotDir) * t.rot;
+
+		saveData(t);
+	}
+
+	void UIComponent::updateScale(float deltaTime, int scaleDir) {
+		if (!controllable || scaleDir == 0) return;
+
+		Transform t = loadData();
+
+		float ss = 1.25f * deltaTime;
+
+		t.scale *= (1.0 + scaleDir * ss);
+		t.scale = glm::max(t.scale, glm::vec3(0.0001f));
+
+		saveData(t);
+	}
+}

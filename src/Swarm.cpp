@@ -6,6 +6,21 @@
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController)
 	: GameBase(inputController), physicsSimulation(physicsSimulation), sceneManager(sceneManager), assetManager(assetManager), window(window), device(device) {}
 
+void Swarm::bindInput() {
+	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
+	swarmInput.onMove = [this](const glm::vec3& dir) { sceneManager->getPlayer()->setInputDirection(dir); };
+	// swarmInput->onMoveUI = [this](float deltaTime, const glm::vec2 uiPlacementTransform) {sceneManager->updateUITransforms(deltaTime, uiPlacementTransform);};
+	swarmInput.onLook = [this](float dx, float dy) {sceneManager->getPlayer()->handleRotation(-dx, -dy);};
+	swarmInput.onJump = [this]() { sceneManager->getPlayer()->handleJump(); };
+	swarmInput.onShoot = [this]() { sceneManager->getPlayer()->handleShoot(); };
+
+	swarmInput.onMoveUI = [this](float dt, const glm::vec3 dir) { sceneManager->updateUIPosition(dt, dir); };
+	swarmInput.onRotateUI = [this](float dt, const glm::vec3 rotDir) { sceneManager->updateUIRotation(dt, rotDir); };
+	swarmInput.onScaleUI = [this](float dt, float scaleDir) { sceneManager->updateUIScale(dt, scaleDir); };
+
+	// TODO window rescaling
+}
+
 void Swarm::init() {
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
@@ -118,17 +133,6 @@ void Swarm::init() {
 	gameTimeTextID = sceneManager->addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
 }
 
-void Swarm::bindInput() {
-	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
-	swarmInput.onMove = [this](const glm::vec3& dir) { sceneManager->getPlayer()->setInputDirection(dir); };
-	// swarmInput->onMoveUI = [this](float deltaTime, const glm::vec2 uiPlacementTransform) {sceneManager->updateUITransforms(deltaTime, uiPlacementTransform);};
-	swarmInput.onLook = [this](float dx, float dy) {sceneManager->getPlayer()->handleRotation(-dx, -dy);};
-	swarmInput.onJump = [this]() { sceneManager->getPlayer()->handleJump(); };
-	swarmInput.onShoot = [this]() { sceneManager->getPlayer()->handleShoot(); };
-
-	// TODO other polling for menu, placement, window rescaling, etc.
-}
-
 void Swarm::gameActiveUpdate(float deltaTime) {
 
 	// TODO refactor into timer class
@@ -138,7 +142,7 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	if (newSecond > oldSecond) {
 		if (auto objPair = sceneManager->getObject(gameTimeTextID)) {
 			if (auto ui = objPair->second.lock()) {
-				// TODO this is unsafe and terrible -> just store type in GameObject variable when creating a subclass (enum Type) and check it before static casting + remove the distinctions in sceneManager
+				// TODO this a bit too convoluted -> just store type in GameObject variable when creating a subclass (enum Type) and check it before static casting + remove the distinctions in sceneManager
 				if (auto text = static_cast<TextComponent*>(ui.get())) {
 					text->setText(fmt::format("Time: {:02}:{:02}", newSecond / 60, newSecond % 60));
 				}
@@ -152,7 +156,7 @@ void Swarm::prePhysicsUpdate() {
 
 	sceneManager->getPlayer()->handleMovement(physicsSimulation.cPhysicsDeltaTime);
 
-	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but a separate event manager -> also updates timers stored in sceneManager every frame)
+	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but in a separate event manager -> also updates timers stored in sceneManager every frame)
 	sceneManager->updateEnemies(physicsSimulation.cPhysicsDeltaTime);
 }
 

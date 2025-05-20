@@ -30,11 +30,14 @@ namespace input {
         int getContext() const;
 
         // define input actions
-        std::function<void(const glm::vec3& dir)>           onMove;
-        std::function<void(float dx, float dy)>             onLook;
-        std::function<void()>                               onJump;
-        std::function<void()>                               onShoot;
-        // TODO
+        std::function<void(const glm::vec3& dir)>                           onMove;
+        std::function<void(float dx, float dy)>                             onLook;
+        std::function<void()>                                               onJump;
+        std::function<void()>                                               onShoot;
+
+        std::function<void(float deltaTime, const glm::vec3& dir)>          onMoveUI;
+        std::function<void(float deltaTime, const glm::vec3& rotDir)>       onRotateUI;
+        std::function<void(float deltaTime, int scaleDir)>                  onScaleUI;
 
     private:
         vk::Window& window;

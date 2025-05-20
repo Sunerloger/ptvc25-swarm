@@ -2,15 +2,30 @@
 
 SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
-void SceneManager::updateUITransforms(float deltaTime, int placementTransform) {
-	if (placementTransform == -1) {
-		return;
-	}
+void SceneManager::updateUIPosition(float deltaTime, glm::vec3 dir) {
 	for (auto& uiObject : this->getUIObjects()) {
 		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
-		if (!uiComponent || !uiComponent->isControllable())
+		if (!uiComponent)
 			continue;
-		uiComponent->updateTransform(deltaTime, placementTransform);
+		uiComponent->updatePosition(deltaTime, dir);
+	}
+}
+
+void SceneManager::updateUIRotation(float deltaTime, glm::vec3 rotDir) {
+	for (auto& uiObject : this->getUIObjects()) {
+		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
+		if (!uiComponent)
+			continue;
+		uiComponent->updateRotation(deltaTime, rotDir);
+	}
+}
+
+void SceneManager::updateUIScale(float deltaTime, int scaleDir) {
+	for (auto& uiObject : this->getUIObjects()) {
+		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
+		if (!uiComponent)
+			continue;
+		uiComponent->updateScale(deltaTime, scaleDir);
 	}
 }
 
