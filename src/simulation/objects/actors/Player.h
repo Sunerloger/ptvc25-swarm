@@ -53,8 +53,12 @@ namespace physics {
 
 		void postSimulation();
 
-		void handleMovement(JPH::Vec3 movementDirectionWorld, bool isJump, float cPhysicsDeltaTime);
+		void setInputDirection(const glm::vec3 dir);
+
+		void handleMovement(float deltaTime);
 		void handleRotation(float deltaYaw, float deltaPitch);
+		void handleJump();
+		void handleShoot();
 
 		const glm::vec3 getCameraPosition() const;
 		inline const glm::mat4 calculateViewMat() const { return camera.calculateViewMat(); }
@@ -86,5 +90,7 @@ namespace physics {
 		std::unique_ptr<JPH::Character> character;
 
 		JPH::PhysicsSystem& physics_system;
+
+		glm::vec3 currentMovementDirection = glm::vec3{ 0 };
 	};
 }

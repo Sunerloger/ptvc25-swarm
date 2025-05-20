@@ -33,14 +33,12 @@ int main(int argc, char **argv) {
 		int initialWindowWidth = 800;
 		int initialWindowHeight = 800;
 
-		// TODO abstract this into another class to not directly inject low level details into the game logic
 		vk::Window window{ initialWindowWidth, initialWindowHeight, Swarm::Name };
 		vk::Device device{ window };
 
-		// TODO advanced input system
-		controls::KeyboardMovementController movementController{ initialWindowWidth, initialWindowHeight };
+		std::shared_ptr<input::SwarmInputController> inputController = std::make_shared<input::SwarmInputController>(window);
 
-		Swarm game{ physicsSimulation, sceneManager, assetManager, window, device, movementController };
+		Swarm game{ physicsSimulation, sceneManager, assetManager, window, device, inputController };
 
 		vk::Engine engine{game, physicsSimulation, sceneManager, window, device};
 

@@ -157,6 +157,8 @@ add_library(inih STATIC
   ${inih_SOURCE_DIR}/cpp/INIReader.cpp
 )
 
+set(JPH_BUILD_SHARED_LIBRARY ON CACHE BOOL "Build JoltPhysics as a DLL" FORCE)
+set(JPH_SHARED_LIBRARY ON CACHE BOOL "Use JoltPhysics as a shared library" FORCE)
 FetchContent_Declare(
     Jolt
     GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"

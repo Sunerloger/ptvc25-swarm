@@ -1,14 +1,16 @@
-#ifndef GCGPROJECT_VK_WINDOW_H
-#define GCGPROJECT_VK_WINDOW_H
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <string>
-
 #pragma once
+
+#include <vulkan/vulkan.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
+#include <string>
+#include <unordered_map>
 
 namespace vk {
 	class Window {
-	   public:
+
+	public:
 		Window(int w, int h, std::string name);
 		~Window();
 
@@ -18,18 +20,15 @@ namespace vk {
 		bool shouldClose() {
 			return glfwWindowShouldClose(window);
 		}
+
 		VkExtent2D getExtent() {
-			return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+			return { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 		}
-		bool wasWindowResized() {
-			return framebufferResized;
-		}
-		void resetWindowResizedFlag() {
-			framebufferResized = false;
-		}
-		GLFWwindow *getGLFWWindow() const {
+
+		GLFWwindow* getGLFWWindow() const {
 			return window;
 		}
+
 		int getWidth() const {
 			return width;
 		}
@@ -37,23 +36,20 @@ namespace vk {
 			return height;
 		}
 
-		void getFramebufferSize(int &width, int &height) const {
-			glfwGetFramebufferSize(this->window, &width, &height);
-		}
-		void
-		createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
+		VkSurfaceKHR createWindowSurface(VkInstance instance);
 
-	   private:
-		static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
-		void initWindow();
-
-		int width;
-		int height;
 		bool framebufferResized = false;
 
+	private:
+		void initWindow();
+		static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+		
+		int width;
+		int height;
+
 		std::string windowName;
-		GLFWwindow *window;
+		GLFWwindow* window;
+
+		static std::unordered_map<GLFWwindow*, Window*> windows;
 	};
 }
-
-#endif	// GCGPROJECT_VK_WINDOW_H

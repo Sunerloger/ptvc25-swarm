@@ -14,11 +14,8 @@
 #include "rendering/render_systems/ui_render_system.h"
 #include "rendering/render_systems/tessellation_render_system.h"
 
-#include "keyboard_movement_controller.h"
-#include "keyboard_placement_controller.h"
-#include "keyboard_menu_controller.h"
-
 #include "scene/SceneManager.h"
+#include "logical_systems/input/InputManager.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -50,11 +47,10 @@ namespace vk {
 		IGame& game;
 		physics::PhysicsSimulation& physicsSimulation;
 		std::shared_ptr<SceneManager> sceneManager;
+		input::InputManager m_inputManager;
 
 		vk::Window& window;
 		vk::Device& device;
-		
-		std::unique_ptr<controls::KeyboardMenuController> menuController;
 		
 		std::unique_ptr<Renderer> renderer;
 

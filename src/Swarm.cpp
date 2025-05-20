@@ -3,8 +3,8 @@
 #include <fmt/format.h>
 
 
-Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, controls::KeyboardMovementController& movementController)
-	: physicsSimulation(physicsSimulation), sceneManager(sceneManager), assetManager(assetManager), window(window), device(device), movementController(movementController) {}
+Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, std::shared_ptr<input::SwarmInputController> inputController)
+	: GameBase(std::move(inputController)), physicsSimulation(physicsSimulation), sceneManager(sceneManager), assetManager(assetManager), window(window), device(device) {}
 
 void Swarm::init() {
 
@@ -116,19 +116,21 @@ void Swarm::init() {
 	Font font;
 	TextComponent* gameTimeText = new TextComponent(device, font, "Time: 00:00", "clock", false);
 	gameTimeTextID = sceneManager->addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
+}
 
-	// TODO handle clicking (raycast + damage) -> register callback in player with input system
+void Swarm::bindInput(input::InputManager& im) {
+	input::SwarmInputController* swarmInput = static_cast<input::SwarmInputController*>(inputController.get());
+	swarmInput->onMove = [this](const glm::vec3& dir) { sceneManager->getPlayer()->setInputDirection(dir); };
+	// swarmInput->onMoveUI = [this](float deltaTime, const glm::vec2 uiPlacementTransform) {sceneManager->updateUITransforms(deltaTime, uiPlacementTransform);};
+	swarmInput->onLook = [this](float dx, float dy) {sceneManager->getPlayer()->handleRotation(-dx, -dy);};
+	swarmInput->onJump = [this]() { sceneManager->getPlayer()->handleJump(); };
+	swarmInput->onShoot = [this]() { sceneManager->getPlayer()->handleShoot(); };
+	swarmInput->onPause = [this]() { togglePause(); };
+
+	// TODO other polling for menu, placement, window rescaling, etc.
 }
 
 void Swarm::gameActiveUpdate(float deltaTime) {
-
-	int fbWidth, fbHeight;
-	window.getFramebufferSize(fbWidth, fbHeight);
-	float windowWidth = static_cast<float>(fbWidth);
-	float windowHeight = static_cast<float>(fbHeight);
-
-	// TODO input logic should be created by game and not the input controller itself
-	movementController.handleRotation(window.getGLFWWindow(), *sceneManager->getPlayer());
 
 	// TODO refactor into timer class
 	elapsedTime += deltaTime;
@@ -149,21 +151,9 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 
 void Swarm::prePhysicsUpdate() {
 
-	// TODO jump + shoot callback to not miss short input
+	sceneManager->getPlayer()->handleMovement(physicsSimulation.cPhysicsDeltaTime);
 
-	MovementIntent movementIntent = movementController.getMovementIntent(window.getGLFWWindow());
-
-	shared_ptr<physics::Player> player = sceneManager->getPlayer();
-
-	JPH::Vec3 movementDirection = GLMToRVec3(movementIntent.direction);
-
-	// only update if something happened
-	// TODO this should be in game logic, not directly in physics system + shooting too
-	if (movementDirection != JPH::Vec3{ 0,0,0 } || movementIntent.jump) {
-		player->handleMovement(movementDirection, movementIntent.jump, physicsSimulation.cPhysicsDeltaTime);
-	}
-
-	// TODO hook an event manager and call update on all methods that are registered (objects register methods that should be called here)
+	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but a separate event manager -> also updates timers stored in sceneManager every frame)
 	sceneManager->updateEnemies(physicsSimulation.cPhysicsDeltaTime);
 }
 

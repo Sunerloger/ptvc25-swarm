@@ -3,27 +3,16 @@
 namespace vk {
 
 	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device)
-		: physicsSimulation(physicsSimulation), game(game), sceneManager(sceneManager), window(window), device(device) {
-
-		// TODO inject window, device and physics simulation
-		// TODO create windowSettings in window and load with ini reader
-		// TODO create physicsSettings in physicsSimulation and load with ini reader
-		// TODO boolean flags for testing directly in physicsSimulation settings
-
-		menuController = std::make_unique<controls::KeyboardMenuController>(window.getGLFWWindow());
+		: physicsSimulation(physicsSimulation), game(game), sceneManager(sceneManager), window(window), device(device), m_inputManager(window.getGLFWWindow()) {
 		
 		renderer = std::make_unique<Renderer>(window, device);
-		menuController->setConfigChangeCallback([&]() {
-			int w, h;
-			window.getFramebufferSize(w, h);
-			renderer->recreateSwapChain();
-		});
 
 		globalPool = DescriptorPool::Builder(device)
 						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .build();
 
+		game.setupInput(m_inputManager);
 		game.init();
 	}
 
@@ -67,20 +56,10 @@ namespace vk {
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
 
-		glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		
-		// TODO maybe also handle this via the specific game instead of in the engine
-		controls::KeyboardPlacementController placementController;
-
 		startTime = std::chrono::high_resolution_clock::now();
 		float gameTime = 0;
 		auto currentTime = startTime;
 		float physicsTimeAccumulator = 0.0f;
-
-		int fbWidth, fbHeight;
-		window.getFramebufferSize(fbWidth, fbHeight);
-		float windowWidth = static_cast<float>(fbWidth);
-		float windowHeight = static_cast<float>(fbHeight);
 
 		while (!window.shouldClose()) {
 			auto newTime = std::chrono::high_resolution_clock::now();
@@ -90,10 +69,14 @@ namespace vk {
 
 			glfwPollEvents();
 
-			int placementTransform = placementController.updateModelMatrix(window.getGLFWWindow());
-			sceneManager->updateUITransforms(deltaTime, placementTransform);
+			m_inputManager.processPolling(deltaTime);
 
-			if (!menuController->isMenuOpen()) {
+			if (window.framebufferResized) {
+				renderer->recreateSwapChain();
+				window.framebufferResized = false;
+			}
+
+			if (!game.isPaused()) {
 				// Time
 				int newSecond = floor(gameTime + deltaTime);
 				if (engineSettings.debugTime && newSecond > floor(gameTime)) {
@@ -132,7 +115,7 @@ namespace vk {
 				GlobalUbo ubo{};
 				ubo.projection = sceneManager->getPlayer()->getProjMat();
 				ubo.view = sceneManager->getPlayer()->calculateViewMat();
-				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, windowWidth, 0, windowHeight, 0.1f, 500.0f);
+				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
@@ -146,8 +129,8 @@ namespace vk {
 				VkClearRect clearRect{};
 				clearRect.rect.offset = {0, 0};
 				clearRect.rect.extent = {
-					static_cast<uint32_t>(windowWidth),
-					static_cast<uint32_t>(windowHeight)};
+					static_cast<uint32_t>(window.getWidth()),
+					static_cast<uint32_t>(window.getHeight())};
 				clearRect.baseArrayLayer = 0;
 				clearRect.layerCount = 1;
 
@@ -161,16 +144,6 @@ namespace vk {
 				uiRenderSystem.renderGameObjects(frameInfo);
 				renderer->endSwapChainRenderPass(commandBuffer);
 				renderer->endFrame();
-			}
-
-			int fbWidth2, fbHeight2;
-			window.getFramebufferSize(fbWidth2, fbHeight2);
-			float windowWidth2 = static_cast<float>(fbWidth2);
-			float windowHeight2 = static_cast<float>(fbHeight2);
-			if (windowWidth != windowWidth2 || windowHeight != windowHeight2) {
-				windowWidth = windowWidth2;
-				windowHeight = windowHeight2;
-				renderer->recreateSwapChain();
 			}
 
 			// TODO use fences / semaphores instead (next line forces sync of cpu and gpu and heavily impacts performance):

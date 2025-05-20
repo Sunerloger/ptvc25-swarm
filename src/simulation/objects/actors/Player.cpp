@@ -21,13 +21,21 @@ namespace physics {
 		character->RemoveFromPhysicsSystem();
 	}
 
-	void Player::handleMovement(JPH::Vec3 movementDirectionCharacter, bool isJump, float cPhysicsDeltaTime) {
+	void Player::setInputDirection(const glm::vec3 dir) {
+		this->currentMovementDirection = dir;
+	}
+
+	void Player::handleMovement(float deltaTime) {
 		// deltaTime can be used for e.g. setting a fixed time it should take for the character to reach max velocity
+
+		if (currentMovementDirection == glm::vec3{ 0,0,0 }) { return; }
+
+		JPH::Vec3 playerMovementDirection = GLMToRVec3(currentMovementDirection);
 
 		float yaw = glm::radians(camera.getYaw());
 		JPH::RMat44 rotation_matrix = JPH::RMat44::sIdentity().sRotationY(yaw);
 
-		JPH::Vec3 movementDirectionWorld = JPH::Vec3(rotation_matrix * JPH::Vec4(movementDirectionCharacter, 1));
+		JPH::Vec3 movementDirectionWorld = JPH::Vec3(rotation_matrix * JPH::Vec4(playerMovementDirection, 1));
 
 		// Cancel movement in opposite direction of normal when touching something we can't walk up
 		JPH::Character::EGroundState ground_state = this->character->GetGroundState();
@@ -44,21 +52,36 @@ namespace physics {
 		}
 
 		if (settings.controlMovementDuringJump || character->IsSupported()) {
-			// Update velocity
+			
 			JPH::Vec3 current_velocity = character->GetLinearVelocity();
 			JPH::Vec3 desired_velocity = settings.movementSpeed * movementDirectionWorld;
 			desired_velocity.SetY(current_velocity.GetY());
 			JPH::Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
 
+			character->SetLinearVelocity(new_velocity);
+		}
+		// TODO test different speeds for different directions, double jump, different movement speed in air
+	}
+
+	void Player::handleJump() {
+		if (settings.controlMovementDuringJump || character->IsSupported()) {
+
+			JPH::Vec3 new_velocity = character->GetLinearVelocity();
+
 			// Jump - OnGround also means you have friction
-			if (isJump && ground_state == JPH::Character::EGroundState::OnGround) {
+			JPH::Character::EGroundState ground_state = this->character->GetGroundState();
+			if (ground_state == JPH::Character::EGroundState::OnGround) {
 				new_velocity.SetY(std::sqrt(2 * settings.jumpHeight * characterSettings.mGravityFactor * 9.81f));
 			}
 
 			// Update the velocity
 			character->SetLinearVelocity(new_velocity);
 		}
-		// TODO test different speeds for different directions, double jump, different movement speed in air
+	}
+
+	void Player::handleShoot() {
+		// TODO
+		std::cout << "BANG!" << std::endl;
 	}
 
 	void Player::handleRotation(float deltaYaw, float deltaPitch) {
@@ -80,7 +103,7 @@ namespace physics {
 
 		JPH::RVec3 position = character->GetPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		// Debug: std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
+		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
 	}
 
 	JPH::BodyID Player::getBodyID() {

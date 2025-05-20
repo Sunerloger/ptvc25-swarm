@@ -1,12 +1,8 @@
 #pragma once
 
-#include "IGame.h"
+#include "GameBase.h"
 
 #include "vk/vk_model.h"
-
-#include "keyboard_movement_controller.h"
-#include "keyboard_placement_controller.h"
-#include "keyboard_menu_controller.h"
 
 #include "simulation/objects/actors/Player.h"
 #include "simulation/objects/static/Terrain.h"
@@ -14,6 +10,8 @@
 #include "simulation/PhysicsSimulation.h"
 
 #include "asset_utils/AssetManager.h"
+#include "logical_systems/input/InputManager.h"
+#include "SwarmInputController.h"
 
 #include "ui/Font.h"
 #include "ui/TextComponent.h"
@@ -35,12 +33,12 @@
 
 using namespace vk;
 
-class Swarm : public IGame {
+class Swarm : public GameBase {
 
 public:
 
-	Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, controls::KeyboardMovementController& movementController);
-	~Swarm() = default;
+	Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, std::shared_ptr<input::SwarmInputController> inputController);
+	~Swarm() override = default;
 
 	Swarm(const Swarm&) = delete;
 	Swarm& operator=(const Swarm&) = delete;
@@ -54,10 +52,11 @@ public:
 	void gamePauseUpdate(float deltaTime) override;
 
 	static inline std::string Name = "Swarm";
-
 	std::string getName() const override { return Name; }
 
 private:
+
+	void bindInput(input::InputManager& im) override;
 
 	id_t gameTimeTextID;
 	float elapsedTime = 0;
@@ -69,7 +68,4 @@ private:
 
 	Window& window;
 	Device& device;
-
-	controls::KeyboardMovementController& movementController;
-
 };
