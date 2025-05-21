@@ -45,5 +45,8 @@ namespace input {
         input::InputManager& inputManager;
 
         double lastX, lastY;
+
+        // fullscreen window restoration variables
+        int prevX, prevY, prevW, prevH, prevRefresh;
     };
 }

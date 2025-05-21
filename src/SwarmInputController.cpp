@@ -77,7 +77,7 @@ namespace input {
                 if (dir != glm::vec3(0.0f) && onMoveUI) onMoveUI(dt, dir);
             },
             this,
-            ContextID::MainMenu
+            ContextID::Gameplay
         );
         inputManager.registerPollingAction(
             [this](float dt) {
@@ -92,7 +92,7 @@ namespace input {
                 if (rotDir != glm::vec3(0.0f) && onRotateUI) onRotateUI(dt, rotDir);
             },
             this,
-            ContextID::MainMenu
+            ContextID::Gameplay
         );
         inputManager.registerPollingAction(
             [this](float dt) {
@@ -103,7 +103,29 @@ namespace input {
                 if (scaleDir != 0 && onScaleUI) onScaleUI(dt, scaleDir);
             },
             this,
-            ContextID::MainMenu
+            ContextID::Gameplay
+        );
+
+        inputManager.registerKeyCallback(
+            GLFW_KEY_F11,
+            [this]() {
+                // toggle fullscreen
+                GLFWwindow* glfwWindow = this->window.getGLFWWindow();
+                const GLFWvidmode* vm = glfwGetVideoMode(glfwGetPrimaryMonitor());
+                if (glfwGetWindowMonitor(glfwWindow)) {
+                    glfwSetWindowMonitor(glfwWindow, nullptr,
+                        prevX, prevY, prevW, prevH, prevRefresh);
+                }
+                else { // switch to fullscreen
+                    glfwGetWindowPos(glfwWindow, &prevX, &prevY);
+                    glfwGetWindowSize(glfwWindow, &prevW, &prevH);
+                    prevRefresh = vm->refreshRate;
+                    glfwSetWindowMonitor(glfwWindow, glfwGetPrimaryMonitor(),
+                        0, 0, vm->width, vm->height, vm->refreshRate);
+                }
+            },
+            this,
+            ContextID::Gameplay
         );
     }
 
