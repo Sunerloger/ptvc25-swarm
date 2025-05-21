@@ -1,5 +1,7 @@
 #include "Sprinter.h"
 
+#include "../../../../scene/SceneManager.h"
+
 #include <iostream>
 
 namespace physics {
@@ -130,25 +132,17 @@ namespace physics {
 	}
 
 	float Sprinter::calculateTargetAngle() {
-		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return this->character->GetRotation().GetRotationAngle({0,1,0});
-		}
-
-		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
+		glm::vec3 playerPosition = sceneManager.getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
 		return std::atan2(enemyPosition.z - playerPosition.z, playerPosition.x - enemyPosition.x);
 	}
 
 	JPH::Vec3 Sprinter::getDirectionToCharacter() {
-		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return JPH::Vec3::sZero();
-		}
-
-		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
+		glm::vec3 playerPosition = sceneManager.getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
 
 		// Calculate direction vector to player

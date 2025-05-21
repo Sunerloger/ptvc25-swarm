@@ -1,5 +1,8 @@
 #include "ui_render_system.h"
 
+#include "../../scene/SceneManager.h"
+
+
 namespace vk {
 
 	UIRenderSystem::UIRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
@@ -97,8 +100,10 @@ namespace vk {
 	}
 
 	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
 		// Collect UI objects and sort by z-index (back to front)
-		auto uiWeakObjs = frameInfo.sceneManager.getUIObjects();
+		auto uiWeakObjs = sceneManager.getUIObjects();
 		std::vector<std::shared_ptr<GameObject>> uiGameObjects;
 		uiGameObjects.reserve(uiWeakObjs.size());
 		for (auto& weakObj : uiWeakObjs) {

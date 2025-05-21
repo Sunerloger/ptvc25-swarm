@@ -15,7 +15,6 @@
 #include <thread>
 #include <map>
 
-#include "../scene/SceneManager.h"
 #include "objects/ManagedPhysicsEntity.h"
 #include "objects/actors/Player.h"
 
@@ -37,7 +36,7 @@ using namespace JPH::literals;
 namespace physics {
 	class PhysicsSimulation {
 	public:
-		PhysicsSimulation(std::shared_ptr<SceneManager> sceneManager);
+		PhysicsSimulation();
 		virtual ~PhysicsSimulation();
 
 		PhysicsSystem& getPhysicsSystem();
@@ -109,8 +108,6 @@ namespace physics {
 		const int cCollisionSteps = 1;
 
 		uint step = 0;
-
-		std::shared_ptr<SceneManager> sceneManager;
 
 		// TODO implement this by overwriting JPH::DebugRenderer to get visual output for physics bodies
 		// std::unique_ptr<VulkanJoltDebugRenderer> debugRenderer;

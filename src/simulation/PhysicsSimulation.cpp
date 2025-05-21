@@ -1,8 +1,10 @@
 #include "PhysicsSimulation.h"
 
+#include "../scene/SceneManager.h"
+
 namespace physics {
 
-    PhysicsSimulation::PhysicsSimulation(std::shared_ptr<SceneManager> sceneManager) : sceneManager(sceneManager) {
+    PhysicsSimulation::PhysicsSimulation() {
 
         // Register allocation hook. Here just malloc / free (overrideable, see Memory.h).
         RegisterDefaultAllocator();
@@ -30,10 +32,10 @@ namespace physics {
 
         this->physics_system.Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, *broad_phase_layer_interface, *object_vs_broadphase_layer_filter, *object_vs_object_layer_filter);
 
-        this->body_activation_listener = shared_ptr<MyBodyActivationListener>(new MyBodyActivationListener(*sceneManager));
+        this->body_activation_listener = shared_ptr<MyBodyActivationListener>(new MyBodyActivationListener());
         this->physics_system.SetBodyActivationListener(body_activation_listener.get());
 
-        this->contact_listener = shared_ptr<MyContactListener>(new MyContactListener(*sceneManager));
+        this->contact_listener = shared_ptr<MyContactListener>(new MyContactListener());
         this->physics_system.SetContactListener(contact_listener.get());
 
         // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
@@ -70,10 +72,12 @@ namespace physics {
     // edits should happen via returned pointers/references of scene manager and to physics objects only via locks outside of physics update
     void PhysicsSimulation::preSimulation() {
 
-        // remove objects before and after the physics step to clean up removed objects due to collisions + something like shooting (before)
-        sceneManager->removeStaleObjects();
+        SceneManager& sceneManager = SceneManager::getInstance();
 
-        if (sceneManager->isBroadPhaseOptimizationNeeded()) {
+        // remove objects before and after the physics step to clean up removed objects due to collisions + something like shooting (before)
+        sceneManager.removeStaleObjects();
+
+        if (sceneManager.isBroadPhaseOptimizationNeeded()) {
             // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance for many objects.
             // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
             // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
@@ -84,18 +88,20 @@ namespace physics {
     // edits should happen via returned pointers/references of scene manager and to physics objects only via locks outside of physics update
     void PhysicsSimulation::postSimulation(bool debugPlayer, bool debugEnemies) {
 
+        SceneManager& sceneManager = SceneManager::getInstance();
+
         // objects are not removed in callbacks but before and after the physics step to prevent deadlocks
-        sceneManager->removeStaleObjects();
+        sceneManager.removeStaleObjects();
 
-        shared_ptr<Player> player = sceneManager->getPlayer();
+        shared_ptr<Player> player = sceneManager.getPlayer();
 
-        sceneManager->getPlayer()->postSimulation();
+        sceneManager.getPlayer()->postSimulation();
 
         if (debugPlayer) {
             player->printInfo(step);
         }
 
-        const vector<weak_ptr<Enemy>> enemies = sceneManager->getActiveEnemies();
+        const vector<weak_ptr<Enemy>> enemies = sceneManager.getActiveEnemies();
         for (auto& weak_enemy : enemies)
         {
             shared_ptr<Enemy> enemy = weak_enemy.lock();

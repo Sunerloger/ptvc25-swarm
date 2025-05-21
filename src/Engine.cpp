@@ -2,8 +2,8 @@
 
 namespace vk {
 
-	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
-		: physicsSimulation(physicsSimulation), game(game), sceneManager(sceneManager), window(window), device(device), inputManager(inputManager) {
+	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
+		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager) {
 		
 		renderer = std::make_unique<Renderer>(window, device);
 
@@ -19,6 +19,8 @@ namespace vk {
 	Engine::~Engine() {}
 
 	void Engine::run() {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
 		for (int i = 0; i < uboBuffers.size(); i++) {
 			uboBuffers[i] = std::make_unique<Buffer>(device,
@@ -105,16 +107,16 @@ namespace vk {
 
 			// Camera
 			float aspect = renderer->getAspectRatio();
-			sceneManager->getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
+			sceneManager.getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
 
 			// menu / death screen is just rendered on top of game while physics / logic is disabled
 			if (auto commandBuffer = renderer->beginFrame()) {
 				int frameIndex = renderer->getFrameIndex();
-				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex], *sceneManager};
+				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex]};
 
 				GlobalUbo ubo{};
-				ubo.projection = sceneManager->getPlayer()->getProjMat();
-				ubo.view = sceneManager->getPlayer()->calculateViewMat();
+				ubo.projection = sceneManager.getPlayer()->getProjMat();
+				ubo.view = sceneManager.getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();

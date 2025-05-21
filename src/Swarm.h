@@ -36,7 +36,7 @@ class Swarm : public GameBase {
 
 public:
 
-	Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController);
+	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController);
 	~Swarm() override = default;
 
 	Swarm(const Swarm&) = delete;
@@ -64,7 +64,6 @@ private:
 	int oldSecond = 0;
 
 	physics::PhysicsSimulation& physicsSimulation;
-	std::shared_ptr<SceneManager> sceneManager;
 	AssetManager& assetManager;
 
 	Window& window;

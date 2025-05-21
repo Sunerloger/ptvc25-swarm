@@ -1,17 +1,21 @@
 #include "CollisionHandler.h"
 
+#include "../scene/SceneManager.h"
+
 // STL includes
 #include <iostream>
 
 namespace physics {
 
-	MyContactListener::MyContactListener(SceneManager& sceneManager) : sceneManager(sceneManager) {}
+	MyContactListener::MyContactListener() {}
 
 	MyContactListener::~MyContactListener() {}
 
 	JPH::ValidateResult MyContactListener::OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) {
 		JPH::BodyID bodyID1 = inBody1.GetID();
 		JPH::BodyID bodyID2 = inBody2.GetID();
+
+		SceneManager& sceneManager = SceneManager::getInstance();
 
 		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
 		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
@@ -26,6 +30,8 @@ namespace physics {
 	void MyContactListener::OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) {
 		JPH::BodyID bodyID1 = inBody1.GetID();
 		JPH::BodyID bodyID2 = inBody2.GetID();
+
+		SceneManager& sceneManager = SceneManager::getInstance();
 
 		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
 		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
@@ -64,6 +70,8 @@ namespace physics {
 		JPH::BodyID bodyID1 = inBody1.GetID();
 		JPH::BodyID bodyID2 = inBody2.GetID();
 
+		SceneManager& sceneManager = SceneManager::getInstance();
+
 		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
 		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
 
@@ -73,6 +81,8 @@ namespace physics {
 	void MyContactListener::OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) {
 		JPH::BodyID bodyID1 = inSubShapePair.GetBody1ID();
 		JPH::BodyID bodyID2 = inSubShapePair.GetBody2ID();
+
+		SceneManager& sceneManager = SceneManager::getInstance();
 
 		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
 		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
@@ -96,11 +106,13 @@ namespace physics {
 		// TODO maybe store time of last damage with player and add a invulnerability period after hit
 	}
 
-	MyBodyActivationListener::MyBodyActivationListener(SceneManager& sceneManager) : sceneManager(sceneManager) {}
+	MyBodyActivationListener::MyBodyActivationListener() {}
 
 	MyBodyActivationListener::~MyBodyActivationListener() {}
 
 	void MyBodyActivationListener::OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) {
+
+		SceneManager& sceneManager = SceneManager::getInstance();
 
 		vk::id_t id = sceneManager.getIdFromBodyID(inBodyID);
 
@@ -108,6 +120,8 @@ namespace physics {
 	}
 
 	void MyBodyActivationListener::OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) {
+
+		SceneManager& sceneManager = SceneManager::getInstance();
 
 		vk::id_t id = sceneManager.getIdFromBodyID(inBodyID);
 

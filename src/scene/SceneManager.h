@@ -11,7 +11,6 @@
 #include "../lighting/PointLight.h"
 #include "../lighting/Sun.h"
 #include "../ui/UIComponent.h"
-#include "ISceneManagerInteraction.h"
 
 enum SceneClass {
 	PLAYER,
@@ -66,10 +65,15 @@ struct Scene {
 };
 
 // manages active scenes
-class SceneManager : public std::enable_shared_from_this<SceneManager>, public ISceneManagerInteraction {
+class SceneManager {
    public:
-	SceneManager();
-	virtual ~SceneManager() = default;
+
+	static SceneManager& getInstance();
+
+	SceneManager(const SceneManager&) = delete;
+	SceneManager& operator=(const SceneManager&) = delete;
+	SceneManager(SceneManager&&) = delete;
+	SceneManager& operator=(SceneManager&&) = delete;
 
 	void updateUIPosition(float deltaTime, glm::vec3 dir);
 	void updateUIRotation(float deltaTime, glm::vec3 rotDir);
@@ -127,7 +131,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
 	std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> getObject(vk::id_t id);
 
-	std::shared_ptr<physics::Player> getPlayer() override;
+	std::shared_ptr<physics::Player> getPlayer();
 
 	std::shared_ptr<lighting::Sun> getSun();
 
@@ -143,6 +147,10 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 
    private:
+
+	SceneManager();
+	~SceneManager() = default;
+
 	// for optimize broad phase -> optimize broad phase before simulation step if bodies in physics system changed
 	bool physicsSceneIsChanged = false;
 

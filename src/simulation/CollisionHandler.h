@@ -4,7 +4,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 
-#include "../scene/SceneManager.h"
+#include "../GameObject.h"
 
 namespace physics {
 
@@ -12,7 +12,7 @@ namespace physics {
 
 	public:
 
-		MyContactListener(SceneManager& sceneManager);
+		MyContactListener();
 		virtual ~MyContactListener();
 
 		JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override;
@@ -21,10 +21,6 @@ namespace physics {
 		void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;
 
 		void handlePlayerEnemyCollision(std::shared_ptr<vk::GameObject> player, std::shared_ptr<vk::GameObject> enemy, float impactSpeed, const JPH::Vec3& normal);
-
-	private:
-
-		SceneManager& sceneManager;
 	};
 
 
@@ -33,16 +29,12 @@ namespace physics {
 
 	public:
 
-		MyBodyActivationListener(SceneManager& sceneManager);
+		MyBodyActivationListener();
 		virtual ~MyBodyActivationListener();
 
 		void OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override;
 
 		void OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override;
-
-	private:
-
-		SceneManager& sceneManager;
 	};
 
 }

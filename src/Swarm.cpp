@@ -1,24 +1,30 @@
 #include "Swarm.h"
 
+#include "scene/SceneManager.h"
+
 #include <fmt/format.h>
 
 
-Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<SceneManager> sceneManager, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController)
-	: GameBase(inputController), physicsSimulation(physicsSimulation), sceneManager(sceneManager), assetManager(assetManager), window(window), device(device) {}
+Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController)
+	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device) {}
 
 void Swarm::bindInput() {
-	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
-	swarmInput.onMove = [this](const glm::vec3& dir) { sceneManager->getPlayer()->setInputDirection(dir); };
-	swarmInput.onLook = [this](float dx, float dy) {sceneManager->getPlayer()->handleRotation(-dx, -dy);};
-	swarmInput.onJump = [this]() { sceneManager->getPlayer()->handleJump(); };
-	swarmInput.onShoot = [this]() { sceneManager->getPlayer()->handleShoot(); };
+	SceneManager& sceneManager = SceneManager::getInstance();
 
-	swarmInput.onMoveUI = [this](float dt, const glm::vec3 dir) { sceneManager->updateUIPosition(dt, dir); };
-	swarmInput.onRotateUI = [this](float dt, const glm::vec3 rotDir) { sceneManager->updateUIRotation(dt, rotDir); };
-	swarmInput.onScaleUI = [this](float dt, float scaleDir) { sceneManager->updateUIScale(dt, scaleDir); };
+	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
+	swarmInput.onMove = [this, &sceneManager](const glm::vec3& dir) { sceneManager.getPlayer()->setInputDirection(dir); };
+	swarmInput.onLook = [this, &sceneManager](float dx, float dy) {sceneManager.getPlayer()->handleRotation(-dx, -dy);};
+	swarmInput.onJump = [this, &sceneManager]() { sceneManager.getPlayer()->handleJump(); };
+	swarmInput.onShoot = [this, &sceneManager]() { sceneManager.getPlayer()->handleShoot(); };
+
+	swarmInput.onMoveUI = [this, &sceneManager](float dt, const glm::vec3 dir) { sceneManager.updateUIPosition(dt, dir); };
+	swarmInput.onRotateUI = [this, &sceneManager](float dt, const glm::vec3 rotDir) { sceneManager.updateUIRotation(dt, rotDir); };
+	swarmInput.onScaleUI = [this, &sceneManager](float dt, float scaleDir) { sceneManager.updateUIScale(dt, scaleDir); };
 }
 
 void Swarm::init() {
+
+	SceneManager& sceneManager = SceneManager::getInstance();
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
 
@@ -58,7 +64,7 @@ void Swarm::init() {
 	playerCreationSettings.playerSettings = playerSettings;
 	playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
 
-	sceneManager->setPlayer(std::make_unique<physics::Player>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
+	sceneManager.setPlayer(std::make_unique<physics::Player>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
 	// create terrain with procedural heightmap using perlin noise
 	// create terrain with the generated heightmap data
@@ -69,7 +75,7 @@ void Swarm::init() {
 		glm::vec3{ 0.0, -2.0, 0.0 },				 // position slightly below origin to prevent falling through
 		glm::vec3{ 500.0f, heightScale, 500.0f },
 		std::move(result.second));
-	sceneManager->addTessellationObject(std::move(terrain));
+	sceneManager.addTessellationObject(std::move(terrain));
 
 	// Skybox
 	std::array<std::string, 6> cubemapFaces = {
@@ -79,7 +85,7 @@ void Swarm::init() {
 		"textures:skybox/learnopengl/bottom.jpg",
 		"textures:skybox/learnopengl/front.jpg",
 		"textures:skybox/learnopengl/back.jpg" };
-	sceneManager->addSpectralObject(std::make_unique<Skybox>(device, cubemapFaces));
+	sceneManager.addSpectralObject(std::make_unique<Skybox>(device, cubemapFaces));
 
 	// Enemies
 	float enemyHullHeight = 1.25f;
@@ -102,7 +108,7 @@ void Swarm::init() {
 		sprinterCreationSettings.sprinterSettings = sprinterSettings;
 		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
 		sprinterCreationSettings.position = RVec3(i + 10.0f, 15.0f, 10.0f);
-		sceneManager->addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
+		sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
 	}
 
 	// UI
@@ -110,12 +116,12 @@ void Swarm::init() {
 	hudSettings.model = Model::createModelFromFile(device, "models:gray_quad.glb", true);
 	hudSettings.name = "gray_quad";
 	hudSettings.controllable = false;
-	sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	hudSettings.model = Model::createModelFromFile(device, "models:DamagedHelmet.glb", true);
 	hudSettings.name = "damaged_helmet";
 	hudSettings.controllable = false;
-	sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	hudSettings.model = Model::createModelFromFile(device, "models:USPS.glb", true);
 	hudSettings.name = "usps";
@@ -123,21 +129,23 @@ void Swarm::init() {
 	hudSettings.window = window.getGLFWWindow();
 	hudSettings.anchorRight = true;
 	hudSettings.anchorBottom = true;
-	sceneManager->addUIObject(std::make_unique<UIComponent>(hudSettings));
+	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	Font font;
 	TextComponent* gameTimeText = new TextComponent(device, font, "Time: 00:00", "clock", false);
-	gameTimeTextID = sceneManager->addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
+	gameTimeTextID = sceneManager.addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
 }
 
 void Swarm::gameActiveUpdate(float deltaTime) {
+
+	SceneManager& sceneManager = SceneManager::getInstance();
 
 	// TODO refactor into timer class
 	elapsedTime += deltaTime;
 	int newSecond = static_cast<int>(elapsedTime);
 
 	if (newSecond > oldSecond) {
-		if (auto objPair = sceneManager->getObject(gameTimeTextID)) {
+		if (auto objPair = sceneManager.getObject(gameTimeTextID)) {
 			if (auto ui = objPair->second.lock()) {
 				// TODO this a bit too convoluted -> just store type in GameObject variable when creating a subclass (enum Type) and check it before static casting + remove the distinctions in sceneManager
 				if (auto text = static_cast<TextComponent*>(ui.get())) {
@@ -151,10 +159,12 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 
 void Swarm::prePhysicsUpdate() {
 
-	sceneManager->getPlayer()->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+	SceneManager& sceneManager = SceneManager::getInstance();
+
+	sceneManager.getPlayer()->handleMovement(physicsSimulation.cPhysicsDeltaTime);
 
 	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but in a separate event manager -> also updates timers stored in sceneManager every frame)
-	sceneManager->updateEnemies(physicsSimulation.cPhysicsDeltaTime);
+	sceneManager.updateEnemies(physicsSimulation.cPhysicsDeltaTime);
 }
 
 void Swarm::postPhysicsUpdate() {}

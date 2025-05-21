@@ -24,10 +24,9 @@ int main(int argc, char **argv) {
 		// vk::AssetLoader::getInstance().registerPath("customModels", "/path/to/custom/models");
 
 
-		std::shared_ptr<SceneManager> sceneManager = std::make_shared<SceneManager>();
 		AssetManager assetManager{};
 
-		physics::PhysicsSimulation physicsSimulation{sceneManager};
+		physics::PhysicsSimulation physicsSimulation{};
 
 		// TODO read via ini file
 		int initialWindowWidth = 800;
@@ -39,9 +38,9 @@ int main(int argc, char **argv) {
 		input::InputManager inputManager{window.getGLFWWindow()};
 		input::SwarmInputController inputController{window, inputManager};
 
-		Swarm game{ physicsSimulation, sceneManager, assetManager, window, device, inputController };
+		Swarm game{ physicsSimulation, assetManager, window, device, inputController };
 
-		vk::Engine engine{game, physicsSimulation, sceneManager, window, device, inputManager};
+		vk::Engine engine{game, physicsSimulation, window, device, inputManager};
 
 		engine.run();
 

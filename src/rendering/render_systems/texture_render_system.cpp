@@ -1,5 +1,9 @@
 #include "texture_render_system.h"
+
 #include <stdexcept>
+
+#include "../../scene/SceneManager.h"
+
 
 namespace vk {
 
@@ -99,8 +103,10 @@ namespace vk {
 	}
 
 	void TextureRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
 		// Render all standard objects (non-tessellated)
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getStandardRenderObjects()) {
+		for (std::weak_ptr<GameObject> weakObj : sceneManager.getStandardRenderObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject || !gameObject->getModel())
 				continue;

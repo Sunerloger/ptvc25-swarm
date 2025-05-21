@@ -1,7 +1,11 @@
 #include "tessellation_render_system.h"
+
 #include <stdexcept>
 #include <glm/glm.hpp>
+
 #include "../materials/TessellationMaterial.h"
+#include "../../scene/SceneManager.h"
+
 
 namespace vk {
 
@@ -107,8 +111,10 @@ namespace vk {
 	}
 
 	void TessellationRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
 		// Render all tessellation objects
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getTessellationRenderObjects()) {
+		for (std::weak_ptr<GameObject> weakObj : sceneManager.getTessellationRenderObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject || !gameObject->getModel())
 				continue;
