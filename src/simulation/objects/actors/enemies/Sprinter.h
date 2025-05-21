@@ -9,7 +9,7 @@ namespace physics {
 		float maxMovementSpeed = 7.0f;
 
 		// m/s^2
-		float accelerationToMaxSpeed = 3.5f;
+		float accelerationToMaxSpeed = 1.0f;
 
 		// seconds to turn around 180 degrees 
 		float rotationTime = 3.0f;
@@ -55,7 +55,7 @@ namespace physics {
 		float getCurrentHealth() const override;
 
 		// @return true if enemy gets destroyed
-		bool subtractHealth(float healthToSubtract) override;
+		bool takeDamage(float healthToSubtract, glm::vec3 direction = glm::vec3(0.0f), float knockbackStrength = 0.0f) override;
 
 		void update(float cPhysicsDeltaTime) override;
 

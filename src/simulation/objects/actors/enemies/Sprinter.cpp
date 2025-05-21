@@ -182,8 +182,15 @@ namespace physics {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
 	}
 
-	bool Sprinter::subtractHealth(float healthToSubtract) {
+	bool Sprinter::takeDamage(float healthToSubtract, glm::vec3 direction, float knockbackSpeed) {
 		this->currentHealth -= healthToSubtract;
+
+		if (direction != glm::vec3(0.0f)) {
+			JPH::Vec3 dir = GLMToRVec3(glm::normalize(direction));
+
+			// apply short lived velocity
+			character->SetLinearVelocity(dir * knockbackSpeed);
+		}
 
 		if (this->currentHealth <= 0) {
 			this->markForDeletion();

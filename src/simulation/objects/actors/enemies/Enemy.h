@@ -18,7 +18,7 @@ namespace physics {
 		virtual float getCurrentHealth() const = 0;
 
 		// @return true if enemy gets destroyed
-		virtual bool subtractHealth(float healthToSubtract) = 0;
+		virtual bool takeDamage(float healthToSubtract, glm::vec3 direction = glm::vec3(0.0f), float knockbackStrength = 0.0f) = 0;
 
 		virtual void update(float cPhysicsDeltaTime) = 0;
 

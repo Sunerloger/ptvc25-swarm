@@ -100,7 +100,7 @@ void Swarm::init() {
 		JPH::CharacterSettings enemyCharacterSettings = {};
 		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
 		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // accept contacts that touch the lower sphere of the capsule
-		enemyCharacterSettings.mFriction = 10.0f;
+		enemyCharacterSettings.mFriction = 1.0f;
 		enemyCharacterSettings.mShape = enemyShape;
 		enemyCharacterSettings.mGravityFactor = 1.0f;
 

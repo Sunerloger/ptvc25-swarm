@@ -17,9 +17,13 @@ namespace physics {
 		// update per second
 		float movementSpeed = 4.5f;
 		float jumpHeight = 1.0f;
-		float shootRange = 1000.0f;
-		float maxFloorSeparationDistance = 0.05f;
 		bool controlMovementDuringJump = true;
+		
+		float shootRange = 1000.0f;
+		float shootDamage = 40.0f;
+		float knockbackSpeed = 10.0f;
+
+		float maxFloorSeparationDistance = 0.05f;
 	};
 
 	struct PlayerCreationSettings {

@@ -96,7 +96,7 @@ namespace physics {
 
 		// the following lines are only for testing purposes
 		float health = enemyObj->getCurrentHealth();
-		bool isDead = enemyObj->subtractHealth(health);
+		bool isDead = enemyObj->takeDamage(health);
 
 		if (isDead) {
 			// Debug: std::cout << "Enemy [" << enemy->getId() << "] died" << std::endl;

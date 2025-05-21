@@ -1,6 +1,7 @@
 #include "Player.h"
 
 #include "../../../scene/SceneManager.h"
+#include "enemies/Enemy.h"
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
@@ -86,6 +87,8 @@ namespace physics {
 	}
 
 	void Player::handleShoot() {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
 		JPH::RVec3 origin = GLMToRVec3(camera.getPosition());
 
 		glm::vec3 forward = camera.getFront();
@@ -106,7 +109,27 @@ namespace physics {
 
 		if (hit) {
 			JPH::BodyID hitBodyID = result.mBodyID;
-			std::cout << "Hit body ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
+
+			vk::id_t hitObjectID = sceneManager.getIdFromBodyID(hitBodyID);
+			auto sceneObject = sceneManager.getObject(hitObjectID);
+			if (sceneObject->first == SceneClass::ENEMY) {
+				std::cout << "Hit enemy with ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
+				auto gameObject = sceneObject->second.lock();
+				auto enemy = static_cast<Enemy*>(gameObject.get());
+				if (enemy) {
+					bool isDead = enemy->takeDamage(settings.shootDamage, camera.getFront(), settings.knockbackSpeed);
+					std::cout << "Enemy took damage. New health: " << enemy->getCurrentHealth() << "/" << enemy->getMaxHealth() << std::endl;
+					if (isDead) {
+						std::cout << "Enemy died" << std::endl;
+					}
+				}
+				else {
+					std::cout << "Error: Enemy didn't take any damage because cast to class failed!" << std::endl;
+				}
+			}
+			else {
+				std::cout << "Hit non-enemy with ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
+			}
 
 			JPH::Vec3 pt = ray.GetPointOnRay(result.mFraction);
 			std::cout
