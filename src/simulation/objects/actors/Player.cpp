@@ -1,5 +1,11 @@
 #include "Player.h"
 
+#include "../../../scene/SceneManager.h"
+
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
+
 #include <iostream>
 
 namespace physics {
@@ -80,8 +86,38 @@ namespace physics {
 	}
 
 	void Player::handleShoot() {
-		// TODO
-		std::cout << "BANG!" << std::endl;
+		JPH::RVec3 origin = GLMToRVec3(camera.getPosition());
+
+		glm::vec3 forward = camera.getFront();
+		JPH::Vec3 direction = GLMToRVec3(forward) * settings.shootRange;
+
+		JPH::RRayCast ray{ origin, direction };
+
+		JPH::IgnoreSingleBodyFilter filter(character->GetBodyID());
+
+		JPH::RayCastResult result;
+		bool hit = physics_system.GetNarrowPhaseQuery().CastRay(
+			ray,
+			result,
+			JPH::BroadPhaseLayerFilter(),
+			JPH::ObjectLayerFilter(),
+			filter
+		);
+
+		if (hit) {
+			JPH::BodyID hitBodyID = result.mBodyID;
+			std::cout << "Hit body ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
+
+			JPH::Vec3 pt = ray.GetPointOnRay(result.mFraction);
+			std::cout
+				<< "Hit at ("
+				<< pt.GetX() << ", "
+				<< pt.GetY() << ", "
+				<< pt.GetZ() << ")\n";
+		}
+		else {
+			std::cout << "No hit\n";
+		}
 	}
 
 	void Player::handleRotation(float deltaYaw, float deltaPitch) {

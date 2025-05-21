@@ -17,6 +17,7 @@ namespace physics {
 		// update per second
 		float movementSpeed = 4.5f;
 		float jumpHeight = 1.0f;
+		float shootRange = 1000.0f;
 		float maxFloorSeparationDistance = 0.05f;
 		bool controlMovementDuringJump = true;
 	};
