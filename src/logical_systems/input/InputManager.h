@@ -53,6 +53,7 @@ namespace input {
         struct CSc { ScrollCallback cb; void* owner; };
         struct PF { PollingFunc pf; void* owner; };
 
+        // 0 is reserved for global
         int activeContext = 0;
 
         std::unordered_map<int, std::unordered_map<int, std::vector<CB>>>     keyBindings;

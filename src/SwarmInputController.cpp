@@ -125,7 +125,7 @@ namespace input {
                 }
             },
             this,
-            ContextID::Gameplay
+            ContextID::Global
         );
     }
 

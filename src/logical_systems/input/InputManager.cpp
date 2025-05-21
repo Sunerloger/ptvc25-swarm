@@ -101,6 +101,13 @@ namespace input {
         auto& ctxMap = keyBindings[activeContext];
         if (auto it = ctxMap.find(code); it != ctxMap.end())
             for (auto& c : it->second) c.cb();
+
+        // additionally trigger global context
+        if (activeContext != 0) {
+            auto& globalCtxMap = keyBindings[0];
+            if (auto it = globalCtxMap.find(code); it != globalCtxMap.end())
+                for (auto& c : it->second) c.cb();
+        }
     }
 
     void InputManager::onMouseButton(int b, int action, int) {
@@ -108,24 +115,51 @@ namespace input {
         auto& ctxMap = mouseBindings[activeContext];
         if (auto it = ctxMap.find(b); it != ctxMap.end())
             for (auto& c : it->second) c.cb();
+
+        // additionally trigger global context
+        if (activeContext != 0) {
+            auto& globalCtxMap = mouseBindings[0];
+            if (auto it = globalCtxMap.find(b); it != globalCtxMap.end())
+                for (auto& c : it->second) c.cb();
+        }
     }
 
     void InputManager::onChar(unsigned int cp) {
         for (auto& c : charBindings[activeContext]) c.cb(cp);
+
+        // additionally trigger global context
+        if (activeContext != 0) {
+            for (auto& c : charBindings[0]) c.cb(cp);
+        }
     }
 
     void InputManager::onCursorPos(double x, double y) {
         cursorX = x; cursorY = y;
         for (auto& c : cursorBindings[activeContext]) c.cb(x, y);
+
+        // additionally trigger global context
+        if (activeContext != 0) {
+            for (auto& c : cursorBindings[0]) c.cb(x, y);
+        }
     }
 
     void InputManager::onScroll(double xoffset, double yoffset) {
         scrollX += xoffset; scrollY += yoffset;
         for (auto& c : scrollBindings[activeContext]) c.cb(xoffset, yoffset);
+
+        // additionally trigger global context
+        if (activeContext != 0) {
+            for (auto& c : scrollBindings[0]) c.cb(xoffset, yoffset);
+        }
     }
 
     void InputManager::processPolling(float deltaTime) {
         for (auto& p : pollers[activeContext]) p.pf(deltaTime);
+
+        // additionally trigger global context
+        if (activeContext != 0) {
+            for (auto& p : pollers[0]) p.pf(deltaTime);
+        }
     }
 
     bool InputManager::isKeyPressed(int code) const {

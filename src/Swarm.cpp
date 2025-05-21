@@ -9,7 +9,6 @@ Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, std::shared_ptr<Scen
 void Swarm::bindInput() {
 	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
 	swarmInput.onMove = [this](const glm::vec3& dir) { sceneManager->getPlayer()->setInputDirection(dir); };
-	// swarmInput->onMoveUI = [this](float deltaTime, const glm::vec2 uiPlacementTransform) {sceneManager->updateUITransforms(deltaTime, uiPlacementTransform);};
 	swarmInput.onLook = [this](float dx, float dy) {sceneManager->getPlayer()->handleRotation(-dx, -dy);};
 	swarmInput.onJump = [this]() { sceneManager->getPlayer()->handleJump(); };
 	swarmInput.onShoot = [this]() { sceneManager->getPlayer()->handleShoot(); };
@@ -17,8 +16,6 @@ void Swarm::bindInput() {
 	swarmInput.onMoveUI = [this](float dt, const glm::vec3 dir) { sceneManager->updateUIPosition(dt, dir); };
 	swarmInput.onRotateUI = [this](float dt, const glm::vec3 rotDir) { sceneManager->updateUIRotation(dt, rotDir); };
 	swarmInput.onScaleUI = [this](float dt, float scaleDir) { sceneManager->updateUIScale(dt, scaleDir); };
-
-	// TODO window rescaling
 }
 
 void Swarm::init() {
@@ -96,7 +93,7 @@ void Swarm::init() {
 
 		JPH::CharacterSettings enemyCharacterSettings = {};
 		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
-		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // Accept contacts that touch the lower sphere of the capsule
+		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);  // accept contacts that touch the lower sphere of the capsule
 		enemyCharacterSettings.mFriction = 10.0f;
 		enemyCharacterSettings.mShape = enemyShape;
 		enemyCharacterSettings.mGravityFactor = 1.0f;

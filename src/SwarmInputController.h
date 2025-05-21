@@ -15,8 +15,9 @@ namespace input {
     public:
 
         enum ContextID {
-            Gameplay = 0,
-            MainMenu = 1
+            Global   = 0, // also reserved for global in input manager
+            Gameplay = 1,
+            MainMenu = 2
         };
 
         SwarmInputController(vk::Window& w, InputManager& im);
