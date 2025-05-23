@@ -20,9 +20,9 @@ namespace physics {
 	
 	protected:
 
-		ManagedPhysicsEntity(std::shared_ptr<JPH::PhysicsSystem> physics_system);
+		ManagedPhysicsEntity(JPH::PhysicsSystem& physics_system);
 
-		std::shared_ptr<JPH::PhysicsSystem> physics_system;
+		JPH::PhysicsSystem& physics_system;
 		JPH::BodyID bodyID;
 	};
 }

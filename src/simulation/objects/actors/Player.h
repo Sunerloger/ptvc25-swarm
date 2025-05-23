@@ -17,8 +17,13 @@ namespace physics {
 		// update per second
 		float movementSpeed = 4.5f;
 		float jumpHeight = 1.0f;
-		float maxFloorSeparationDistance = 0.05f;
 		bool controlMovementDuringJump = true;
+		
+		float shootRange = 1000.0f;
+		float shootDamage = 40.0f;
+		float knockbackSpeed = 10.0f;
+
+		float maxFloorSeparationDistance = 0.05f;
 	};
 
 	struct PlayerCreationSettings {
@@ -28,10 +33,10 @@ namespace physics {
 		// this only rotates the physics-body
 		JPH::QuatArg rotation = JPH::Quat::sIdentity();
 
-		std::unique_ptr<PlayerSettings> playerSettings;
-		std::unique_ptr<CharacterCameraSettings> cameraSettings;
+		PlayerSettings playerSettings;
+		CharacterCameraSettings cameraSettings;
 
-		std::unique_ptr<JPH::CharacterSettings> characterSettings;
+		JPH::CharacterSettings characterSettings;
 
 		JPH::uint64 inUserData = 0;
 	};
@@ -43,9 +48,9 @@ namespace physics {
 		float maxHealth = 100.0f;
 		float currentHealth = 100.0f;
 
-		std::unique_ptr<PlayerSettings> settings;
+		PlayerSettings settings;
 
-		Player(std::unique_ptr<PlayerCreationSettings> playerSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system);
+		Player(PlayerCreationSettings playerSettings, JPH::PhysicsSystem& physics_system);
 		virtual ~Player();
 
 		void addPhysicsBody() override;
@@ -53,25 +58,29 @@ namespace physics {
 
 		void postSimulation();
 
-		void handleMovement(JPH::Vec3 movementDirectionWorld, bool isJump, float cPhysicsDeltaTime);
+		void setInputDirection(const glm::vec3 dir);
+
+		void handleMovement(float deltaTime);
 		void handleRotation(float deltaYaw, float deltaPitch);
+		void handleJump();
+		void handleShoot();
 
 		const glm::vec3 getCameraPosition() const;
-		inline const glm::mat4 calculateViewMat() const { return camera->calculateViewMat(); }
-		inline const glm::mat4 getProjMat() const { return camera->getProjMat(); }
-		inline const glm::vec3 getFront() const { return camera->getFront(); }
+		inline const glm::mat4 calculateViewMat() const { return camera.calculateViewMat(); }
+		inline const glm::mat4 getProjMat() const { return camera.getProjMat(); }
+		inline const glm::vec3 getFront() const { return camera.getFront(); }
 
 		void printInfo(int iterationStep) const;
 
 		JPH::BodyID getBodyID() override;
 
-		inline void setViewDirection(glm::vec3 direction) { camera->setViewDirection(direction); }
-		inline void setViewTarget(glm::vec3 target) { camera->setViewTarget(target); }
+		inline void setViewDirection(glm::vec3 direction) { camera.setViewDirection(direction); }
+		inline void setViewTarget(glm::vec3 target) { camera.setViewTarget(target); }
 
 		inline void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) { 
-			camera->setOrthographicProjection(left, right, top, bottom, near, far); }
+			camera.setOrthographicProjection(left, right, top, bottom, near, far); }
 		inline void setPerspectiveProjection(float fov, float aspect, float near, float far) {
-			camera->setPerspectiveProjection(fov, aspect, near, far); }
+			camera.setPerspectiveProjection(fov, aspect, near, far); }
 
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
@@ -80,11 +89,13 @@ namespace physics {
 
 	private:
 
-		std::unique_ptr<JPH::CharacterSettings> characterSettings;
+		JPH::CharacterSettings characterSettings;
 
-		std::unique_ptr<CharacterCamera> camera;
+		CharacterCamera camera;
 		std::unique_ptr<JPH::Character> character;
 
-		std::shared_ptr<JPH::PhysicsSystem> physics_system;
+		JPH::PhysicsSystem& physics_system;
+
+		glm::vec3 currentMovementDirection = glm::vec3{ 0 };
 	};
 }

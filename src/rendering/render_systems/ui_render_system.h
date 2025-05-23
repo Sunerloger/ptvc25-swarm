@@ -1,10 +1,9 @@
 #pragma once
 
-#include "../vk/vk_pipeline.h"
-#include "../vk/vk_frame_info.h"
-#include "../vk/vk_device.h"
-#include "../rendering/materials/Material.h"
-#include "texture_render_system.h"
+#include "../../vk/vk_pipeline.h"
+#include "../../vk/vk_frame_info.h"
+#include "../../vk/vk_device.h"
+#include "../../rendering/materials/Material.h"
 
 #include <stdexcept>
 #include <vector>

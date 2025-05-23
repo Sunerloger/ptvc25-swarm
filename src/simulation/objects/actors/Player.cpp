@@ -1,15 +1,19 @@
 #include "Player.h"
 
+#include "../../../scene/SceneManager.h"
+#include "enemies/Enemy.h"
+
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
+
 #include <iostream>
 
 namespace physics {
 
-	Player::Player(std::unique_ptr<PlayerCreationSettings> playerCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
-		this->settings = std::move(playerCreationSettings->playerSettings);
-		this->characterSettings = std::move(playerCreationSettings->characterSettings);
-		this->physics_system = physics_system;
-		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(this->characterSettings.get(), playerCreationSettings->position, playerCreationSettings->rotation, playerCreationSettings->inUserData, this->physics_system.get()));
-		this->camera = std::unique_ptr<CharacterCamera>(new CharacterCamera(std::move(playerCreationSettings->cameraSettings)));
+	Player::Player(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) :
+	settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
+		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, playerCreationSettings.position, playerCreationSettings.rotation, playerCreationSettings.inUserData, &this->physics_system));
 	}
 
 	Player::~Player() {
@@ -24,13 +28,21 @@ namespace physics {
 		character->RemoveFromPhysicsSystem();
 	}
 
-	void Player::handleMovement(JPH::Vec3 movementDirectionCharacter, bool isJump, float cPhysicsDeltaTime) {
+	void Player::setInputDirection(const glm::vec3 dir) {
+		this->currentMovementDirection = dir;
+	}
+
+	void Player::handleMovement(float deltaTime) {
 		// deltaTime can be used for e.g. setting a fixed time it should take for the character to reach max velocity
 
-		float yaw = glm::radians(camera->getYaw());
+		if (currentMovementDirection == glm::vec3{ 0,0,0 }) { return; }
+
+		JPH::Vec3 playerMovementDirection = GLMToRVec3(currentMovementDirection);
+
+		float yaw = glm::radians(camera.getYaw());
 		JPH::RMat44 rotation_matrix = JPH::RMat44::sIdentity().sRotationY(yaw);
 
-		JPH::Vec3 movementDirectionWorld = JPH::Vec3(rotation_matrix * JPH::Vec4(movementDirectionCharacter, 1));
+		JPH::Vec3 movementDirectionWorld = JPH::Vec3(rotation_matrix * JPH::Vec4(playerMovementDirection, 1));
 
 		// Cancel movement in opposite direction of normal when touching something we can't walk up
 		JPH::Character::EGroundState ground_state = this->character->GetGroundState();
@@ -46,36 +58,103 @@ namespace physics {
 			}
 		}
 
-		if (settings->controlMovementDuringJump || character->IsSupported()) {
-			// Update velocity
+		if (settings.controlMovementDuringJump || character->IsSupported()) {
+			
 			JPH::Vec3 current_velocity = character->GetLinearVelocity();
-			JPH::Vec3 desired_velocity = settings->movementSpeed * movementDirectionWorld;
+			JPH::Vec3 desired_velocity = settings.movementSpeed * movementDirectionWorld;
 			desired_velocity.SetY(current_velocity.GetY());
 			JPH::Vec3 new_velocity = 0.75f * current_velocity + 0.25f * desired_velocity;
 
-			// Jump - OnGround also means you have friction
-			if (isJump && ground_state == JPH::Character::EGroundState::OnGround) {
-				new_velocity.SetY(std::sqrt(2 * settings->jumpHeight * characterSettings->mGravityFactor * 9.81f));
-			}
-
-			// Update the velocity
 			character->SetLinearVelocity(new_velocity);
 		}
 		// TODO test different speeds for different directions, double jump, different movement speed in air
 	}
 
+	void Player::handleJump() {
+		if (settings.controlMovementDuringJump || character->IsSupported()) {
+
+			JPH::Vec3 new_velocity = character->GetLinearVelocity();
+
+			// Jump - OnGround also means you have friction
+			JPH::Character::EGroundState ground_state = this->character->GetGroundState();
+			if (ground_state == JPH::Character::EGroundState::OnGround) {
+				new_velocity.SetY(std::sqrt(2 * settings.jumpHeight * characterSettings.mGravityFactor * 9.81f));
+			}
+
+			// Update the velocity
+			character->SetLinearVelocity(new_velocity);
+		}
+	}
+
+	void Player::handleShoot() {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
+		JPH::RVec3 origin = GLMToRVec3(camera.getPosition());
+
+		glm::vec3 forward = camera.getFront();
+		JPH::Vec3 direction = GLMToRVec3(forward) * settings.shootRange;
+
+		JPH::RRayCast ray{ origin, direction };
+
+		JPH::IgnoreSingleBodyFilter filter(character->GetBodyID());
+
+		JPH::RayCastResult result;
+		bool hit = physics_system.GetNarrowPhaseQuery().CastRay(
+			ray,
+			result,
+			JPH::BroadPhaseLayerFilter(),
+			JPH::ObjectLayerFilter(),
+			filter
+		);
+
+		if (hit) {
+			JPH::BodyID hitBodyID = result.mBodyID;
+
+			vk::id_t hitObjectID = sceneManager.getIdFromBodyID(hitBodyID);
+			auto sceneObject = sceneManager.getObject(hitObjectID);
+			if (sceneObject->first == SceneClass::ENEMY) {
+				std::cout << "Hit enemy with ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
+				auto gameObject = sceneObject->second.lock();
+				auto enemy = static_cast<Enemy*>(gameObject.get());
+				if (enemy) {
+					bool isDead = enemy->takeDamage(settings.shootDamage, camera.getFront(), settings.knockbackSpeed);
+					std::cout << "Enemy took damage. New health: " << enemy->getCurrentHealth() << "/" << enemy->getMaxHealth() << std::endl;
+					if (isDead) {
+						std::cout << "Enemy died" << std::endl;
+					}
+				}
+				else {
+					std::cout << "Error: Enemy didn't take any damage because cast to class failed!" << std::endl;
+				}
+			}
+			else {
+				std::cout << "Hit non-enemy with ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
+			}
+
+			JPH::Vec3 pt = ray.GetPointOnRay(result.mFraction);
+			std::cout
+				<< "Hit at ("
+				<< pt.GetX() << ", "
+				<< pt.GetY() << ", "
+				<< pt.GetZ() << ")\n";
+		}
+		else {
+			std::cout << "No hit\n";
+		}
+	}
+
 	void Player::handleRotation(float deltaYaw, float deltaPitch) {
-		camera->addRotation(deltaYaw, deltaPitch);
+		camera.addRotation(deltaYaw, deltaPitch);
 	}
 
 	void Player::postSimulation() {
-		character->PostSimulation(settings->maxFloorSeparationDistance);
+		character->PostSimulation(settings.maxFloorSeparationDistance);
 
-		camera->setPhysicsPosition(character->GetPosition());
+		camera.setPhysicsPosition(character->GetPosition());
 	}
 
 	const glm::vec3 Player::getCameraPosition() const {
-		return camera->getPosition();
+		return camera.getPosition();
 	}
 
 	void Player::printInfo(int iterationStep) const {
@@ -83,7 +162,7 @@ namespace physics {
 
 		JPH::RVec3 position = character->GetPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		// Debug: std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
+		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
 	}
 
 	JPH::BodyID Player::getBodyID() {

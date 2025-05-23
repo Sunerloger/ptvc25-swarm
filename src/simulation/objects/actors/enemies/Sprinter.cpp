@@ -1,16 +1,16 @@
 #include "Sprinter.h"
 
+#include "../../../../scene/SceneManager.h"
+
 #include <iostream>
 
 namespace physics {
 
-	Sprinter::Sprinter(std::unique_ptr<SprinterCreationSettings> sprinterCreationSettings, std::shared_ptr<JPH::PhysicsSystem> physics_system) {
-		this->sprinterSettings = std::move(sprinterCreationSettings->sprinterSettings);
-		this->characterSettings = std::move(sprinterCreationSettings->characterSettings);
-		this->physics_system = physics_system;
-		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(this->characterSettings.get(), sprinterCreationSettings->position, JPH::Quat::sIdentity(), sprinterCreationSettings->inUserData, this->physics_system.get()));
+	Sprinter::Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system) : 
+		sprinterSettings(sprinterCreationSettings.sprinterSettings), characterSettings(sprinterCreationSettings.characterSettings), physics_system(physics_system) {
+		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, sprinterCreationSettings.position, JPH::Quat::sIdentity(), sprinterCreationSettings.inUserData, &this->physics_system));
 
-		this->currentHealth = this->sprinterSettings->maxHealth;
+		this->currentHealth = sprinterSettings.maxHealth;
 	}
 
 	Sprinter::~Sprinter() {
@@ -48,7 +48,7 @@ namespace physics {
 		// 		<< " diff=" << angleDiff
 		// 		<< std::endl;
 
-		bool isLockedOnPlayer = std::fabs(angleDiff) <= this->sprinterSettings->movementAngle;
+		bool isLockedOnPlayer = std::fabs(angleDiff) <= this->sprinterSettings.movementAngle;
 
 		// std::cout << "  isLockedOnPlayer=" << (isLockedOnPlayer ? "true" : "false") << std::endl;
 
@@ -87,14 +87,14 @@ namespace physics {
 			}
 			
 			// Calculate desired horizontal velocity
-			JPH::Vec3 desiredVelocity = horizontalDirection * sprinterSettings->maxMovementSpeed;
+			JPH::Vec3 desiredVelocity = horizontalDirection * sprinterSettings.maxMovementSpeed;
 			
 			// Preserve current Y velocity (gravity)
 			desiredVelocity.SetY(currentVelocity.GetY());
 			
 			// Blend current and desired velocity (with acceleration)
 			JPH::Vec3 newVelocity = currentVelocity + cPhysicsDeltaTime *
-				this->sprinterSettings->accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
+				this->sprinterSettings.accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
 			
 			// Apply a small upward force when on ground to help with slopes
 			if (ground_state == JPH::Character::EGroundState::OnGround &&
@@ -106,7 +106,7 @@ namespace physics {
 		}
 
 		// rad/s
-		float rotationSpeed = glm::pi<float>() * sprinterSettings->rotationTime;
+		float rotationSpeed = glm::pi<float>() * sprinterSettings.rotationTime;
 
 		float updatedAngle;
 
@@ -132,25 +132,17 @@ namespace physics {
 	}
 
 	float Sprinter::calculateTargetAngle() {
-		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return this->character->GetRotation().GetRotationAngle({0,1,0});
-		}
-
-		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
+		glm::vec3 playerPosition = sceneManager.getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
 		return std::atan2(enemyPosition.z - playerPosition.z, playerPosition.x - enemyPosition.x);
 	}
 
 	JPH::Vec3 Sprinter::getDirectionToCharacter() {
-		std::shared_ptr<ISceneManagerInteraction> sceneManager = this->sceneManagerInteraction.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return JPH::Vec3::sZero();
-		}
-
-		glm::vec3 playerPosition = sceneManager->getPlayer()->getPosition();
+		glm::vec3 playerPosition = sceneManager.getPlayer()->getPosition();
 		glm::vec3 enemyPosition = this->getPosition();
 
 		// Calculate direction vector to player
@@ -179,7 +171,7 @@ namespace physics {
 	}
 
 	void Sprinter::postSimulation() {
-		character->PostSimulation(sprinterSettings->maxFloorSeparationDistance);
+		character->PostSimulation(sprinterSettings.maxFloorSeparationDistance);
 	}
 
 	glm::mat4 Sprinter::computeModelMatrix() const {
@@ -190,8 +182,15 @@ namespace physics {
 		return glm::transpose(glm::inverse(this->computeModelMatrix()));
 	}
 
-	bool Sprinter::subtractHealth(float healthToSubtract) {
+	bool Sprinter::takeDamage(float healthToSubtract, glm::vec3 direction, float knockbackSpeed) {
 		this->currentHealth -= healthToSubtract;
+
+		if (direction != glm::vec3(0.0f)) {
+			JPH::Vec3 dir = GLMToRVec3(glm::normalize(direction));
+
+			// apply short lived velocity
+			character->SetLinearVelocity(dir * knockbackSpeed);
+		}
 
 		if (this->currentHealth <= 0) {
 			this->markForDeletion();
@@ -218,7 +217,7 @@ namespace physics {
 	}
 
 	float Sprinter::getMaxHealth() const {
-		return this->sprinterSettings->maxHealth;
+		return this->sprinterSettings.maxHealth;
 	}
 
 	float Sprinter::getCurrentHealth() const {
@@ -226,6 +225,6 @@ namespace physics {
 	}
 
 	std::shared_ptr<vk::Model> Sprinter::getModel() const {
-		return this->sprinterSettings->model;
+		return this->sprinterSettings.model;
 	}
 }

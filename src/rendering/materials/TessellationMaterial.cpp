@@ -1,6 +1,6 @@
 #include "TessellationMaterial.h"
 #include "../../vk/vk_device.h"
-#include "../../asset_utils/AssetManager.h"
+#include "../../asset_utils/AssetLoader.h"
 
 #include <stdexcept>
 #include <iostream>
@@ -181,16 +181,16 @@ namespace vk {
     }
 
     void TessellationMaterial::createTextureImage(const std::string& texturePath) {
-        // Use AssetManager to load texture
-        auto textureData = AssetManager::getInstance().loadTexture(texturePath);
+        // Use AssetLoader to load texture
+        auto textureData = AssetLoader::getInstance().loadTexture(texturePath);
         
         // Create texture from image data
         createTextureFromImageData(textureData.pixels, textureData.width, textureData.height, textureData.channels);
     }
 
     void TessellationMaterial::createHeightmapImage(const std::string& heightmapPath) {
-        // Use AssetManager to load heightmap
-        auto heightmapData = AssetManager::getInstance().loadTexture(heightmapPath);
+        // Use AssetLoader to load heightmap
+        auto heightmapData = AssetLoader::getInstance().loadTexture(heightmapPath);
         
         // Create heightmap image
         VkDeviceSize imageSize = heightmapData.width * heightmapData.height * heightmapData.channels;

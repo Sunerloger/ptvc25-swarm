@@ -1,11 +1,12 @@
 #pragma once
 
 #include "vk/vk_model.h"
-#include "scene/ISceneManagerInteraction.h"
 
 #include <functional>
 
 namespace vk {
+
+	using id_t = unsigned int;
 
 	constexpr id_t INVALID_OBJECT_ID = 0;
 
@@ -35,26 +36,13 @@ namespace vk {
 		// returns a nullptr if object has no model (e.g. light)
 		virtual std::shared_ptr<Model> getModel() const = 0;
 
-		inline void setSceneManager(std::weak_ptr<ISceneManagerInteraction> sceneManager) {
-			sceneManagerInteraction = sceneManager;
-		}
-
-		inline void deleteSceneManager() {
-			sceneManagerInteraction.reset();
-		}
-
 		/**
 		 * The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
 		 * Doesn't destroy player or sun.
 		 * @return true if a deletion assignment in the scene manager happened
 		 * @return false otherwise (e.g. object not in scene manager)
 		 */
-		inline bool markForDeletion() {
-			if (auto sceneManager = sceneManagerInteraction.lock()) {
-				return sceneManager->addToStaleQueue(id);
-			}
-			return false;
-		}
+		bool markForDeletion() const;
 
 		glm::vec3 color{};
 
@@ -62,7 +50,5 @@ namespace vk {
 		GameObject() : id(nextID++) {}
 
 		const id_t id;
-
-		std::weak_ptr<ISceneManagerInteraction> sceneManagerInteraction;
 	};
 }

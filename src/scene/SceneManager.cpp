@@ -2,15 +2,35 @@
 
 SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
-void SceneManager::updateUITransforms(float deltaTime, int placementTransform) {
-	if (placementTransform == -1) {
-		return;
-	}
+SceneManager& SceneManager::getInstance() {
+	static SceneManager instance;
+	return instance;
+}
+
+void SceneManager::updateUIPosition(float deltaTime, glm::vec3 dir) {
 	for (auto& uiObject : this->getUIObjects()) {
 		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
-		if (!uiComponent || !uiComponent->isControllable())
+		if (!uiComponent)
 			continue;
-		uiComponent->updateTransform(deltaTime, placementTransform);
+		uiComponent->updatePosition(deltaTime, dir);
+	}
+}
+
+void SceneManager::updateUIRotation(float deltaTime, glm::vec3 rotDir) {
+	for (auto& uiObject : this->getUIObjects()) {
+		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
+		if (!uiComponent)
+			continue;
+		uiComponent->updateRotation(deltaTime, rotDir);
+	}
+}
+
+void SceneManager::updateUIScale(float deltaTime, int scaleDir) {
+	for (auto& uiObject : this->getUIObjects()) {
+		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
+		if (!uiComponent)
+			continue;
+		uiComponent->updateScale(deltaTime, scaleDir);
 	}
 }
 
@@ -25,9 +45,6 @@ vk::id_t SceneManager::setPlayer(std::unique_ptr<physics::Player> newPlayer) {
 	this->idToClass.emplace(this->scene->player->getId(), PLAYER);
 	this->bodyIDToObjectId.emplace(this->scene->player->getBodyID(), this->scene->player->getId());
 
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	this->scene->player->setSceneManager(weakThis);
-
 	scene->player->addPhysicsBody();
 
 	this->physicsSceneIsChanged = true;
@@ -36,23 +53,20 @@ vk::id_t SceneManager::setPlayer(std::unique_ptr<physics::Player> newPlayer) {
 }
 
 vk::id_t SceneManager::setSun(std::unique_ptr<lighting::Sun> sun) {
-	this->idToClass.erase(this->scene->sun->getId());
+	
+	if (this->scene->sun) {
+		this->idToClass.erase(this->scene->sun->getId());
+	}
 
 	scene->sun = std::move(sun);
 
 	this->idToClass.emplace(this->scene->sun->getId(), SUN);
 
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	this->scene->sun->setSceneManager(weakThis);
-
 	return scene->sun->getId();
 }
 
-vk::id_t SceneManager::addWaterObject(std::unique_ptr<vk::GameObject> waterObject) {
+vk::id_t SceneManager::addWaterObject(std::unique_ptr<vk::WaterObject> waterObject) {
 	vk::id_t id = waterObject->getId();
-
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	waterObject->setSceneManager(weakThis);
 
 	std::pair result = this->scene->waterObjects.emplace(id, std::move(waterObject));
 
@@ -67,9 +81,6 @@ vk::id_t SceneManager::addWaterObject(std::unique_ptr<vk::GameObject> waterObjec
 vk::id_t SceneManager::addSpectralObject(std::unique_ptr<vk::GameObject> spectralObject) {
 	vk::id_t id = spectralObject->getId();
 
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	spectralObject->setSceneManager(weakThis);
-
 	std::pair result = this->scene->spectralObjects.emplace(id, std::move(spectralObject));
 
 	if (result.second) {
@@ -82,9 +93,6 @@ vk::id_t SceneManager::addSpectralObject(std::unique_ptr<vk::GameObject> spectra
 
 vk::id_t SceneManager::addUIObject(std::unique_ptr<vk::UIComponent> uiObject) {
 	vk::id_t id = uiObject->getId();
-
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	uiObject->setSceneManager(weakThis);
 
 	std::pair result = this->scene->uiObjects.emplace(id, std::move(uiObject));
 
@@ -99,9 +107,6 @@ vk::id_t SceneManager::addUIObject(std::unique_ptr<vk::UIComponent> uiObject) {
 vk::id_t SceneManager::addLight(std::unique_ptr<lighting::PointLight> light) {
 	vk::id_t id = light->getId();
 
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	light->setSceneManager(weakThis);
-
 	std::pair result = this->scene->lights.emplace(id, std::move(light));
 
 	if (result.second) {
@@ -115,9 +120,6 @@ vk::id_t SceneManager::addLight(std::unique_ptr<lighting::PointLight> light) {
 vk::id_t SceneManager::addEnemy(std::unique_ptr<physics::Enemy> enemy) {
 	vk::id_t id = enemy->getId();
 	JPH::BodyID bodyID = enemy->getBodyID();
-
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	enemy->setSceneManager(weakThis);
 
 	if (scene->passiveEnemies.find(id) != scene->passiveEnemies.end()) {
 		return vk::INVALID_OBJECT_ID;
@@ -140,9 +142,6 @@ vk::id_t SceneManager::addManagedPhysicsEntity(std::unique_ptr<physics::ManagedP
 	vk::id_t id = managedPhysicsEntity->getId();
 	JPH::BodyID bodyID = managedPhysicsEntity->getBodyID();
 
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	managedPhysicsEntity->setSceneManager(weakThis);
-
 	if (scene->passivePhysicsObjects.find(id) != scene->passivePhysicsObjects.end()) {
 		return vk::INVALID_OBJECT_ID;
 	}
@@ -163,9 +162,6 @@ vk::id_t SceneManager::addManagedPhysicsEntity(std::unique_ptr<physics::ManagedP
 vk::id_t SceneManager::addTessellationObject(std::unique_ptr<physics::ManagedPhysicsEntity> tessellationObject) {
 	vk::id_t id = tessellationObject->getId();
 	JPH::BodyID bodyID = tessellationObject->getBodyID();
-
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	tessellationObject->setSceneManager(weakThis);
 
 	// Check if the object already exists
 	if (scene->passivePhysicsObjects.find(id) != scene->passivePhysicsObjects.end()) {
@@ -281,6 +277,11 @@ void SceneManager::removeStaleObjects() {
 				this->physicsSceneIsChanged = true;
 				continue;
 
+			case WATER:
+				scene->waterObjects.erase(id);
+				this->idToClass.erase(id);
+				continue;
+
 			default:
 				continue;
 		}
@@ -311,8 +312,6 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 
 		scene->spectralObjects.erase(id);
 
-		spectralObject->deleteSceneManager();
-
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, spectralObject));
 	} else if (sceneClass == UI_COMPONENT) {
 		this->idToClass.erase(id);
@@ -322,8 +321,6 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 
 		scene->uiObjects.erase(id);
 
-		uiObject->deleteSceneManager();
-
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, uiObject));
 	} else if (sceneClass == LIGHT) {
 		this->idToClass.erase(id);
@@ -332,8 +329,6 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 		std::shared_ptr<vk::GameObject> light = std::move(itLights->second);
 
 		scene->lights.erase(id);
-
-		light->deleteSceneManager();
 
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, light));
 	} else if (sceneClass == ENEMY) {
@@ -349,8 +344,6 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 			scene->enemies.erase(id);
 			this->physicsSceneIsChanged = true;
 
-			enemy->deleteSceneManager();
-
 			return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, enemy));
 		} else {
 			auto itPassiveEnemies = scene->passiveEnemies.find(id);
@@ -359,8 +352,6 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 
 			scene->passiveEnemies.erase(id);
 			this->physicsSceneIsChanged = true;
-
-			enemy->deleteSceneManager();
 
 			return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, enemy));
 		}
@@ -377,8 +368,6 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 			scene->physicsObjects.erase(id);
 			this->physicsSceneIsChanged = true;
 
-			physicsObject->deleteSceneManager();
-
 			return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, physicsObject));
 		} else {
 			auto itPassivePhysicsObjects = scene->passivePhysicsObjects.find(id);
@@ -387,8 +376,6 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 
 			scene->passivePhysicsObjects.erase(id);
 			this->physicsSceneIsChanged = true;
-
-			physicsObject->deleteSceneManager();
 
 			return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, physicsObject));
 		}
@@ -404,9 +391,16 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 		scene->tessellationObjects.erase(id);
 		this->physicsSceneIsChanged = true;
 
-		tessellationObject->deleteSceneManager();
-
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, tessellationObject));
+	} else if (sceneClass == WATER) {
+		this->idToClass.erase(id);
+
+		auto itWater = scene->waterObjects.find(id);
+		std::shared_ptr<vk::GameObject> water = std::move(itWater->second);
+
+		scene->waterObjects.erase(id);
+
+		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, water));
 	} else {
 		return nullptr;
 	}
@@ -519,8 +513,8 @@ std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
 	return uiObjects;
 }
 // Get water objects for rendering
-std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getWaterObjects() {
-    std::vector<std::weak_ptr<vk::GameObject>> waterObjs;
+std::vector<std::weak_ptr<vk::WaterObject>> SceneManager::getWaterObjects() {
+    std::vector<std::weak_ptr<vk::WaterObject>> waterObjs;
     for (auto& it : this->scene->waterObjects) {
         waterObjs.push_back(it.second);
     }
@@ -560,6 +554,9 @@ std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> SceneManag
 	} else if (sceneClass == TESSELLATION_OBJECT) {
 		std::weak_ptr<vk::GameObject> tessellationObject = this->scene->tessellationObjects.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, tessellationObject));
+	} else if (sceneClass == WATER) {
+		std::weak_ptr<vk::GameObject> water = this->scene->waterObjects.at(id);
+		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, water));
 	} else {
 		return nullptr;
 	}

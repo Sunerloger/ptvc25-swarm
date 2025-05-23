@@ -388,7 +388,7 @@ namespace vk {
 	}
 
 	void Device::createSurface() {
-		window.createWindowSurface(instance, &surface_);
+		surface_ = window.createWindowSurface(instance);
 	}
 
 	bool Device::isDeviceSuitable(VkPhysicalDevice device) {

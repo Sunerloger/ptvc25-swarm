@@ -1,11 +1,13 @@
 #include "CollisionHandler.h"
 
+#include "../scene/SceneManager.h"
+
 // STL includes
 #include <iostream>
 
 namespace physics {
 
-	MyContactListener::MyContactListener(std::weak_ptr<SceneManager> sceneManager) : weak_sceneManager(sceneManager) {}
+	MyContactListener::MyContactListener() {}
 
 	MyContactListener::~MyContactListener() {}
 
@@ -13,18 +15,15 @@ namespace physics {
 		JPH::BodyID bodyID1 = inBody1.GetID();
 		JPH::BodyID bodyID2 = inBody2.GetID();
 
-		std::shared_ptr<SceneManager> sceneManager = weak_sceneManager.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return JPH::ValidateResult::RejectContact;
-		}
-
-		vk::id_t id1 = sceneManager->getIdFromBodyID(bodyID1);
-		vk::id_t id2 = sceneManager->getIdFromBodyID(bodyID2);
+		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
+		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
 
 		// Debug: std::cout << "Contact validate callback [" << id1 << ", " << id2 << "]" << std::endl;
 
 		// Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
+		// return JPH::ValidateResult::RejectContact;
 		return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
 	}
 
@@ -32,14 +31,10 @@ namespace physics {
 		JPH::BodyID bodyID1 = inBody1.GetID();
 		JPH::BodyID bodyID2 = inBody2.GetID();
 
-		std::shared_ptr<SceneManager> sceneManager = weak_sceneManager.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return;
-		}
-
-		vk::id_t id1 = sceneManager->getIdFromBodyID(bodyID1);
-		vk::id_t id2 = sceneManager->getIdFromBodyID(bodyID2);
+		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
+		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
 
 		// Debug: std::cout << "A contact was added [" << id1 << ", " << id2 << "]" << std::endl;
 
@@ -59,8 +54,8 @@ namespace physics {
 		JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
 		// float panetrationDepth = inManifold.mPenetrationDepth;
 
-		auto gameObj1 = sceneManager->getObject(id1);
-		auto gameObj2 = sceneManager->getObject(id2);
+		auto gameObj1 = sceneManager.getObject(id1);
+		auto gameObj2 = sceneManager.getObject(id2);
 
 		if (gameObj1 && gameObj2) {
 			if (gameObj1->first == SceneClass::PLAYER && gameObj2->first == SceneClass::ENEMY) {
@@ -75,14 +70,10 @@ namespace physics {
 		JPH::BodyID bodyID1 = inBody1.GetID();
 		JPH::BodyID bodyID2 = inBody2.GetID();
 
-		std::shared_ptr<SceneManager> sceneManager = weak_sceneManager.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return;
-		}
-
-		vk::id_t id1 = sceneManager->getIdFromBodyID(bodyID1);
-		vk::id_t id2 = sceneManager->getIdFromBodyID(bodyID2);
+		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
+		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
 
 		// Debug: std::cout << "A contact was persisted [" << id1 << ", " << id2 << "]" << std::endl;
 	}
@@ -91,14 +82,10 @@ namespace physics {
 		JPH::BodyID bodyID1 = inSubShapePair.GetBody1ID();
 		JPH::BodyID bodyID2 = inSubShapePair.GetBody2ID();
 
-		std::shared_ptr<SceneManager> sceneManager = weak_sceneManager.lock();
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		if (!sceneManager) {
-			return;
-		}
-
-		vk::id_t id1 = sceneManager->getIdFromBodyID(bodyID1);
-		vk::id_t id2 = sceneManager->getIdFromBodyID(bodyID2);
+		vk::id_t id1 = sceneManager.getIdFromBodyID(bodyID1);
+		vk::id_t id2 = sceneManager.getIdFromBodyID(bodyID2);
 
 		// Debug: std::cout << "A contact was removed [" << id1 << ", " << id2 << "]" << std::endl;
 	}
@@ -109,7 +96,7 @@ namespace physics {
 
 		// the following lines are only for testing purposes
 		float health = enemyObj->getCurrentHealth();
-		bool isDead = enemyObj->subtractHealth(health);
+		bool isDead = enemyObj->takeDamage(health);
 
 		if (isDead) {
 			// Debug: std::cout << "Enemy [" << enemy->getId() << "] died" << std::endl;
@@ -119,30 +106,24 @@ namespace physics {
 		// TODO maybe store time of last damage with player and add a invulnerability period after hit
 	}
 
-	MyBodyActivationListener::MyBodyActivationListener(std::weak_ptr<SceneManager> sceneManager) : weak_sceneManager(sceneManager) {}
+	MyBodyActivationListener::MyBodyActivationListener() {}
 
 	MyBodyActivationListener::~MyBodyActivationListener() {}
 
 	void MyBodyActivationListener::OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) {
-		std::shared_ptr<SceneManager> sceneManager = weak_sceneManager.lock();
 
-		if (!sceneManager) {
-			return;
-		}
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		vk::id_t id = sceneManager->getIdFromBodyID(inBodyID);
+		vk::id_t id = sceneManager.getIdFromBodyID(inBodyID);
 
 		// Debug: std::cout << "A body got activated [" << id << "]" << std::endl;
 	}
 
 	void MyBodyActivationListener::OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) {
-		std::shared_ptr<SceneManager> sceneManager = weak_sceneManager.lock();
 
-		if (!sceneManager) {
-			return;
-		}
+		SceneManager& sceneManager = SceneManager::getInstance();
 
-		vk::id_t id = sceneManager->getIdFromBodyID(inBodyID);
+		vk::id_t id = sceneManager.getIdFromBodyID(inBodyID);
 
 		// if object already destroyed in scene manager but for some reason appears here (e.g. while closing window)
 		if (id == vk::INVALID_OBJECT_ID) {

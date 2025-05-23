@@ -20,7 +20,6 @@ namespace vk {
 		float frameTime;
 		VkCommandBuffer commandBuffer;
 		VkDescriptorSet globalDescriptorSet;
-		SceneManager& sceneManager;
 		// TODO use this for debug rendering with jolt debug renderer (implement DebugRenderer.h)
 		bool isDebugPhysics = false;
 	};

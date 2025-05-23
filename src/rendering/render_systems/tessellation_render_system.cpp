@@ -1,19 +1,25 @@
-#include "water_render_system.h"
+#include "tessellation_render_system.h"
+
 #include <stdexcept>
+#include <glm/glm.hpp>
+
+#include "../materials/TessellationMaterial.h"
+#include "../../scene/SceneManager.h"
+
 
 namespace vk {
 
-	WaterRenderSystem::WaterRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-		: device{device}, renderPass{renderPass}, globalSetLayout{globalSetLayout} {
+	TessellationRenderSystem::TessellationRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
+		: device{ device }, renderPass{ renderPass }, globalSetLayout{ globalSetLayout } {
 	}
 
-	WaterRenderSystem::~WaterRenderSystem() {
+	TessellationRenderSystem::~TessellationRenderSystem() {
 		for (auto& [key, layout] : pipelineLayoutCache) {
 			vkDestroyPipelineLayout(device.device(), layout, nullptr);
 		}
 	}
 
-	void WaterRenderSystem::createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
+	void TessellationRenderSystem::createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
 		// Check if we already have a pipeline layout for this material layout
 		auto it = pipelineLayoutCache.find(materialSetLayout);
 		if (it != pipelineLayoutCache.end()) {
@@ -22,11 +28,12 @@ namespace vk {
 		}
 
 		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | 
+		                               VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(WaterPushConstantData);
+		pushConstantRange.size = sizeof(TessellationPushConstantData);
 
-		std::vector<VkDescriptorSetLayout> setLayouts = {globalSetLayout, materialSetLayout};
+		std::vector<VkDescriptorSetLayout> setLayouts = { globalSetLayout, materialSetLayout };
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -43,17 +50,22 @@ namespace vk {
 		pipelineLayoutCache[materialSetLayout] = pipelineLayout;
 	}
 
-	WaterRenderSystem::PipelineInfo& WaterRenderSystem::getPipeline(const Material& material) {
+
+	TessellationRenderSystem::PipelineInfo& TessellationRenderSystem::getPipeline(const Material& material) {
 		// Get the material's pipeline configuration
 		const auto& config = material.getPipelineConfig();
-
+		
 		// Create a key for the pipeline cache
 		PipelineKey key{
 			config.vertShaderPath,
+			config.tessControlShaderPath,
+			config.tessEvalShaderPath,
 			config.fragShaderPath,
+			config.patchControlPoints,
 			config.depthStencilInfo.depthWriteEnable == VK_TRUE,
 			config.depthStencilInfo.depthCompareOp,
-			config.rasterizationInfo.cullMode};
+			config.rasterizationInfo.cullMode
+		};
 
 		// Check if we already have a pipeline for this configuration
 		auto it = pipelineCache.find(key);
@@ -70,14 +82,12 @@ namespace vk {
 
 		// Create pipeline config
 		PipelineConfigInfo pipelineConfig{};
-		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+		Pipeline::tessellationPipelineConfigInfo(pipelineConfig, config.patchControlPoints);
 
 		// Apply material properties
-        pipelineConfig.depthStencilInfo.depthWriteEnable = config.depthStencilInfo.depthWriteEnable;
-        pipelineConfig.depthStencilInfo.depthCompareOp = config.depthStencilInfo.depthCompareOp;
-        pipelineConfig.rasterizationInfo.cullMode = config.rasterizationInfo.cullMode;
-        // Apply material blending settings for transparency
-        pipelineConfig.colorBlendAttachment = config.colorBlendAttachment;
+		pipelineConfig.depthStencilInfo.depthWriteEnable = config.depthStencilInfo.depthWriteEnable;
+		pipelineConfig.depthStencilInfo.depthCompareOp = config.depthStencilInfo.depthCompareOp;
+		pipelineConfig.rasterizationInfo.cullMode = config.rasterizationInfo.cullMode;
 
 		pipelineConfig.renderPass = renderPass;
 		pipelineConfig.pipelineLayout = pipelineLayout;
@@ -85,29 +95,32 @@ namespace vk {
 		// Create pipeline
 		PipelineInfo pipelineInfo{};
 		pipelineInfo.pipelineLayout = pipelineLayout;
-
-		// Create standard pipeline
+		
+		// Create tessellation pipeline
 		pipelineInfo.pipeline = std::make_unique<Pipeline>(
 			device,
 			config.vertShaderPath,
+			config.tessControlShaderPath,
+			config.tessEvalShaderPath,
 			config.fragShaderPath,
-			pipelineConfig);
+			pipelineConfig
+		);
 
 		// Cache and return
 		return pipelineCache[key] = std::move(pipelineInfo);
 	}
 
-	void WaterRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
-		// Update elapsed time for water animation
-		elapsedTime += frameInfo.frameTime;
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getWaterObjects()) {
+	void TessellationRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
+		// Render all tessellation objects
+		for (std::weak_ptr<GameObject> weakObj : sceneManager.getTessellationRenderObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject || !gameObject->getModel())
 				continue;
 
 			auto material = gameObject->getModel()->getMaterial();
-			if (!material)
-				continue;
+			if (!material) continue;
 
 			// Get pipeline for this material
 			auto& pipelineInfo = getPipeline(*material);
@@ -123,39 +136,43 @@ namespace vk {
 				0,
 				1,
 				&frameInfo.globalDescriptorSet,
-				0, nullptr);
+				0, nullptr
+			);
 
 			// Set push constants
-			WaterPushConstantData push{};
+			TessellationPushConstantData push{};
 
 			// Use the game object's model matrix and normal matrix
-			// The skybox GameObject class overrides these methods to return identity matrices
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
-			// Scroll UV coordinates to animate water surface
-			push.uvOffset = glm::vec2(elapsedTime * 0.03f, elapsedTime * 0.05f);
-			// Pass elapsed time for wave animation
-			push.time = elapsedTime;
-			// Texture presence flag
-			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
 
-			// No type checking - trust the implementation
-
-			// Determine shader stages to push constants to
-			VkShaderStageFlags stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-			// If using tessellation, include those shader stages
-			if (material->getPipelineConfig().useTessellation) {
-				stageFlags |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-			}
+			// Trust the implementation - all objects rendered by this system should use TessellationMaterial
+			int hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
+			
+			// fetch parameters from TessellationMaterial
+			auto tessMat = std::static_pointer_cast<TessellationMaterial>(material);
+			assert(tessMat && "All tess-objects must use TessellationMaterial");
+			
+			glm::vec2 tileScale = tessMat->getTileScale();
+			float maxTessLevel = tessMat->getMaxTessLevel();
+			float tessDistance = tessMat->getTessDistance();
+			float minTessDistance = tessMat->getMinTessDistance();
+			float heightScale = tessMat->getHeightScale();
+			int useHeightmapTexture = tessMat->hasHeightmapTexture() ? 1 : 0;
+			
+			// Pack parameters into vec4s
+			push.params1 = glm::vec4(hasTexture, tileScale.x, tileScale.y, maxTessLevel);
+			push.params2 = glm::vec4(tessDistance, minTessDistance, heightScale, useHeightmapTexture);
 
 			vkCmdPushConstants(
 				frameInfo.commandBuffer,
 				pipelineInfo.pipelineLayout,
-				stageFlags,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | 
+				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
 				0,
-				sizeof(WaterPushConstantData),
-				&push);
+				sizeof(TessellationPushConstantData),
+				&push
+			);
 
 			// Bind material descriptor set
 			VkDescriptorSet materialDS = material->getDescriptorSet();
@@ -167,7 +184,8 @@ namespace vk {
 					1,
 					1,
 					&materialDS,
-					0, nullptr);
+					0, nullptr
+				);
 			}
 
 			// Draw
@@ -176,4 +194,4 @@ namespace vk {
 		}
 	}
 
-}  // namespace vk
+} // namespace vk

@@ -1,18 +1,23 @@
-#include "ui_render_system.h"
+#include "texture_render_system.h"
+
+#include <stdexcept>
+
+#include "../../scene/SceneManager.h"
+
 
 namespace vk {
 
-	UIRenderSystem::UIRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-		: device{device}, renderPass{renderPass}, globalSetLayout{globalSetLayout} {
+	TextureRenderSystem::TextureRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
+		: device{ device }, renderPass{ renderPass }, globalSetLayout{ globalSetLayout } {
 	}
 
-	UIRenderSystem::~UIRenderSystem() {
+	TextureRenderSystem::~TextureRenderSystem() {
 		for (auto& [key, layout] : pipelineLayoutCache) {
 			vkDestroyPipelineLayout(device.device(), layout, nullptr);
 		}
 	}
 
-	void UIRenderSystem::createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
+	void TextureRenderSystem::createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
 		// Check if we already have a pipeline layout for this material layout
 		auto it = pipelineLayoutCache.find(materialSetLayout);
 		if (it != pipelineLayoutCache.end()) {
@@ -23,9 +28,9 @@ namespace vk {
 		VkPushConstantRange pushConstantRange{};
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(UIPushConstantData);
+		pushConstantRange.size = sizeof(SimplePushConstantData);
 
-		std::vector<VkDescriptorSetLayout> setLayouts = {globalSetLayout, materialSetLayout};
+		std::vector<VkDescriptorSetLayout> setLayouts = { globalSetLayout, materialSetLayout };
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -42,18 +47,19 @@ namespace vk {
 		pipelineLayoutCache[materialSetLayout] = pipelineLayout;
 	}
 
-	UIRenderSystem::PipelineInfo& UIRenderSystem::getPipeline(const Material& material) {
+
+	TextureRenderSystem::PipelineInfo& TextureRenderSystem::getPipeline(const Material& material) {
 		// Get the material's pipeline configuration
 		const auto& config = material.getPipelineConfig();
-
+		
 		// Create a key for the pipeline cache
 		PipelineKey key{
 			config.vertShaderPath,
 			config.fragShaderPath,
-			config.depthStencilInfo.depthTestEnable == VK_TRUE,
 			config.depthStencilInfo.depthWriteEnable == VK_TRUE,
 			config.depthStencilInfo.depthCompareOp,
-			config.rasterizationInfo.cullMode};
+			config.rasterizationInfo.cullMode
+		};
 
 		// Check if we already have a pipeline for this configuration
 		auto it = pipelineCache.find(key);
@@ -73,7 +79,6 @@ namespace vk {
 		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
 
 		// Apply material properties
-		pipelineConfig.depthStencilInfo.depthTestEnable = config.depthStencilInfo.depthTestEnable;
 		pipelineConfig.depthStencilInfo.depthWriteEnable = config.depthStencilInfo.depthWriteEnable;
 		pipelineConfig.depthStencilInfo.depthCompareOp = config.depthStencilInfo.depthCompareOp;
 		pipelineConfig.rasterizationInfo.cullMode = config.rasterizationInfo.cullMode;
@@ -84,40 +89,30 @@ namespace vk {
 		// Create pipeline
 		PipelineInfo pipelineInfo{};
 		pipelineInfo.pipelineLayout = pipelineLayout;
-
+		
 		// Create standard pipeline
 		pipelineInfo.pipeline = std::make_unique<Pipeline>(
 			device,
 			config.vertShaderPath,
 			config.fragShaderPath,
-			pipelineConfig);
+			pipelineConfig
+		);
 
 		// Cache and return
 		return pipelineCache[key] = std::move(pipelineInfo);
 	}
 
-	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
-		// Collect UI objects and sort by z-index (back to front)
-		auto uiWeakObjs = frameInfo.sceneManager.getUIObjects();
-		std::vector<std::shared_ptr<GameObject>> uiGameObjects;
-		uiGameObjects.reserve(uiWeakObjs.size());
-		for (auto& weakObj : uiWeakObjs) {
-			if (auto gameObject = weakObj.lock()) {
-				if (gameObject->getModel() && gameObject->getModel()->getMaterial()) {
-					uiGameObjects.push_back(gameObject);
-				}
-			}
-		}
-		// Sort by z position (ascending: furthest first)
-		std::sort(uiGameObjects.begin(), uiGameObjects.end(),
-			[](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
-				return a->getPosition().z < b->getPosition().z;
-			});
-		// Render sorted UI objects
-		for (auto& gameObject : uiGameObjects) {
-			auto material = gameObject->getModel()->getMaterial();
-			if (!material)
+	void TextureRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
+		// Render all standard objects (non-tessellated)
+		for (std::weak_ptr<GameObject> weakObj : sceneManager.getStandardRenderObjects()) {
+			std::shared_ptr<GameObject> gameObject = weakObj.lock();
+			if (!gameObject || !gameObject->getModel())
 				continue;
+
+			auto material = gameObject->getModel()->getMaterial();
+			if (!material) continue;
 
 			// Get pipeline for this material
 			auto& pipelineInfo = getPipeline(*material);
@@ -133,28 +128,37 @@ namespace vk {
 				0,
 				1,
 				&frameInfo.globalDescriptorSet,
-				0, nullptr);
+				0, nullptr
+			);
 
 			// Set push constants
-			UIPushConstantData push{};
+			SimplePushConstantData push{};
 
 			// Use the game object's model matrix and normal matrix
+			// The skybox GameObject class overrides these methods to return identity matrices
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
-			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
 
+			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
+			
 			// No type checking - trust the implementation
 
 			// Determine shader stages to push constants to
 			VkShaderStageFlags stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+			
+			// If using tessellation, include those shader stages
+			if (material->getPipelineConfig().useTessellation) {
+				stageFlags |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+			}
 
 			vkCmdPushConstants(
 				frameInfo.commandBuffer,
 				pipelineInfo.pipelineLayout,
 				stageFlags,
 				0,
-				sizeof(UIPushConstantData),
-				&push);
+				sizeof(SimplePushConstantData),
+				&push
+			);
 
 			// Bind material descriptor set
 			VkDescriptorSet materialDS = material->getDescriptorSet();
@@ -166,7 +170,8 @@ namespace vk {
 					1,
 					1,
 					&materialDS,
-					0, nullptr);
+					0, nullptr
+				);
 			}
 
 			// Draw
@@ -175,4 +180,4 @@ namespace vk {
 		}
 	}
 
-}  // namespace vk
+} // namespace vk

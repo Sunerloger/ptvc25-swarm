@@ -41,7 +41,9 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
-		void updateTransform(float deltaTime, int placementTransform = -1);
+		void updatePosition(float deltaTime, glm::vec3 dir);
+		void updateRotation(float deltaTime, glm::vec3 rotDir);
+		void updateScale(float deltaTime, int scaleDir);
 
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;

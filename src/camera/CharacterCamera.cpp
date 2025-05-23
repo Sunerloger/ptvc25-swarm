@@ -1,10 +1,10 @@
 #include "CharacterCamera.h"
 
-CharacterCamera::CharacterCamera(std::unique_ptr<CharacterCameraSettings> cameraSettings) {
-	this->settings = std::move(cameraSettings);
+CharacterCamera::CharacterCamera(CharacterCameraSettings cameraSettings) {
+	this->settings = cameraSettings;
 
-	this->yaw = this->settings->initialYaw;
-	this->pitch = this->settings->initialPitch;
+	this->yaw = settings.initialYaw;
+	this->pitch = settings.initialPitch;
 }
 
 CharacterCamera::~CharacterCamera() {}
@@ -23,12 +23,12 @@ void CharacterCamera::setPhysicsPosition(JPH::Vec3 physicsPosition) {
 	}
 
 	// offset doesn't need to be rotated
-	this->position += settings->cameraOffsetFromCharacter;
+	this->position += settings.cameraOffsetFromCharacter;
 }
 
 void CharacterCamera::addRotation(float deltaYaw, float deltaPitch) {
-	setYaw(this->yaw + deltaYaw * settings->cameraSpeed);
-	setPitch(this->pitch + deltaPitch * settings->cameraSpeed);
+	setYaw(this->yaw + deltaYaw * settings.cameraSpeed);
+	setPitch(this->pitch + deltaPitch * settings.cameraSpeed);
 }
 
 const glm::vec3 CharacterCamera::getFront() const {

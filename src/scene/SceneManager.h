@@ -2,15 +2,16 @@
 
 #include <map>
 #include <queue>
+#include <memory>
 
 #include "../GameObject.h"
 #include "../simulation/objects/ManagedPhysicsEntity.h"
 #include "../simulation/objects/actors/Player.h"
 #include "../simulation/objects/actors/enemies/Enemy.h"
+#include "../rendering/structures/WaterObject.h"
 #include "../lighting/PointLight.h"
 #include "../lighting/Sun.h"
 #include "../ui/UIComponent.h"
-#include "ISceneManagerInteraction.h"
 
 enum SceneClass {
 	PLAYER,
@@ -24,6 +25,12 @@ enum SceneClass {
 	TESSELLATION_OBJECT	 // New class for tessellation objects
 };
 
+// TODO simplify GameObject and SceneManager
+// TODO GameObject stores SceneClass
+// TODO make singleton
+// TODO store assets + models + materials in sceneManager
+// TODO sceneGraph
+
 // provides scene information to the renderer and the physics engine
 struct Scene {
 	std::shared_ptr<physics::Player> player;
@@ -32,7 +39,7 @@ struct Scene {
 	std::shared_ptr<lighting::Sun> sun;
 
 	// rendered and not in physics engine
-	std::unordered_map<vk::id_t, std::shared_ptr<vk::GameObject>> waterObjects = {};
+	std::unordered_map<vk::id_t, std::shared_ptr<vk::WaterObject>> waterObjects = {};
 
 	// not rendered and not in physics engine
 	std::unordered_map<vk::id_t, std::shared_ptr<lighting::PointLight>> lights = {};
@@ -57,16 +64,25 @@ struct Scene {
 
 	// objects scheduled for deletion from scene manager
 	std::queue<vk::id_t> staleQueue = {};
+
+	// TODO + store information if timer is running only when game is running in timers themselves
+	// std::vector<Timer> timers;
 };
 
 // manages active scenes
-class SceneManager : public std::enable_shared_from_this<SceneManager>, public ISceneManagerInteraction {
+class SceneManager {
    public:
-	SceneManager();
-	virtual ~SceneManager() = default;
 
-	void updateUIWindowDimensions(float windowWidth, float windowHeight);
-	void updateUITransforms(float deltaTime, int placementTransform = -1);
+	static SceneManager& getInstance();
+
+	SceneManager(const SceneManager&) = delete;
+	SceneManager& operator=(const SceneManager&) = delete;
+	SceneManager(SceneManager&&) = delete;
+	SceneManager& operator=(SceneManager&&) = delete;
+
+	void updateUIPosition(float deltaTime, glm::vec3 dir);
+	void updateUIRotation(float deltaTime, glm::vec3 rotDir);
+	void updateUIScale(float deltaTime, int scaleDir);
 
 	// always replaces old player!
 	vk::id_t setPlayer(std::unique_ptr<physics::Player> player);
@@ -74,7 +90,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	// always replaces old sun!
 	vk::id_t setSun(std::unique_ptr<lighting::Sun> sun);
 
-	vk::id_t addWaterObject(std::unique_ptr<vk::GameObject> waterObject);
+	vk::id_t addWaterObject(std::unique_ptr<vk::WaterObject> waterObject);
 
 	// @return false if object could not be added because it already exists
 	vk::id_t addSpectralObject(std::unique_ptr<vk::GameObject> spectralObject);
@@ -122,11 +138,11 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
 	std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> getObject(vk::id_t id);
 
-	std::shared_ptr<physics::Player> getPlayer() override;
+	std::shared_ptr<physics::Player> getPlayer();
 
 	std::shared_ptr<lighting::Sun> getSun();
 
-	std::vector<std::weak_ptr<vk::GameObject>> getWaterObjects();
+	std::vector<std::weak_ptr<vk::WaterObject>> getWaterObjects();
 
 	// returns the boolean and resets it to false
 	bool isBroadPhaseOptimizationNeeded();
@@ -140,6 +156,10 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 
    private:
+
+	SceneManager();
+	~SceneManager() = default;
+
 	// for optimize broad phase -> optimize broad phase before simulation step if bodies in physics system changed
 	bool physicsSceneIsChanged = false;
 
