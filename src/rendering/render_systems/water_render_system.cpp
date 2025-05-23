@@ -100,7 +100,7 @@ namespace vk {
 	void WaterRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
 		// Update elapsed time for water animation
 		elapsedTime += frameInfo.frameTime;
-		for (std::weak_ptr<GameObject> weakObj : frameInfo.sceneManager.getWaterObjects()) {
+		for (std::weak_ptr<GameObject> weakObj : SceneManager::getInstance().getWaterObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject || !gameObject->getModel())
 				continue;

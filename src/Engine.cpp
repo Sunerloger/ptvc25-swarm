@@ -54,6 +54,10 @@ namespace vk {
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
 
+		WaterRenderSystem waterRenderSystem{device,
+			renderer->getSwapChainRenderPass(),
+			globalSetLayout->getDescriptorSetLayout()};
+
 		UIRenderSystem uiRenderSystem{device,
 			renderer->getSwapChainRenderPass(),
 			globalSetLayout->getDescriptorSetLayout()};
@@ -118,12 +122,15 @@ namespace vk {
 				ubo.projection = sceneManager.getPlayer()->getProjMat();
 				ubo.view = sceneManager.getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
+				ubo.sunDirection = glm::vec4(sceneManager.getSun()->getDirection(), 1.0f);
+				ubo.sunColor = glm::vec4(sceneManager.getSun()->color, 1.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
 				renderer->beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
 				tessellationRenderSystem.renderGameObjects(frameInfo);
+				waterRenderSystem.renderGameObjects(frameInfo);
 
 				VkClearAttachment clearAttachment{};
 				clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;

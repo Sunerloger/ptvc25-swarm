@@ -53,7 +53,10 @@ vk::id_t SceneManager::setPlayer(std::unique_ptr<physics::Player> newPlayer) {
 }
 
 vk::id_t SceneManager::setSun(std::unique_ptr<lighting::Sun> sun) {
-	this->idToClass.erase(this->scene->sun->getId());
+	
+	if (this->scene->sun) {
+		this->idToClass.erase(this->scene->sun->getId());
+	}
 
 	scene->sun = std::move(sun);
 
@@ -62,11 +65,8 @@ vk::id_t SceneManager::setSun(std::unique_ptr<lighting::Sun> sun) {
 	return scene->sun->getId();
 }
 
-vk::id_t SceneManager::addWaterObject(std::unique_ptr<vk::GameObject> waterObject) {
+vk::id_t SceneManager::addWaterObject(std::unique_ptr<vk::WaterObject> waterObject) {
 	vk::id_t id = waterObject->getId();
-
-	std::weak_ptr<SceneManager> weakThis = shared_from_this();
-	waterObject->setSceneManager(weakThis);
 
 	std::pair result = this->scene->waterObjects.emplace(id, std::move(waterObject));
 
@@ -277,6 +277,11 @@ void SceneManager::removeStaleObjects() {
 				this->physicsSceneIsChanged = true;
 				continue;
 
+			case WATER:
+				scene->waterObjects.erase(id);
+				this->idToClass.erase(id);
+				continue;
+
 			default:
 				continue;
 		}
@@ -387,6 +392,15 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 		this->physicsSceneIsChanged = true;
 
 		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, tessellationObject));
+	} else if (sceneClass == WATER) {
+		this->idToClass.erase(id);
+
+		auto itWater = scene->waterObjects.find(id);
+		std::shared_ptr<vk::GameObject> water = std::move(itWater->second);
+
+		scene->waterObjects.erase(id);
+
+		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, water));
 	} else {
 		return nullptr;
 	}
@@ -499,8 +513,8 @@ std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
 	return uiObjects;
 }
 // Get water objects for rendering
-std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getWaterObjects() {
-    std::vector<std::weak_ptr<vk::GameObject>> waterObjs;
+std::vector<std::weak_ptr<vk::WaterObject>> SceneManager::getWaterObjects() {
+    std::vector<std::weak_ptr<vk::WaterObject>> waterObjs;
     for (auto& it : this->scene->waterObjects) {
         waterObjs.push_back(it.second);
     }
@@ -540,6 +554,9 @@ std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> SceneManag
 	} else if (sceneClass == TESSELLATION_OBJECT) {
 		std::weak_ptr<vk::GameObject> tessellationObject = this->scene->tessellationObjects.at(id);
 		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, tessellationObject));
+	} else if (sceneClass == WATER) {
+		std::weak_ptr<vk::GameObject> water = this->scene->waterObjects.at(id);
+		return std::make_unique<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>>(make_pair(sceneClass, water));
 	} else {
 		return nullptr;
 	}

@@ -4,37 +4,37 @@
 
 namespace physics {
 
-	struct SprinterSettings {
-		// m/s
-		float maxMovementSpeed = 7.0f;
-
-		// m/s^2
-		float accelerationToMaxSpeed = 1.0f;
-
-		// seconds to turn around 180 degrees 
-		float rotationTime = 3.0f;
-
-		// how much can the player not be directly in front of the enemy for it to still charge (in radians)
-		float movementAngle = 0.5f;
-
-		float maxFloorSeparationDistance = 0.05f;
-		float maxHealth = 100.0f;
-
-		std::shared_ptr<vk::Model> model;
-	};
-
-	struct SprinterCreationSettings {
-		JPH::RVec3 position = JPH::RVec3::sZero();
-
-		JPH::CharacterSettings characterSettings;
-		SprinterSettings sprinterSettings;
-
-		JPH::uint64 inUserData = 0;
-	};
-
 	class Sprinter : public Enemy {
 
 	public:
+
+		struct SprinterSettings {
+			// m/s
+			float maxMovementSpeed = 7.0f;
+
+			// m/s^2
+			float accelerationToMaxSpeed = 1.0f;
+
+			// seconds to turn around 180 degrees 
+			float rotationTime = 3.0f;
+
+			// how much can the player not be directly in front of the enemy for it to still charge (in radians)
+			float movementAngle = 0.5f;
+
+			float maxFloorSeparationDistance = 0.05f;
+			float maxHealth = 100.0f;
+
+			std::shared_ptr<vk::Model> model;
+		};
+
+		struct SprinterCreationSettings {
+			JPH::RVec3 position = JPH::RVec3::sZero();
+
+			JPH::CharacterSettings characterSettings;
+			SprinterSettings sprinterSettings;
+
+			JPH::uint64 inUserData = 0;
+		};
 		
 		Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system);
 		virtual ~Sprinter();

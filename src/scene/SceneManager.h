@@ -8,6 +8,7 @@
 #include "../simulation/objects/ManagedPhysicsEntity.h"
 #include "../simulation/objects/actors/Player.h"
 #include "../simulation/objects/actors/enemies/Enemy.h"
+#include "../rendering/structures/WaterObject.h"
 #include "../lighting/PointLight.h"
 #include "../lighting/Sun.h"
 #include "../ui/UIComponent.h"
@@ -38,7 +39,7 @@ struct Scene {
 	std::shared_ptr<lighting::Sun> sun;
 
 	// rendered and not in physics engine
-	std::unordered_map<vk::id_t, std::shared_ptr<vk::GameObject>> waterObjects = {};
+	std::unordered_map<vk::id_t, std::shared_ptr<vk::WaterObject>> waterObjects = {};
 
 	// not rendered and not in physics engine
 	std::unordered_map<vk::id_t, std::shared_ptr<lighting::PointLight>> lights = {};
@@ -89,7 +90,7 @@ class SceneManager {
 	// always replaces old sun!
 	vk::id_t setSun(std::unique_ptr<lighting::Sun> sun);
 
-	vk::id_t addWaterObject(std::unique_ptr<vk::GameObject> waterObject);
+	vk::id_t addWaterObject(std::unique_ptr<vk::WaterObject> waterObject);
 
 	// @return false if object could not be added because it already exists
 	vk::id_t addSpectralObject(std::unique_ptr<vk::GameObject> spectralObject);
@@ -141,7 +142,7 @@ class SceneManager {
 
 	std::shared_ptr<lighting::Sun> getSun();
 
-	std::vector<std::weak_ptr<vk::GameObject>> getWaterObjects();
+	std::vector<std::weak_ptr<vk::WaterObject>> getWaterObjects();
 
 	// returns the boolean and resets it to false
 	bool isBroadPhaseOptimizationNeeded();

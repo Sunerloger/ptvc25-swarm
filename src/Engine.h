@@ -13,6 +13,7 @@
 #include "rendering/render_systems/texture_render_system.h"
 #include "rendering/render_systems/ui_render_system.h"
 #include "rendering/render_systems/tessellation_render_system.h"
+#include "rendering/render_systems/water_render_system.h"
 
 #include "scene/SceneManager.h"
 #include "logical_systems/input/InputManager.h"

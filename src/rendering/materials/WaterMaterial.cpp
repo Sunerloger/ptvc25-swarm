@@ -1,5 +1,6 @@
 #include "WaterMaterial.h"
-#include "../../asset_utils/AssetManager.h"
+
+#include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
 
 #include "stb_image.h"
@@ -192,7 +193,7 @@ namespace vk {
 	void WaterMaterial::createTextureImage(const std::string& texturePath) {
 		// Load texture image
 		int width, height, channels;
-		std::string resolvedPath = AssetManager::getInstance().resolvePath(texturePath);
+		std::string resolvedPath = AssetLoader::getInstance().resolvePath(texturePath);
 		stbi_uc* imageData = stbi_load(resolvedPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
 		if (!imageData) {

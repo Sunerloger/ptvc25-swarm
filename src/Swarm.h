@@ -18,7 +18,10 @@
 
 #include "rendering/materials/CubemapMaterial.h"
 #include "rendering/materials/TessellationMaterial.h"
+#include "rendering/materials/WaterMaterial.h"
+
 #include "rendering/structures/Skybox.h"
+#include "rendering/structures/WaterObject.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>

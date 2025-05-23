@@ -28,19 +28,6 @@ void Swarm::init() {
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
 
-	// Parameters for the terrain
-	int samplesPerSide = 200;	// Resolution of the heightmap
-	float noiseScale = 30.0f;	// Controls the "frequency" of the noise
-	float heightScale = 10.0f;	// Controls the height of the terrain
-
-	// Generate terrain model with heightmap
-	auto result = vk::Model::createTerrainModel(
-		device,
-		samplesPerSide,
-		"textures:ground/dirt.png",	 // Tile texture path
-		noiseScale,
-		heightScale);
-
 	float playerHeight = 1.40f;
 	float playerRadius = 0.3f;
 	Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
@@ -65,6 +52,21 @@ void Swarm::init() {
 	playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
 
 	sceneManager.setPlayer(std::make_unique<physics::Player>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
+
+	sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f));
+
+	// Parameters for the terrain
+	int samplesPerSide = 200;	// Resolution of the heightmap
+	float noiseScale = 30.0f;	// Controls the "frequency" of the noise
+	float heightScale = 10.0f;	// Controls the height of the terrain
+
+	// Generate terrain model with heightmap
+	auto result = vk::Model::createTerrainModel(
+		device,
+		samplesPerSide,
+		"textures:ground/dirt.png",	 // Tile texture path
+		noiseScale,
+		heightScale);
 
 	// create terrain with procedural heightmap using perlin noise
 	// create terrain with the generated heightmap data
@@ -94,7 +96,7 @@ void Swarm::init() {
 	shared_ptr<Model> enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
 	for (int i = 0; i < 15; ++i) {
 		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
-		physics::SprinterSettings sprinterSettings = {};
+		physics::Sprinter::SprinterSettings sprinterSettings = {};
 		sprinterSettings.model = enemyModel;
 
 		JPH::CharacterSettings enemyCharacterSettings = {};
@@ -104,12 +106,21 @@ void Swarm::init() {
 		enemyCharacterSettings.mShape = enemyShape;
 		enemyCharacterSettings.mGravityFactor = 1.0f;
 
-		physics::SprinterCreationSettings sprinterCreationSettings = {};
+		physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
 		sprinterCreationSettings.sprinterSettings = sprinterSettings;
 		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
 		sprinterCreationSettings.position = RVec3(i + 10.0f, 15.0f, 10.0f);
 		sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
 	}
+
+	// Water
+	std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModel(device, 1000));
+
+	auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
+	waterModel->setMaterial(waterMaterial);
+
+	WaterObject::WaterCreationSettings waterCreationSettings = {};
+	sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
 
 	// UI
 	UIComponentCreationSettings hudSettings{};

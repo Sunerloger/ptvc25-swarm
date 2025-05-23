@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.22)
 
 project(Swarm)
 
+option(USE_STATIC_MSVC_RUNTIME_LIBRARY "Link Swarm and all FetchContent deps with the static CRT" OFF)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -159,7 +161,6 @@ add_library(inih STATIC
 
 set(JPH_BUILD_SHARED_LIBRARY ON CACHE BOOL "Build JoltPhysics as a DLL" FORCE)
 set(JPH_SHARED_LIBRARY ON CACHE BOOL "Use JoltPhysics as a shared library" FORCE)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE STRING "" FORCE)
 FetchContent_Declare(
     Jolt
     GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
