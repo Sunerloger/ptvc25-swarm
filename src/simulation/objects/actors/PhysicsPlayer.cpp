@@ -1,4 +1,4 @@
-#include "Player.h"
+#include "PhysicsPlayer.h"
 
 #include "../../../scene/SceneManager.h"
 #include "enemies/Enemy.h"
@@ -11,28 +11,28 @@
 
 namespace physics {
 
-	Player::Player(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) :
+	PhysicsPlayer::PhysicsPlayer(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) :
 	settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
 		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, playerCreationSettings.position, playerCreationSettings.rotation, playerCreationSettings.inUserData, &this->physics_system));
 	}
 
-	Player::~Player() {
+	PhysicsPlayer::~PhysicsPlayer() {
 		removePhysicsBody();
 	}
 
-	void Player::addPhysicsBody() {
+	void PhysicsPlayer::addPhysicsBody() {
 		character->AddToPhysicsSystem();
 	}
 
-	void Player::removePhysicsBody() {
+	void PhysicsPlayer::removePhysicsBody() {
 		character->RemoveFromPhysicsSystem();
 	}
 
-	void Player::setInputDirection(const glm::vec3 dir) {
+	void PhysicsPlayer::setInputDirection(const glm::vec3 dir) {
 		this->currentMovementDirection = dir;
 	}
 
-	void Player::handleMovement(float deltaTime) {
+	void PhysicsPlayer::handleMovement(float deltaTime) {
 		// deltaTime can be used for e.g. setting a fixed time it should take for the character to reach max velocity
 
 		if (currentMovementDirection == glm::vec3{ 0,0,0 }) { return; }
@@ -70,7 +70,7 @@ namespace physics {
 		// TODO test different speeds for different directions, double jump, different movement speed in air
 	}
 
-	void Player::handleJump() {
+	void PhysicsPlayer::handleJump() {
 		if (settings.controlMovementDuringJump || character->IsSupported()) {
 
 			JPH::Vec3 new_velocity = character->GetLinearVelocity();
@@ -86,7 +86,7 @@ namespace physics {
 		}
 	}
 
-	void Player::handleShoot() {
+	void PhysicsPlayer::handleShoot() {
 		SceneManager& sceneManager = SceneManager::getInstance();
 
 		JPH::RVec3 origin = GLMToRVec3(camera.getPosition());
@@ -112,10 +112,9 @@ namespace physics {
 
 			vk::id_t hitObjectID = sceneManager.getIdFromBodyID(hitBodyID);
 			auto sceneObject = sceneManager.getObject(hitObjectID);
-			if (sceneObject->first == SceneClass::ENEMY) {
+			if (sceneObject.first == SceneClass::ENEMY) {
 				std::cout << "Hit enemy with ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
-				auto gameObject = sceneObject->second.lock();
-				auto enemy = static_cast<Enemy*>(gameObject.get());
+				auto enemy = static_cast<Enemy*>(sceneObject.second);
 				if (enemy) {
 					bool isDead = enemy->takeDamage(settings.shootDamage, camera.getFront(), settings.knockbackSpeed);
 					std::cout << "Enemy took damage. New health: " << enemy->getCurrentHealth() << "/" << enemy->getMaxHealth() << std::endl;
@@ -143,60 +142,71 @@ namespace physics {
 		}
 	}
 
-	void Player::handleRotation(float deltaYaw, float deltaPitch) {
+	void PhysicsPlayer::handleRotation(float deltaYaw, float deltaPitch) {
 		camera.addRotation(deltaYaw, deltaPitch);
 	}
 
-	float Player::getMaxHealth() const {
+	float PhysicsPlayer::getMaxHealth() const {
 		return settings.maxHealth;
 	}
 	
-	float Player::getCurrentHealth() const {
+	float PhysicsPlayer::getCurrentHealth() const {
 		return currentHealth;
 	}
 	
 	// @returns true if dead
-	void Player::takeDamage(float damage) {
+	void PhysicsPlayer::takeDamage(float damage) {
 		currentHealth -= damage;
 		
 		if (currentHealth <= 0) settings.deathCallback();
 	}
 	
-	bool Player::isDead() const {
+	bool PhysicsPlayer::isDead() const {
 		return currentHealth <= 0;
 	}
 
-	void Player::postSimulation() {
+	void PhysicsPlayer::postSimulation() {
 		character->PostSimulation(settings.maxFloorSeparationDistance);
 
 		camera.setPhysicsPosition(character->GetPosition());
 	}
 
-	const glm::vec3 Player::getCameraPosition() const {
+	const glm::vec3 PhysicsPlayer::getCameraPosition() const {
 		return camera.getPosition();
 	}
 
-	void Player::printInfo(int iterationStep) const {
+	void PhysicsPlayer::printInfo(int iterationStep) const {
 		// Output current position and velocity of the player
 
 		JPH::RVec3 position = character->GetPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << settings.maxHealth << std::endl;
+		std::cout << "PhysicsPlayer [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << settings.maxHealth << std::endl;
 	}
 
-	JPH::BodyID Player::getBodyID() {
+	JPH::BodyID PhysicsPlayer::getBodyID() const {
 		return this->character->GetBodyID();
 	}
 
-	glm::mat4 Player::computeModelMatrix() const {
+	glm::mat4 PhysicsPlayer::computeModelMatrix() const {
 		return glm::mat4(1.0);
 	}
 
-	glm::mat4 Player::computeNormalMatrix() const {
+	glm::mat4 PhysicsPlayer::computeNormalMatrix() const {
 		return glm::mat4(1.0);
 	}
 
-	glm::vec3 Player::getPosition() const {
+	glm::vec3 PhysicsPlayer::getPosition() const {
 		return RVec3ToGLM(this->character->GetPosition());
+	}
+
+	PhysicsPlayer::PlayerCreationSettings PhysicsPlayer::getCreationSettings() const {
+		
+		PlayerCreationSettings creationSettings;
+		creationSettings.position = character->GetPosition();
+		creationSettings.playerSettings = settings;
+		creationSettings.cameraSettings = camera.getSettings();
+		creationSettings.characterSettings = characterSettings;
+		
+		return creationSettings;
 	}
 }

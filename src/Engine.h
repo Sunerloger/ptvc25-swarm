@@ -18,9 +18,11 @@
 #include "scene/SceneManager.h"
 #include "logical_systems/input/InputManager.h"
 
+#include "camera/CameraUtils.h"
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 namespace vk {

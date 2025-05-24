@@ -196,7 +196,7 @@ namespace physics {
 		return RVec3ToGLM(this->character->GetPosition());
 	}
 
-	JPH::BodyID Sprinter::getBodyID() {
+	JPH::BodyID Sprinter::getBodyID() const {
 		return this->character->GetBodyID();
 	}
 

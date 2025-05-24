@@ -13,14 +13,119 @@ void Swarm::bindInput() {
 	SceneManager& sceneManager = SceneManager::getInstance();
 
 	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
-	swarmInput.onMove = [this, &sceneManager](const glm::vec3& dir) { sceneManager.getPlayer()->setInputDirection(dir); };
+	
+	swarmInput.setup(debugMode);
+	swarmInput.onMove = [this, &sceneManager](const glm::vec3& dir) {
+		Player* player = sceneManager.getPlayer();
+		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
+			static_cast<physics::PhysicsPlayer*>(player)->setInputDirection(dir);
+		}
+	};
 	swarmInput.onLook = [this, &sceneManager](float dx, float dy) {sceneManager.getPlayer()->handleRotation(-dx, -dy);};
-	swarmInput.onJump = [this, &sceneManager]() { sceneManager.getPlayer()->handleJump(); };
-	swarmInput.onShoot = [this, &sceneManager]() { sceneManager.getPlayer()->handleShoot(); };
+	swarmInput.onJump = [this, &sceneManager]() {
+		Player* player = sceneManager.getPlayer();
+		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
+			static_cast<physics::PhysicsPlayer*>(player)->handleJump();
+		}
+	};
+	swarmInput.onShoot = [this, &sceneManager]() {
+		Player* player = sceneManager.getPlayer();
+		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
+			static_cast<physics::PhysicsPlayer*>(player)->handleShoot();
+		}
+	};
 
 	swarmInput.onMoveUI = [this, &sceneManager](float dt, const glm::vec3 dir) { sceneManager.updateUIPosition(dt, dir); };
 	swarmInput.onRotateUI = [this, &sceneManager](float dt, const glm::vec3 rotDir) { sceneManager.updateUIRotation(dt, rotDir); };
 	swarmInput.onScaleUI = [this, &sceneManager](float dt, float scaleDir) { sceneManager.updateUIScale(dt, scaleDir); };
+
+	swarmInput.onMoveDebug = [this, &sceneManager](float dt, const glm::vec3& dir) {
+		Player* player = sceneManager.getPlayer();
+		if (player) {
+			static_cast<DebugPlayer*>(player)->updatePosition(dt, dir);
+		}
+	};
+	swarmInput.onLookDebug = [this, &sceneManager](float dx, float dy) {
+		Player* player = sceneManager.getPlayer();
+		if (player) {
+			player->handleRotation(-dx, -dy);
+		}
+	};
+	swarmInput.onChangeSpeedDebug = [this, &sceneManager](float scrollOffset) {
+		Player* player = sceneManager.getPlayer();
+		if (player) {
+			static_cast<DebugPlayer*>(player)->handleSpeedChange(scrollOffset);
+		}
+	};
+
+	if (debugMode) {
+		swarmInput.onToggleDebug = [this, &sceneManager]() { toggleDebug(); };
+	} else {
+		swarmInput.onToggleDebug = []() { /* Do nothing */ };
+	}
+}
+
+void Swarm::toggleDebug() {
+	printf("toggleDebug: %s -> %s\n",
+	       isDebugActive ? "Debug" : "Gameplay",
+	       isDebugActive ? "Gameplay" : "Debug");
+
+	SceneManager& sceneManager = SceneManager::getInstance();
+
+	if (isDebugActive) {
+		// switching back from debug mode to physics
+		Player* currentPlayer = sceneManager.getPlayer();
+		if (!currentPlayer) {
+			printf("Error: Current player is null!\n");
+			return;
+		}
+
+		glm::vec3 currentPos = currentPlayer->getPosition();
+		CharacterCameraSettings currentCameraSettings = currentPlayer->getCameraSettings();
+		
+		float currentYaw = currentCameraSettings.yaw;
+		float currentPitch = currentCameraSettings.pitch;
+		
+		originalPlayerSettings.position = JPH::RVec3(currentPos.x, currentPos.y, currentPos.z);
+
+		originalPlayerSettings.cameraSettings.position = currentPos;
+		originalPlayerSettings.cameraSettings.yaw = currentYaw;
+		originalPlayerSettings.cameraSettings.pitch = currentPitch;
+
+		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(originalPlayerSettings, physicsSimulation.getPhysicsSystem()));
+	}
+	else {
+		// switching from physics mode to debug mode
+		Player* playerRef = sceneManager.getPlayer();
+		if (!playerRef) {
+			printf("Error: Current player is null!\n");
+			return;
+		}
+		
+		CharacterCameraSettings cameraSettings = playerRef->getCameraSettings();
+		float currentYaw = cameraSettings.yaw;
+		float currentPitch = cameraSettings.pitch;
+		
+		if (playerRef->isPhysicsPlayer()) {
+			physics::PhysicsPlayer* physPlayer = static_cast<physics::PhysicsPlayer*>(playerRef);
+			auto settings = physPlayer->getCreationSettings();
+			originalPlayerSettings.position = settings.position;
+			originalPlayerSettings.playerSettings = settings.playerSettings;
+			originalPlayerSettings.cameraSettings = settings.cameraSettings;
+			originalPlayerSettings.characterSettings = settings.characterSettings;
+			originalPlayerSettings.inUserData = settings.inUserData;
+		}
+		
+		auto movementSpeed = playerRef->getMovementSpeed();
+		
+		auto debugPlayer = std::make_unique<DebugPlayer>(cameraSettings, movementSpeed);
+		
+		sceneManager.setPlayer(std::move(debugPlayer));
+		
+		printf("Switched to debug mode: yaw=%f, pitch=%f\n", currentYaw, currentPitch);
+	}
+
+	isDebugActive = !isDebugActive;
 }
 
 void Swarm::onPlayerDeath() {
@@ -45,7 +150,7 @@ void Swarm::init() {
 	CharacterCameraSettings cameraSettings = {};
 	cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
 
-	physics::PlayerSettings playerSettings = {};
+	physics::PhysicsPlayer::PlayerSettings playerSettings = {};
 	playerSettings.movementSpeed = 7.0f;
 	playerSettings.deathCallback = [this] {onPlayerDeath();};
 
@@ -56,13 +161,13 @@ void Swarm::init() {
 	characterSettings.mLayer = physics::Layers::MOVING;
 	characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius);  // Accept contacts that touch the lower sphere of the capsule
 
-	physics::PlayerCreationSettings playerCreationSettings = {};
+	physics::PhysicsPlayer::PlayerCreationSettings playerCreationSettings = {};
 	playerCreationSettings.characterSettings = characterSettings;
 	playerCreationSettings.cameraSettings = cameraSettings;
 	playerCreationSettings.playerSettings = playerSettings;
 	playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
 
-	sceneManager.setPlayer(std::make_unique<physics::Player>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
+	sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
 	sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f));
 
@@ -178,16 +283,17 @@ void Swarm::init() {
 void Swarm::gameActiveUpdate(float deltaTime) {
 
 	SceneManager& sceneManager = SceneManager::getInstance();
-
+	 
 	// TODO refactor into timer class
 	elapsedTime += deltaTime;
 	int newSecond = static_cast<int>(elapsedTime);
 
 	if (newSecond > oldSecond) {
-		if (auto objPair = sceneManager.getObject(gameTimeTextID)) {
-			if (auto ui = objPair->second.lock()) {
+		auto objPair = sceneManager.getObject(gameTimeTextID);
+		if (objPair.first != SceneClass::INVALID) {
+			if (auto ui = objPair.second) {
 				// TODO this a bit too convoluted -> just store type in GameObject variable when creating a subclass (enum Type) and check it before static casting + remove the distinctions in sceneManager
-				if (auto text = static_cast<TextComponent*>(ui.get())) {
+				if (auto text = static_cast<TextComponent*>(ui)) {
 					text->setText(fmt::format("Time: {:02}:{:02}", newSecond / 60, newSecond % 60));
 				}
 			}
@@ -202,7 +308,12 @@ void Swarm::prePhysicsUpdate() {
 
 	SceneManager& sceneManager = SceneManager::getInstance();
 
-	sceneManager.getPlayer()->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+	if (!isDebugActive) {
+		Player* player = sceneManager.getPlayer();
+		if (player && player->isPhysicsPlayer()) {
+			static_cast<physics::PhysicsPlayer*>(player)->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+		}
+	}
 
 	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but in a separate event manager -> also updates timers stored in sceneManager every frame)
 	sceneManager.updateEnemyPhysics(physicsSimulation.cPhysicsDeltaTime);

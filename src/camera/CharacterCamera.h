@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CameraUtils.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <cmath>
@@ -7,14 +9,18 @@
 #include <Jolt/Jolt.h>
 
 struct CharacterCameraSettings {
-	float initialYaw = 0.0f;
-	float initialPitch = 0.0f;
+	float yaw = 0.0f;
+	float pitch = 0.0f;
 
 	// offset from the point touching the ground
 	glm::vec3 cameraOffsetFromCharacter = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	// rad/s but it gets scaled by mouse delta, so keep small
 	float cameraSpeed = 0.07f;
+
+	glm::vec3 position = glm::vec3(0);
+
+	glm::mat4 projMatrix = glm::mat4(1);
 };
 
 class CharacterCamera {
@@ -27,6 +33,7 @@ class CharacterCamera {
 	const glm::vec3 getPosition() const;
 
 	void setPhysicsPosition(JPH::Vec3 physicsPosition);
+	void setPosition(glm::vec3 newPosition);
 
 	void addRotation(float deltaYaw, float deltaPitch);
 
@@ -37,26 +44,17 @@ class CharacterCamera {
 	void setViewDirection(glm::vec3 direction);
 	void setViewTarget(glm::vec3 target);
 
+	CharacterCameraSettings getSettings() const;
+
 	// flips y axis
 	void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far);
-	static glm::mat4 getOrthographicProjection(float left, float right, float top, float bottom, float near, float far);
 
 	// flips y axis
 	void setPerspectiveProjection(float fov, float aspect, float near, float far);
-	static glm::mat4 getPerspectiveProjection(float fov, float aspect, float, float);
 
    private:
 	CharacterCameraSettings settings;
 
-	glm::vec3 position = glm::vec3(0);
-	glm::mat4 projMatrix = glm::mat4(1);
-
-	float yaw = 0.0f;
-	float pitch = 0.0f;
-
 	void setYaw(float yaw);
 	void setPitch(float pitch);
-
-	glm::mat4 getVulkanAxisInversionMatrix();
-	static glm::mat4 getStaticVulkanAxisInversionMatrix();
 };

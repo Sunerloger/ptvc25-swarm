@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Enemy.h"
+#include "../../../PhysicsConversions.h"
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Character/Character.h>
 
 namespace physics {
 
@@ -40,7 +44,7 @@ namespace physics {
 		Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system);
 		virtual ~Sprinter();
 
-		JPH::BodyID getBodyID() override;
+		JPH::BodyID getBodyID() const override;
 
 		void addPhysicsBody() override;
 		void removePhysicsBody() override;

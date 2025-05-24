@@ -57,12 +57,10 @@ namespace physics {
 		auto gameObj1 = sceneManager.getObject(id1);
 		auto gameObj2 = sceneManager.getObject(id2);
 
-		if (gameObj1 && gameObj2) {
-			if (gameObj1->first == SceneClass::PLAYER && gameObj2->first == SceneClass::ENEMY) {
-				handlePlayerEnemyCollision(gameObj1->second.lock(), gameObj2->second.lock(), impactSpeed, normal);
-			} else if (gameObj1->first == SceneClass::ENEMY && gameObj2->first == SceneClass::PLAYER) {
-				handlePlayerEnemyCollision(gameObj2->second.lock(), gameObj1->second.lock(), impactSpeed, -normal);
-			}
+		if (gameObj1.first == SceneClass::PLAYER && gameObj2.first == SceneClass::ENEMY) {
+			handlePlayerEnemyCollision(gameObj1.second, gameObj2.second, impactSpeed, normal);
+		} else if (gameObj1.first == SceneClass::ENEMY && gameObj2.first == SceneClass::PLAYER) {
+			handlePlayerEnemyCollision(gameObj2.second, gameObj1.second, impactSpeed, -normal);
 		}
 	}
 
@@ -90,9 +88,9 @@ namespace physics {
 		// Debug: std::cout << "A contact was removed [" << id1 << ", " << id2 << "]" << std::endl;
 	}
 
-	void MyContactListener::handlePlayerEnemyCollision(std::shared_ptr<vk::GameObject> player, std::shared_ptr<vk::GameObject> enemy, float impactSpeed, const JPH::Vec3& normal) {
-		std::shared_ptr<Player> playerObj = std::static_pointer_cast<physics::Player>(player);
-		std::shared_ptr<Enemy> enemyObj = std::static_pointer_cast<physics::Enemy>(enemy);
+	void MyContactListener::handlePlayerEnemyCollision(vk::GameObject* player, vk::GameObject* enemy, float impactSpeed, const JPH::Vec3& normal) {
+		Player* playerObj = static_cast<Player*>(player);
+		Enemy* enemyObj = static_cast<physics::Enemy*>(enemy);
 
 		// enemies can deal 1 hit and die to prevent constant pushing and locking movement of player
 		float health = enemyObj->getCurrentHealth();

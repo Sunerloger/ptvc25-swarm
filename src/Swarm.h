@@ -5,6 +5,8 @@
 #include "vk/vk_model.h"
 
 #include "simulation/objects/actors/Player.h"
+#include "simulation/objects/actors/PhysicsPlayer.h"
+#include "simulation/objects/actors/DebugPlayer.h"
 #include "simulation/objects/static/Terrain.h"
 #include "simulation/objects/actors/enemies/Sprinter.h"
 #include "simulation/PhysicsSimulation.h"
@@ -30,7 +32,7 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 using namespace vk;
@@ -63,6 +65,7 @@ public:
 private:
 
 	void bindInput() override;
+	void toggleDebug();
 
 	id_t gameTimeTextID;
 	float elapsedTime = 0;
@@ -75,4 +78,8 @@ private:
 	Device& device;
 
 	bool debugMode;
+
+	bool isDebugActive = false;
+	
+	physics::PhysicsPlayer::PlayerCreationSettings originalPlayerSettings;
 };
