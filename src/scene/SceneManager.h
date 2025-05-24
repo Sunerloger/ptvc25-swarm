@@ -14,6 +14,7 @@
 #include "../ui/UIComponent.h"
 
 enum SceneClass {
+	INVALID,
 	PLAYER,
 	SUN,
 	WATER,
@@ -33,7 +34,7 @@ enum SceneClass {
 
 // provides scene information to the renderer and the physics engine
 struct Scene {
-	std::shared_ptr<physics::Player> player;
+	std::unique_ptr<Player> player;
 
 	// not rendered and not in physics engine
 	std::shared_ptr<lighting::Sun> sun;
@@ -85,7 +86,7 @@ class SceneManager {
 	void updateUIScale(float deltaTime, int scaleDir);
 
 	// always replaces old player!
-	vk::id_t setPlayer(std::unique_ptr<physics::Player> player);
+	std::unique_ptr<Player> setPlayer(std::unique_ptr<Player> player);
 
 	// always replaces old sun!
 	vk::id_t setSun(std::unique_ptr<lighting::Sun> sun);
@@ -119,8 +120,11 @@ class SceneManager {
 	// delete objects in staleQueue
 	void removeStaleObjects();
 
-	// update step of all active enemies according to their behaviour
-	void updateEnemies(float cPhysicsDeltaTime);
+	// update step of all active enemies according to their behaviour in physics system
+	void updateEnemyPhysics(float cPhysicsDeltaTime);
+
+	// update step of all active enemies according to their behaviour in rendering system
+	void updateEnemyVisuals(float deltaTime);
 
 	// activates detached bodies (added to simulation again)
 	bool activatePhysicsObject(vk::id_t id);
@@ -136,9 +140,9 @@ class SceneManager {
 	std::vector<std::weak_ptr<vk::UIComponent>> getUIObjects();
 
 	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
-	std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> getObject(vk::id_t id);
+	std::pair<SceneClass, vk::GameObject*> getObject(vk::id_t id);
 
-	std::shared_ptr<physics::Player> getPlayer();
+	Player* getPlayer();
 
 	std::shared_ptr<lighting::Sun> getSun();
 

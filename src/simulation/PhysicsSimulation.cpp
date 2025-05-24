@@ -93,9 +93,12 @@ namespace physics {
         // objects are not removed in callbacks but before and after the physics step to prevent deadlocks
         sceneManager.removeStaleObjects();
 
-        shared_ptr<Player> player = sceneManager.getPlayer();
+        Player* player = sceneManager.getPlayer();
 
-        sceneManager.getPlayer()->postSimulation();
+        // DebugPlayer returns an invalid body ID
+        if (player && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
+            static_cast<physics::PhysicsPlayer*>(player)->postSimulation();
+        }
 
         if (debugPlayer) {
             player->printInfo(step);

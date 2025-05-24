@@ -5,6 +5,8 @@
 #include "vk/vk_model.h"
 
 #include "simulation/objects/actors/Player.h"
+#include "simulation/objects/actors/PhysicsPlayer.h"
+#include "simulation/objects/actors/DebugPlayer.h"
 #include "simulation/objects/static/Terrain.h"
 #include "simulation/objects/actors/enemies/Sprinter.h"
 #include "simulation/PhysicsSimulation.h"
@@ -30,7 +32,7 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 using namespace vk;
@@ -39,7 +41,7 @@ class Swarm : public GameBase {
 
 public:
 
-	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController);
+	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode = false);
 	~Swarm() override = default;
 
 	Swarm(const Swarm&) = delete;
@@ -58,9 +60,12 @@ public:
 
 	bool isPaused() const override { return inputController.isPaused(); }
 
+	void onPlayerDeath();
+
 private:
 
 	void bindInput() override;
+	void toggleDebug();
 
 	id_t gameTimeTextID;
 	float elapsedTime = 0;
@@ -71,4 +76,10 @@ private:
 
 	Window& window;
 	Device& device;
+
+	bool debugMode;
+
+	bool isDebugActive = false;
+	
+	physics::PhysicsPlayer::PlayerCreationSettings originalPlayerSettings;
 };

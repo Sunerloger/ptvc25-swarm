@@ -17,6 +17,7 @@
 
 #include "objects/ManagedPhysicsEntity.h"
 #include "objects/actors/Player.h"
+#include "objects/actors/PhysicsPlayer.h"
 
 #include "PhysicsUtils.h"
 #include "PhysicsConversions.h"

@@ -11,13 +11,15 @@ namespace input {
         glfwSetCursorPos(window.getGLFWWindow(), lastX, lastY);
     }
 
-    void SwarmInputController::setup() {
+    void SwarmInputController::setup(bool enableDebugMode) {
+        debugMode = enableDebugMode;
 
         setContext(ContextID::Gameplay);
 
         inputManager.registerKeyCallback(
             GLFW_KEY_ESCAPE,
             [this]() {
+                lastActiveContext = ContextID::Gameplay;
                 setContext(ContextID::MainMenu);
             },
             this,
@@ -27,11 +29,23 @@ namespace input {
         inputManager.registerKeyCallback(
             GLFW_KEY_ESCAPE,
             [this]() {
-                setContext(ContextID::Gameplay);
+                setContext(lastActiveContext);
             },
             this,
             ContextID::MainMenu
         );
+        
+        if (enableDebugMode) {
+            inputManager.registerKeyCallback(
+                GLFW_KEY_ESCAPE,
+                [this]() {
+                    lastActiveContext = ContextID::Debug;
+                    setContext(ContextID::MainMenu);
+                },
+                this,
+                ContextID::Debug
+            );
+        }
 
         // use guards in case input action is not defined
         inputManager.registerKeyCallback(GLFW_KEY_SPACE, [this]() { if (onJump)  onJump();  }, this, ContextID::Gameplay);
@@ -106,6 +120,63 @@ namespace input {
             ContextID::Gameplay
         );
 
+        if (enableDebugMode) {
+
+            inputManager.registerPollingAction(
+                [this](float dt) {
+                    // movement
+                    glm::vec3 dir{ 0.0f };
+                    if (this->inputManager.isKeyPressed(GLFW_KEY_W))            dir.z -= 1;
+                    if (this->inputManager.isKeyPressed(GLFW_KEY_S))            dir.z += 1;
+                    if (this->inputManager.isKeyPressed(GLFW_KEY_A))            dir.x -= 1;
+                    if (this->inputManager.isKeyPressed(GLFW_KEY_D))            dir.x += 1;
+                    if (this->inputManager.isKeyPressed(GLFW_KEY_SPACE))        dir.y += 1;
+                    if (this->inputManager.isKeyPressed(GLFW_KEY_LEFT_SHIFT))   dir.y -= 1;
+                    if (auto len = glm::length(dir); len > 0.0f) dir /= len;
+                    if (onMoveDebug) onMoveDebug(dt, dir);
+                },
+                this,
+                ContextID::Debug
+            );
+            inputManager.registerPollingAction(
+                [this](float dt) {
+                    // looking
+                    auto [x, y] = this->inputManager.getCursorPos();
+                    float dx = float(x - lastX), dy = float(y - lastY);
+                    lastX = x; lastY = y;
+                    if ((dx || dy) && onLookDebug) onLookDebug(dx, dy);
+                },
+                this,
+                ContextID::Debug
+            );
+            inputManager.registerScrollCallback(
+                [this](float xOffset, float yOffset) {
+                    if (yOffset) onChangeSpeedDebug(yOffset);
+                },
+                this,
+                ContextID::Debug
+            );
+        
+            inputManager.registerKeyCallback(
+                GLFW_KEY_F12,
+                [this]() {
+                    setContext(ContextID::Gameplay);
+                    onToggleDebug();
+                },
+                this,
+                ContextID::Debug
+            );
+            inputManager.registerKeyCallback(
+                GLFW_KEY_F12,
+                [this]() {
+                    setContext(ContextID::Debug);
+                    onToggleDebug();
+                },
+                this,
+                ContextID::Gameplay
+            );
+        }
+
         inputManager.registerKeyCallback(
             GLFW_KEY_F11,
             [this]() {
@@ -135,18 +206,28 @@ namespace input {
 
     void SwarmInputController::setContext(ContextID ctx) {
 
+        // failsafe
+        if (!debugMode && ctx == ContextID::Debug) {
+            printf("Debug mode is not enabled, cannot set context to Debug\n");
+            return;
+        }
+        
         inputManager.setActiveContext(ctx);
 
-        // lock mouse for gameplay, free otherwise
-        if (ctx == ContextID::Gameplay) {
+        // lock mouse for gameplay and debug, free otherwise
+        if (ctx == ContextID::Gameplay || ctx == ContextID::Debug) {
             glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             // reposition to center so mouse delta starts fresh
             lastX = window.getWidth() * 0.5;
             lastY = window.getHeight() * 0.5;
             glfwSetCursorPos(window.getGLFWWindow(), lastX, lastY);
+            
+            printf("Context set to %s, cursor disabled\n",
+                   ctx == ContextID::Gameplay ? "Gameplay" : "Debug");
         }
         else {
             glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            printf("Context set to %d, cursor normal\n", ctx);
         }
     }
 
@@ -155,6 +236,6 @@ namespace input {
     }
 
     bool SwarmInputController::isPaused() const {
-        return inputManager.getActiveContext() != ContextID::Gameplay;
+        return inputManager.getActiveContext() != ContextID::Gameplay && inputManager.getActiveContext() != ContextID::Debug;
     }
 }

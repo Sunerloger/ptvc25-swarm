@@ -20,7 +20,7 @@ namespace physics {
 		void OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override;
 		void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;
 
-		void handlePlayerEnemyCollision(std::shared_ptr<vk::GameObject> player, std::shared_ptr<vk::GameObject> enemy, float impactSpeed, const JPH::Vec3& normal);
+		void handlePlayerEnemyCollision(vk::GameObject* player, vk::GameObject* enemy, float impactSpeed, const JPH::Vec3& normal);
 	};
 
 

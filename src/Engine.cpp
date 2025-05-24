@@ -12,8 +12,8 @@ namespace vk {
 						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .build();
 
-		game.setupInput();
 		game.init();
+		game.setupInput();
 	}
 
 	Engine::~Engine() {}
@@ -121,7 +121,7 @@ namespace vk {
 				GlobalUbo ubo{};
 				ubo.projection = sceneManager.getPlayer()->getProjMat();
 				ubo.view = sceneManager.getPlayer()->calculateViewMat();
-				ubo.uiOrthographicProjection = CharacterCamera::getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
+				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
 				ubo.sunDirection = glm::vec4(sceneManager.getSun()->getDirection(), 1.0f);
 				ubo.sunColor = glm::vec4(sceneManager.getSun()->color, 1.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);

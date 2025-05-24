@@ -16,7 +16,7 @@ namespace physics {
 
 		void removePhysicsBody() override;
 
-		JPH::BodyID getBodyID() override { return this->bodyID; }
+		JPH::BodyID getBodyID() const override { return this->bodyID; }
 	
 	protected:
 
