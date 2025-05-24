@@ -10,20 +10,25 @@
 
 #include "../../PhysicsConversions.h"
 
+#include <functional>
+
 namespace physics {
 
 	struct PlayerSettings {
 
 		// update per second
-		float movementSpeed = 4.5f;
+		float movementSpeed = 7.0f;
 		float jumpHeight = 1.0f;
 		bool controlMovementDuringJump = true;
 		
 		float shootRange = 1000.0f;
 		float shootDamage = 40.0f;
 		float knockbackSpeed = 10.0f;
+		float maxHealth = 100.0f;
 
 		float maxFloorSeparationDistance = 0.05f;
+
+		std::function<void()> deathCallback;
 	};
 
 	struct PlayerCreationSettings {
@@ -45,9 +50,6 @@ namespace physics {
 
 	public:
 
-		float maxHealth = 100.0f;
-		float currentHealth = 100.0f;
-
 		PlayerSettings settings;
 
 		Player(PlayerCreationSettings playerSettings, JPH::PhysicsSystem& physics_system);
@@ -64,6 +66,12 @@ namespace physics {
 		void handleRotation(float deltaYaw, float deltaPitch);
 		void handleJump();
 		void handleShoot();
+
+		float getMaxHealth() const;
+		float getCurrentHealth() const;
+		// @returns true if dead
+		void takeDamage(float damage);
+		bool isDead() const;
 
 		const glm::vec3 getCameraPosition() const;
 		inline const glm::mat4 calculateViewMat() const { return camera.calculateViewMat(); }
@@ -97,5 +105,7 @@ namespace physics {
 		JPH::PhysicsSystem& physics_system;
 
 		glm::vec3 currentMovementDirection = glm::vec3{ 0 };
+
+		float currentHealth = 100.0f;
 	};
 }

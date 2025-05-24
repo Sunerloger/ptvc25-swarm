@@ -3,10 +3,11 @@
 #include "scene/SceneManager.h"
 
 #include <fmt/format.h>
+#include <random>
 
 
-Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController)
-	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device) {}
+Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
+	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {}
 
 void Swarm::bindInput() {
 	SceneManager& sceneManager = SceneManager::getInstance();
@@ -20,6 +21,15 @@ void Swarm::bindInput() {
 	swarmInput.onMoveUI = [this, &sceneManager](float dt, const glm::vec3 dir) { sceneManager.updateUIPosition(dt, dir); };
 	swarmInput.onRotateUI = [this, &sceneManager](float dt, const glm::vec3 rotDir) { sceneManager.updateUIRotation(dt, rotDir); };
 	swarmInput.onScaleUI = [this, &sceneManager](float dt, float scaleDir) { sceneManager.updateUIScale(dt, scaleDir); };
+}
+
+void Swarm::onPlayerDeath() {
+	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
+	swarmInput.setContext(input::SwarmInputController::ContextID::Death);
+
+	Font font;
+	TextComponent* deathText = new TextComponent(device, font, "You died.", "deathText", false);
+	SceneManager::getInstance().addUIObject(std::unique_ptr<UIComponent>(deathText));
 }
 
 void Swarm::init() {
@@ -36,7 +46,8 @@ void Swarm::init() {
 	cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
 
 	physics::PlayerSettings playerSettings = {};
-	playerSettings.movementSpeed = 10.0f;
+	playerSettings.movementSpeed = 7.0f;
+	playerSettings.deathCallback = [this] {onPlayerDeath();};
 
 	JPH::CharacterSettings characterSettings = {};
 	characterSettings.mGravityFactor = 1.0f;
@@ -56,9 +67,9 @@ void Swarm::init() {
 	sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f));
 
 	// Parameters for the terrain
-	int samplesPerSide = 200;	// Resolution of the heightmap
-	float noiseScale = 30.0f;	// Controls the "frequency" of the noise
-	float heightScale = 10.0f;	// Controls the height of the terrain
+	int samplesPerSide = 100;	// Resolution of the heightmap
+	float noiseScale = 5.0f;	// Controls the "frequency" of the noise
+	float heightScale = 15.0f;	// Controls the height of the terrain
 
 	// Generate terrain model with heightmap
 	auto result = vk::Model::createTerrainModel(
@@ -75,7 +86,7 @@ void Swarm::init() {
 		glm::vec3{ 0.569, 0.29, 0 },
 		std::move(result.first),
 		glm::vec3{ 0.0, -2.0, 0.0 },				 // position slightly below origin to prevent falling through
-		glm::vec3{ 500.0f, heightScale, 500.0f },
+		glm::vec3{ 100.0f, heightScale, 100.0f },
 		std::move(result.second));
 	sceneManager.addTessellationObject(std::move(terrain));
 
@@ -94,7 +105,18 @@ void Swarm::init() {
 	float enemyRadius = 0.3f;
 	JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 	shared_ptr<Model> enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
-	for (int i = 0; i < 15; ++i) {
+	float enemySpawnMinRadius = 20.0f;
+	float enemySpawnMaxRadius = 70.0f;
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<float> angleDist(
+		0.0f, 2.0f * glm::pi<float>());
+	std::uniform_real_distribution<float> radiusSqDist(
+		enemySpawnMinRadius * enemySpawnMinRadius,
+		enemySpawnMaxRadius * enemySpawnMaxRadius); // squared to have density distribution uniformly in spawn ring
+	
+	for (int i = 0; i < 100; ++i) {
 		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
 		physics::Sprinter::SprinterSettings sprinterSettings = {};
 		sprinterSettings.model = enemyModel;
@@ -109,7 +131,13 @@ void Swarm::init() {
 		physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
 		sprinterCreationSettings.sprinterSettings = sprinterSettings;
 		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
-		sprinterCreationSettings.position = RVec3(i + 10.0f, 15.0f, 10.0f);
+
+		float angle = angleDist(gen);
+		float radius = std::sqrt(radiusSqDist(gen));
+		auto playerPos = sceneManager.getPlayer()->getPosition();
+		
+		sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, heightScale, playerPos.z + std::sin(angle) * radius);
+
 		sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
 	}
 
@@ -166,6 +194,8 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 		}
 		oldSecond = newSecond;
 	}
+
+	sceneManager.updateEnemyVisuals(deltaTime);
 }
 
 void Swarm::prePhysicsUpdate() {
@@ -175,7 +205,7 @@ void Swarm::prePhysicsUpdate() {
 	sceneManager.getPlayer()->handleMovement(physicsSimulation.cPhysicsDeltaTime);
 
 	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but in a separate event manager -> also updates timers stored in sceneManager every frame)
-	sceneManager.updateEnemies(physicsSimulation.cPhysicsDeltaTime);
+	sceneManager.updateEnemyPhysics(physicsSimulation.cPhysicsDeltaTime);
 }
 
 void Swarm::postPhysicsUpdate() {}

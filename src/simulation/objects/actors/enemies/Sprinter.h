@@ -10,19 +10,20 @@ namespace physics {
 
 		struct SprinterSettings {
 			// m/s
-			float maxMovementSpeed = 7.0f;
+			float maxMovementSpeed = 15.0f;
 
 			// m/s^2
 			float accelerationToMaxSpeed = 1.0f;
 
-			// seconds to turn around 180 degrees 
-			float rotationTime = 3.0f;
+			// rad/s 
+			float turnSpeed = 0.5f;
 
 			// how much can the player not be directly in front of the enemy for it to still charge (in radians)
-			float movementAngle = 0.5f;
+			float movementAngle = 0.15f;
 
 			float maxFloorSeparationDistance = 0.05f;
 			float maxHealth = 100.0f;
+			float baseDamage = 10.0f;
 
 			std::shared_ptr<vk::Model> model;
 		};
@@ -54,14 +55,19 @@ namespace physics {
 		float getMaxHealth() const override;
 		float getCurrentHealth() const override;
 
+		float getBaseDamage() const override;
+
 		// @return true if enemy gets destroyed
 		bool takeDamage(float healthToSubtract, glm::vec3 direction = glm::vec3(0.0f), float knockbackStrength = 0.0f) override;
 
-		void update(float cPhysicsDeltaTime) override;
+		void updatePhysics(float cPhysicsDeltaTime) override;
+		void updateVisuals(float deltaTime) override;
 
 		void printInfo(int iterationStep) const override;
 
 	private:
+
+		glm::vec3 forward;
 
 		float currentHealth;
 

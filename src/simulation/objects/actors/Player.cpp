@@ -147,6 +147,25 @@ namespace physics {
 		camera.addRotation(deltaYaw, deltaPitch);
 	}
 
+	float Player::getMaxHealth() const {
+		return settings.maxHealth;
+	}
+	
+	float Player::getCurrentHealth() const {
+		return currentHealth;
+	}
+	
+	// @returns true if dead
+	void Player::takeDamage(float damage) {
+		currentHealth -= damage;
+		
+		if (currentHealth <= 0) settings.deathCallback();
+	}
+	
+	bool Player::isDead() const {
+		return currentHealth <= 0;
+	}
+
 	void Player::postSimulation() {
 		character->PostSimulation(settings.maxFloorSeparationDistance);
 
@@ -162,7 +181,7 @@ namespace physics {
 
 		JPH::RVec3 position = character->GetPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << maxHealth << std::endl;
+		std::cout << "Player [" << id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << settings.maxHealth << std::endl;
 	}
 
 	JPH::BodyID Player::getBodyID() {

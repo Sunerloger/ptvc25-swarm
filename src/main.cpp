@@ -31,6 +31,7 @@ int main(int argc, char **argv) {
 		// TODO read via ini file
 		int initialWindowWidth = 800;
 		int initialWindowHeight = 800;
+		bool debugMode = true;
 
 		vk::Window window{ initialWindowWidth, initialWindowHeight, Swarm::Name };
 		vk::Device device{ window };
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
 		input::InputManager inputManager{window.getGLFWWindow()};
 		input::SwarmInputController inputController{window, inputManager};
 
-		Swarm game{ physicsSimulation, assetManager, window, device, inputController };
+		Swarm game{ physicsSimulation, assetManager, window, device, inputController, debugMode };
 
 		vk::Engine engine{game, physicsSimulation, window, device, inputManager};
 

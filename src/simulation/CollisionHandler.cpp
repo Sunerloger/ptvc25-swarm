@@ -94,15 +94,16 @@ namespace physics {
 		std::shared_ptr<Player> playerObj = std::static_pointer_cast<physics::Player>(player);
 		std::shared_ptr<Enemy> enemyObj = std::static_pointer_cast<physics::Enemy>(enemy);
 
-		// the following lines are only for testing purposes
+		// enemies can deal 1 hit and die to prevent constant pushing and locking movement of player
 		float health = enemyObj->getCurrentHealth();
 		bool isDead = enemyObj->takeDamage(health);
 
-		if (isDead) {
-			// Debug: std::cout << "Enemy [" << enemy->getId() << "] died" << std::endl;
-		}
+		playerObj->takeDamage(enemyObj->getBaseDamage());
 
-		// TODO deal damage to player, maybe enable head jumps (normal points from player to enemy, so if it is approximately down), maybe use impact speed
+		std::cout << "Player took damage: -" << enemyObj->getBaseDamage() << " HP" << std::endl;
+		std::cout << "Remaining health: " << playerObj->getCurrentHealth() << " HP" << std::endl;
+
+		// TODO maybe enable head jumps (normal points from player to enemy, so if it is approximately down), maybe use impact speed
 		// TODO maybe store time of last damage with player and add a invulnerability period after hit
 	}
 

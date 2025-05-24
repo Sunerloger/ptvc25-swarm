@@ -17,10 +17,13 @@ namespace physics {
 		virtual float getMaxHealth() const = 0;
 		virtual float getCurrentHealth() const = 0;
 
+		virtual float getBaseDamage() const = 0;
+
 		// @return true if enemy gets destroyed
 		virtual bool takeDamage(float healthToSubtract, glm::vec3 direction = glm::vec3(0.0f), float knockbackStrength = 0.0f) = 0;
 
-		virtual void update(float cPhysicsDeltaTime) = 0;
+		virtual void updatePhysics(float cPhysicsDeltaTime) = 0;
+		virtual void updateVisuals(float deltaTime) = 0;
 
 		virtual void printInfo(int iterationStep) const = 0;
 	};

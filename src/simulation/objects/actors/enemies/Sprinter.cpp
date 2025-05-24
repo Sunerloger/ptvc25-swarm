@@ -9,7 +9,7 @@ namespace physics {
 	Sprinter::Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system) : 
 		sprinterSettings(sprinterCreationSettings.sprinterSettings), characterSettings(sprinterCreationSettings.characterSettings), physics_system(physics_system) {
 		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, sprinterCreationSettings.position, JPH::Quat::sIdentity(), sprinterCreationSettings.inUserData, &this->physics_system));
-
+		this->forward = RVec3ToGLM(getDirectionToCharacter());
 		this->currentHealth = sprinterSettings.maxHealth;
 	}
 
@@ -18,12 +18,12 @@ namespace physics {
 	}
 
 	// doesn't move if the enemy doesn't approximately face the player
-	void Sprinter::update(float cPhysicsDeltaTime) {
+	void Sprinter::updatePhysics(float cPhysicsDeltaTime) {
 
 		// TODO deltaTime is handled by the physics system ?
 
 		float targetAngle = calculateTargetAngle();
-		float currentHorizontalAngle = this->character->GetRotation().GetRotationAngle({0,1,0});
+		float currentHorizontalAngle = std::atan2(forward.z, forward.x);
 
 		// std::cout << "Enemy [" << this->id << "] currentAngle=" << currentHorizontalAngle
 		//	 	<< " targetAngle=" << targetAngle
@@ -31,24 +31,16 @@ namespace physics {
 		//	 	<< " movementAngle=" << this->sprinterSettings->movementAngle
 		//		<< std::endl;
 
-		// Normalize angles to [0, 2*pi]
-		while (targetAngle > 2 * glm::pi<float>()) targetAngle -= 2 * glm::pi<float>();
-		while (targetAngle < 0) targetAngle += 2 * glm::pi<float>();
-		while (currentHorizontalAngle > 2 * glm::pi<float>()) currentHorizontalAngle -= 2 * glm::pi<float>();
-		while (currentHorizontalAngle < 0) currentHorizontalAngle += 2 * glm::pi<float>();
-
-		float angleDiff = targetAngle - currentHorizontalAngle;
-
-		// Find shortest angleDiff [-pi,pi]
-		while (angleDiff > glm::pi<float>()) angleDiff -= 2.0f * glm::pi<float>();
-		while (angleDiff < -glm::pi<float>()) angleDiff += 2.0f * glm::pi<float>();
+		float diff = targetAngle - currentHorizontalAngle;
+		while (diff > glm::pi<float>()) diff -= 2.0f * glm::pi<float>();
+		while (diff < -glm::pi<float>()) diff += 2.0f * glm::pi<float>();
 
 		// std::cout << "  normalized angles: current=" << currentHorizontalAngle
 		// 		<< " target=" << targetAngle
 		// 		<< " diff=" << angleDiff
 		// 		<< std::endl;
 
-		bool isLockedOnPlayer = std::fabs(angleDiff) <= this->sprinterSettings.movementAngle;
+		bool isLockedOnPlayer = std::fabs(diff) <= this->sprinterSettings.movementAngle;
 
 		// std::cout << "  isLockedOnPlayer=" << (isLockedOnPlayer ? "true" : "false") << std::endl;
 
@@ -91,10 +83,14 @@ namespace physics {
 			
 			// Preserve current Y velocity (gravity)
 			desiredVelocity.SetY(currentVelocity.GetY());
+
+			JPH::Vec3 newVelocity = currentVelocity;
 			
-			// Blend current and desired velocity (with acceleration)
-			JPH::Vec3 newVelocity = currentVelocity + cPhysicsDeltaTime *
-				this->sprinterSettings.accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
+			if (ground_state != JPH::Character::EGroundState::InAir) {
+				// Blend current and desired velocity (with acceleration)
+				newVelocity += cPhysicsDeltaTime *
+					this->sprinterSettings.accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
+			}
 			
 			// Apply a small upward force when on ground to help with slopes
 			if (ground_state == JPH::Character::EGroundState::OnGround &&
@@ -104,39 +100,27 @@ namespace physics {
 			
 			this->character->SetLinearVelocity(newVelocity);
 		}
+	}
 
-		// rad/s
-		float rotationSpeed = glm::pi<float>() * sprinterSettings.rotationTime;
+	void Sprinter::updateVisuals(float deltaTime) {
 
-		float updatedAngle;
+		float targetAngle = calculateTargetAngle();
+		float currentHorizontalAngle = std::atan2(forward.z, forward.x);
 
-		// s = s0 + t * v
-		if (angleDiff >= 0) {
-			updatedAngle = currentHorizontalAngle + cPhysicsDeltaTime * rotationSpeed;
-			if (updatedAngle > targetAngle) { updatedAngle = targetAngle; }
-		}
-		else { // angleDiff < 0
-			updatedAngle = currentHorizontalAngle - cPhysicsDeltaTime * rotationSpeed;
-			if (updatedAngle < targetAngle) { updatedAngle = targetAngle; }
-		}
+		float diff = targetAngle - currentHorizontalAngle;
+		while (diff > glm::pi<float>()) diff -= 2.0f * glm::pi<float>();
+		while (diff < -glm::pi<float>()) diff += 2.0f * glm::pi<float>();
 
-		// Normalize to [-pi, pi]
-		while (updatedAngle > glm::pi<float>()) updatedAngle -= 2.0f * glm::pi<float>();
-		while (updatedAngle < -glm::pi<float>()) updatedAngle += 2.0f * glm::pi<float>();
+		float maxStep = sprinterSettings.turnSpeed * deltaTime;
+		float step = std::clamp(diff, -maxStep, maxStep);
+		float newAng = currentHorizontalAngle + step;
 
-		// std::cout << "  updatedAngle=" << updatedAngle << std::endl;
-
-		JPH::Quat quatRotation = JPH::Quat::sRotation(JPH::Vec3(0,1,0), updatedAngle);
-		
-		this->character->SetRotation(quatRotation);
+		forward = glm::vec3(std::cos(newAng), 0.0f, std::sin(newAng));
 	}
 
 	float Sprinter::calculateTargetAngle() {
-		SceneManager& sceneManager = SceneManager::getInstance();
-
-		glm::vec3 playerPosition = sceneManager.getPlayer()->getPosition();
-		glm::vec3 enemyPosition = this->getPosition();
-		return std::atan2(enemyPosition.z - playerPosition.z, playerPosition.x - enemyPosition.x);
+		glm::vec3 dir = RVec3ToGLM(getDirectionToCharacter());
+		return atan2(dir.z, dir.x);
 	}
 
 	JPH::Vec3 Sprinter::getDirectionToCharacter() {
@@ -175,7 +159,16 @@ namespace physics {
 	}
 
 	glm::mat4 Sprinter::computeModelMatrix() const {
-		return RMat44ToGLM(character->GetWorldTransform());
+		glm::vec3 pos = RVec3ToGLM(character->GetPosition());
+
+		glm::vec3 up(0.0f, 1.0f, 0.0f);
+		glm::quat orientation = glm::quatLookAt(forward, up);
+		glm::quat mappedOrientation = glm::rotate(orientation, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
+		glm::mat4 R = glm::toMat4(mappedOrientation);
+
+		return T * R;
 	}
 
 	glm::mat4 Sprinter::computeNormalMatrix() const {
@@ -222,6 +215,10 @@ namespace physics {
 
 	float Sprinter::getCurrentHealth() const {
 		return this->currentHealth;
+	}
+
+	float Sprinter::getBaseDamage() const {
+		return this->sprinterSettings.baseDamage;
 	}
 
 	std::shared_ptr<vk::Model> Sprinter::getModel() const {

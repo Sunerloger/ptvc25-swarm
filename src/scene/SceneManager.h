@@ -119,8 +119,11 @@ class SceneManager {
 	// delete objects in staleQueue
 	void removeStaleObjects();
 
-	// update step of all active enemies according to their behaviour
-	void updateEnemies(float cPhysicsDeltaTime);
+	// update step of all active enemies according to their behaviour in physics system
+	void updateEnemyPhysics(float cPhysicsDeltaTime);
+
+	// update step of all active enemies according to their behaviour in rendering system
+	void updateEnemyVisuals(float deltaTime);
 
 	// activates detached bodies (added to simulation again)
 	bool activatePhysicsObject(vk::id_t id);

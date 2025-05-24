@@ -39,7 +39,7 @@ class Swarm : public GameBase {
 
 public:
 
-	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController);
+	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode = false);
 	~Swarm() override = default;
 
 	Swarm(const Swarm&) = delete;
@@ -58,6 +58,8 @@ public:
 
 	bool isPaused() const override { return inputController.isPaused(); }
 
+	void onPlayerDeath();
+
 private:
 
 	void bindInput() override;
@@ -71,4 +73,6 @@ private:
 
 	Window& window;
 	Device& device;
+
+	bool debugMode;
 };

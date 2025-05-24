@@ -17,7 +17,8 @@ namespace input {
         enum ContextID {
             Global   = 0, // also reserved for global in input manager
             Gameplay = 1,
-            MainMenu = 2
+            MainMenu = 2,
+            Death = 3
         };
 
         SwarmInputController(vk::Window& w, InputManager& im);
@@ -35,6 +36,8 @@ namespace input {
         std::function<void(float dx, float dy)>                             onLook;
         std::function<void()>                                               onJump;
         std::function<void()>                                               onShoot;
+
+        std::function<void()>                                               onDebug;
 
         std::function<void(float deltaTime, const glm::vec3& dir)>          onMoveUI;
         std::function<void(float deltaTime, const glm::vec3& rotDir)>       onRotateUI;
