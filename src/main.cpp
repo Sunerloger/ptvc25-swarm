@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 		// TODO read via ini file
 		int initialWindowWidth = 800;
 		int initialWindowHeight = 800;
-		bool debugMode = false;
+		bool debugMode = true;
 
 		vk::Window window{ initialWindowWidth, initialWindowHeight, Swarm::Name };
 		vk::Device device{ window };
