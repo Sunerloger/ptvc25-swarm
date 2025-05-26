@@ -73,7 +73,6 @@ struct Scene {
 // manages active scenes
 class SceneManager {
    public:
-
 	static SceneManager& getInstance();
 
 	SceneManager(const SceneManager&) = delete;
@@ -159,8 +158,9 @@ class SceneManager {
 	// Get tessellation render objects
 	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 
-   private:
+	void clearUIObjects();
 
+   private:
 	SceneManager();
 	~SceneManager() = default;
 

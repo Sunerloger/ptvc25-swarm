@@ -129,18 +129,30 @@ void Swarm::toggleDebug() {
 void Swarm::onPlayerDeath() {
 	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
 	swarmInput.setContext(input::SwarmInputController::ContextID::Death);
+	SceneManager& sceneManager = SceneManager::getInstance();
 
+	// Clear existing UI objects
+	sceneManager.clearUIObjects();
+
+	// Create black background
+	UIComponentCreationSettings hudSettings{};
+	hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
+	hudSettings.name = "you_died_quad";
+	hudSettings.controllable = false;
+	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+	// Create "You died" text
 	Font font;
 	TextComponent* deathText = new TextComponent(
 		device,
 		font,
-		"You died.",
+		"You died",
 		"you_died_text",
-		/* controllable: */ true,
+		/* controllable: */ false,
 		/* centerHorizontal: */ true,
 		/* centerVertical:   */ true,
 		window.getGLFWWindow());
-	SceneManager::getInstance().addUIObject(std::unique_ptr<UIComponent>(deathText));
+	sceneManager.addUIObject(std::unique_ptr<UIComponent>(deathText));
 }
 
 void Swarm::init() {
@@ -148,160 +160,173 @@ void Swarm::init() {
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
 
-	float playerHeight = 1.40f;
-	float playerRadius = 0.3f;
-	Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
+	// Player
+	{
+		float playerHeight = 1.40f;
+		float playerRadius = 0.3f;
+		Ref<Shape> characterShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * playerHeight + playerRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * playerHeight, playerRadius)).Create().Get();
 
-	CharacterCameraSettings cameraSettings = {};
-	cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
+		CharacterCameraSettings cameraSettings = {};
+		cameraSettings.cameraOffsetFromCharacter = glm::vec3(0.0f, playerHeight + playerRadius, 0.0f);
 
-	physics::PhysicsPlayer::PlayerSettings playerSettings = {};
-	playerSettings.movementSpeed = 7.0f;
-	playerSettings.deathCallback = [this] { onPlayerDeath(); };
+		physics::PhysicsPlayer::PlayerSettings playerSettings = {};
+		playerSettings.movementSpeed = 7.0f;
+		playerSettings.deathCallback = [this] { onPlayerDeath(); };
 
-	JPH::CharacterSettings characterSettings = {};
-	characterSettings.mGravityFactor = 1.0f;
-	characterSettings.mFriction = 10.0f;
-	characterSettings.mShape = characterShape;
-	characterSettings.mLayer = physics::Layers::MOVING;
-	characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius);	 // Accept contacts that touch the lower sphere of the capsule
+		JPH::CharacterSettings characterSettings = {};
+		characterSettings.mGravityFactor = 1.0f;
+		characterSettings.mFriction = 10.0f;
+		characterSettings.mShape = characterShape;
+		characterSettings.mLayer = physics::Layers::MOVING;
+		characterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -playerRadius);	 // Accept contacts that touch the lower sphere of the capsule
 
-	physics::PhysicsPlayer::PlayerCreationSettings playerCreationSettings = {};
-	playerCreationSettings.characterSettings = characterSettings;
-	playerCreationSettings.cameraSettings = cameraSettings;
-	playerCreationSettings.playerSettings = playerSettings;
-	playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
+		physics::PhysicsPlayer::PlayerCreationSettings playerCreationSettings = {};
+		playerCreationSettings.characterSettings = characterSettings;
+		playerCreationSettings.cameraSettings = cameraSettings;
+		playerCreationSettings.playerSettings = playerSettings;
+		playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
 
-	sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
+		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
-	sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f));
+		sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f));
+	}
 
-	// Parameters for the terrain
-	int samplesPerSide = 100;	// Resolution of the heightmap
-	float noiseScale = 5.0f;	// Controls the "frequency" of the noise
-	float heightScale = 15.0f;	// Controls the height of the terrain
+	// Terrain
+	float maxTerrainHeight = 15.0f;	 // Controls the height of the terrain
+	{
+		int samplesPerSide = 100;  // Resolution of the heightmap
+		float noiseScale = 5.0f;   // Controls the "frequency" of the noise
 
-	// Generate terrain model with heightmap
-	auto result = vk::Model::createTerrainModel(
-		device,
-		samplesPerSide,
-		"textures:ground/dirt.png",	 // Tile texture path
-		noiseScale,
-		heightScale);
+		// Generate terrain model with heightmap
+		auto result = vk::Model::createTerrainModel(
+			device,
+			samplesPerSide,
+			"textures:ground/dirt.png",	 // Tile texture path
+			noiseScale,
+			maxTerrainHeight);
 
-	// create terrain with procedural heightmap using perlin noise
-	// create terrain with the generated heightmap data
-	auto terrain = std::make_unique<physics::Terrain>(
-		physicsSimulation.getPhysicsSystem(),
-		glm::vec3{0.569, 0.29, 0},
-		std::move(result.first),
-		glm::vec3{0.0, -2.0, 0.0},	// position slightly below origin to prevent falling through
-		glm::vec3{100.0f, heightScale, 100.0f},
-		std::move(result.second));
-	sceneManager.addTessellationObject(std::move(terrain));
-
+		// create terrain with procedural heightmap using perlin noise
+		// create terrain with the generated heightmap data
+		auto terrain = std::make_unique<physics::Terrain>(
+			physicsSimulation.getPhysicsSystem(),
+			glm::vec3{0.569, 0.29, 0},
+			std::move(result.first),
+			glm::vec3{0.0, -2.0, 0.0},	// position slightly below origin to prevent falling through
+			glm::vec3{100.0f, maxTerrainHeight, 100.0f},
+			std::move(result.second));
+		sceneManager.addTessellationObject(std::move(terrain));
+	}
 	// Skybox
-	std::array<std::string, 6> cubemapFaces = {
-		"textures:skybox/learnopengl/right.jpg",
-		"textures:skybox/learnopengl/left.jpg",
-		"textures:skybox/learnopengl/top.jpg",
-		"textures:skybox/learnopengl/bottom.jpg",
-		"textures:skybox/learnopengl/front.jpg",
-		"textures:skybox/learnopengl/back.jpg"};
-	sceneManager.addSpectralObject(std::make_unique<Skybox>(device, cubemapFaces));
+	{
+		std::array<std::string, 6> cubemapFaces = {
+			"textures:skybox/learnopengl/right.jpg",
+			"textures:skybox/learnopengl/left.jpg",
+			"textures:skybox/learnopengl/top.jpg",
+			"textures:skybox/learnopengl/bottom.jpg",
+			"textures:skybox/learnopengl/front.jpg",
+			"textures:skybox/learnopengl/back.jpg"};
+		sceneManager.addSpectralObject(std::make_unique<Skybox>(device, cubemapFaces));
+	}
 
 	// Enemies
-	float enemyHullHeight = 1.25f;
-	float enemyRadius = 0.3f;
-	JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
-	shared_ptr<Model> enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
-	float enemySpawnMinRadius = 20.0f;
-	float enemySpawnMaxRadius = 70.0f;
+	{
+		float enemyHullHeight = 1.25f;
+		float enemyRadius = 0.3f;
+		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
+		shared_ptr<Model> enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
+		float enemySpawnMinRadius = 20.0f;
+		float enemySpawnMaxRadius = 70.0f;
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> angleDist(
-		0.0f, 2.0f * glm::pi<float>());
-	std::uniform_real_distribution<float> radiusSqDist(
-		enemySpawnMinRadius * enemySpawnMinRadius,
-		enemySpawnMaxRadius * enemySpawnMaxRadius);	 // squared to have density distribution uniformly in spawn ring
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<float> angleDist(
+			0.0f, 2.0f * glm::pi<float>());
+		std::uniform_real_distribution<float> radiusSqDist(
+			enemySpawnMinRadius * enemySpawnMinRadius,
+			enemySpawnMaxRadius * enemySpawnMaxRadius);	 // squared to have density distribution uniformly in spawn ring
 
-	for (int i = 0; i < 100; ++i) {
-		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
-		physics::Sprinter::SprinterSettings sprinterSettings = {};
-		sprinterSettings.model = enemyModel;
+		for (int i = 0; i < 100; ++i) {
+			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
+			physics::Sprinter::SprinterSettings sprinterSettings = {};
+			sprinterSettings.model = enemyModel;
 
-		JPH::CharacterSettings enemyCharacterSettings = {};
-		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
-		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
-		enemyCharacterSettings.mFriction = 1.0f;
-		enemyCharacterSettings.mShape = enemyShape;
-		enemyCharacterSettings.mGravityFactor = 1.0f;
+			JPH::CharacterSettings enemyCharacterSettings = {};
+			enemyCharacterSettings.mLayer = physics::Layers::MOVING;
+			enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
+			enemyCharacterSettings.mFriction = 1.0f;
+			enemyCharacterSettings.mShape = enemyShape;
+			enemyCharacterSettings.mGravityFactor = 1.0f;
 
-		physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
-		sprinterCreationSettings.sprinterSettings = sprinterSettings;
-		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
+			physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
+			sprinterCreationSettings.sprinterSettings = sprinterSettings;
+			sprinterCreationSettings.characterSettings = enemyCharacterSettings;
 
-		float angle = angleDist(gen);
-		float radius = std::sqrt(radiusSqDist(gen));
-		auto playerPos = sceneManager.getPlayer()->getPosition();
+			float angle = angleDist(gen);
+			float radius = std::sqrt(radiusSqDist(gen));
+			auto playerPos = sceneManager.getPlayer()->getPosition();
 
-		sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, heightScale, playerPos.z + std::sin(angle) * radius);
+			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, maxTerrainHeight, playerPos.z + std::sin(angle) * radius);
 
-		sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
+			sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
+		}
 	}
 
 	// Water
-	std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModel(device, 1000));
+	{
+		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModel(device, 1000));
 
-	auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
-	waterModel->setMaterial(waterMaterial);
+		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
+		waterModel->setMaterial(waterMaterial);
 
-	WaterObject::WaterCreationSettings waterCreationSettings = {};
-	sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
+		WaterObject::WaterCreationSettings waterCreationSettings = {};
+		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
+	}
 
 	// UI
-	UIComponentCreationSettings hudSettings{};
-	hudSettings.model = Model::createModelFromFile(device, "models:gray_quad.glb", true);
-	hudSettings.name = "gray_quad";
-	hudSettings.controllable = false;
-	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+	{
+		UIComponentCreationSettings hudSettings{};
+		hudSettings.window = window.getGLFWWindow();
 
-	hudSettings.model = Model::createModelFromFile(device, "models:DamagedHelmet.glb", true);
-	hudSettings.name = "damaged_helmet";
-	hudSettings.controllable = false;
-	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
+		hudSettings.name = "clock_quad";
+		hudSettings.controllable = false;
+		hudSettings.anchorRight = false;
+		hudSettings.anchorBottom = false;
+		hudSettings.centerHorizontal = true;
+		hudSettings.centerVertical = false;
+		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
-	hudSettings.model = Model::createModelFromFile(device, "models:USPS.glb", true);
-	hudSettings.name = "usps";
-	hudSettings.controllable = false;
-	hudSettings.window = window.getGLFWWindow();
-	hudSettings.anchorRight = true;
-	hudSettings.anchorBottom = true;
-	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+		Font font;
+		TextComponent* gameTimeText = new TextComponent(
+			device,
+			font,
+			"Time: 00:00",
+			"clock",
+			/* controllable: */ false,
+			/* centerHorizontal: */ true,
+			/* centerVertical:   */ false,
+			window.getGLFWWindow());
+		gameTimeTextID = sceneManager.addUIObject(
+			std::unique_ptr<UIComponent>(gameTimeText));
 
-	hudSettings.model = Model::createModelFromFile(device, "models:red_crosshair.glb", true);
-	hudSettings.name = "red_crosshair";
-	hudSettings.controllable = false;
-	hudSettings.window = window.getGLFWWindow();
-	hudSettings.anchorRight = false;
-	hudSettings.anchorBottom = false;
-	hudSettings.centerHorizontal = true;
-	hudSettings.centerVertical = true;
-	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+		hudSettings.model = Model::createModelFromFile(device, "models:USPS.glb", true);
+		hudSettings.name = "usps";
+		hudSettings.controllable = false;
+		hudSettings.anchorRight = true;
+		hudSettings.anchorBottom = true;
+		hudSettings.centerHorizontal = false;
+		hudSettings.centerVertical = false;
+		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
-	Font font;
-	TextComponent* gameTimeText = new TextComponent(
-		device,
-		font,
-		"Time: 00:00",
-		"clock",
-		/* controllable: */ false,
-		/* centerHorizontal: */ true,
-		/* centerVertical:   */ false,
-		window.getGLFWWindow());
-	gameTimeTextID = sceneManager.addUIObject(
-		std::unique_ptr<UIComponent>(gameTimeText));
+		hudSettings.model = Model::createModelFromFile(device, "models:crosshair.glb", true);
+		hudSettings.name = "crosshair";
+		hudSettings.controllable = true;
+		hudSettings.anchorRight = false;
+		hudSettings.anchorBottom = false;
+		hudSettings.centerHorizontal = true;
+		hudSettings.centerVertical = true;
+		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+	}
 }
 
 void Swarm::gameActiveUpdate(float deltaTime) {
