@@ -159,7 +159,11 @@ void Swarm::onPlayerDeath() {
 		"you_died_text",
 		/* controllable: */ false,
 		/* centerHorizontal: */ true,
+		/* horizontalOffset: */ 0.0f,
 		/* centerVertical:   */ true,
+		/* verticalOffset: */ 0.0f,
+		/* anchorRight: */ false,
+		/* anchorBottom: */ false,
 		window.getGLFWWindow());
 	sceneManager.addUIObject(std::unique_ptr<UIComponent>(deathText));
 }
@@ -294,7 +298,23 @@ void Swarm::init() {
 	// UI
 	{
 		UIComponentCreationSettings hudSettings{};
+		Font font;
 		hudSettings.window = window.getGLFWWindow();
+
+		TextComponent* debug_text = new TextComponent(
+			device,
+			font,
+			"F12: Toggle \n Debug Mode",
+			"debug_text",
+			/* controllable: */ true,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ true,
+			/* verticalOffset: */ 100.0f,
+			/* anchorRight: */ true,
+			/* anchorBottom: */ false,
+			window.getGLFWWindow());
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text));
 
 		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
 		hudSettings.name = "clock_quad";
@@ -305,7 +325,6 @@ void Swarm::init() {
 		hudSettings.centerVertical = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
-		Font font;
 		TextComponent* gameTimeText = new TextComponent(
 			device,
 			font,
@@ -313,7 +332,11 @@ void Swarm::init() {
 			"clock",
 			/* controllable: */ false,
 			/* centerHorizontal: */ true,
+			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ false,
+			/* verticalOffset: */ 0.0f,
+			/* anchorRight: */ false,
+			/* anchorBottom: */ false,
 			window.getGLFWWindow());
 		gameTimeTextID = sceneManager.addUIObject(
 			std::unique_ptr<UIComponent>(gameTimeText));
@@ -329,7 +352,7 @@ void Swarm::init() {
 
 		hudSettings.model = Model::createModelFromFile(device, "models:crosshair.glb", true);
 		hudSettings.name = "crosshair";
-		hudSettings.controllable = true;
+		hudSettings.controllable = false;
 		hudSettings.anchorRight = false;
 		hudSettings.anchorBottom = false;
 		hudSettings.centerHorizontal = true;

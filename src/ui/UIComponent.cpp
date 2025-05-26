@@ -13,7 +13,8 @@ namespace vk {
 		  anchorRight(settings.anchorRight),
 		  anchorBottom(settings.anchorBottom),
 		  centerHorizontal(settings.centerHorizontal),
-		  centerVertical(settings.centerVertical) {
+		  centerVertical(settings.centerVertical),
+		  isDebugMenuComponent(settings.isDebugMenuComponent) {
 		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
 			int w, h;

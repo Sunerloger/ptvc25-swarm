@@ -26,6 +26,8 @@ namespace vk {
 		bool anchorBottom = false;
 		bool centerHorizontal = false;
 		bool centerVertical = false;
+
+		bool isDebugMenuComponent = false;
 	};
 
 	class UIComponent : public GameObject {
@@ -62,6 +64,8 @@ namespace vk {
 		void setModel(std::shared_ptr<Model> m) {
 			model = std::move(m);
 		}
+		bool anchorRight = false;
+		bool anchorBottom = false;
 
 	   private:
 		Transform loadData() const;
@@ -71,12 +75,12 @@ namespace vk {
 		std::string name;
 		bool controllable;
 		GLFWwindow* window = nullptr;
-		bool anchorRight = false;
 		float offsetFromRight = 0.0f;
-		bool anchorBottom = false;
 		float offsetFromBottom = 0.0f;
 		bool centerHorizontal = false;
 		bool centerVertical = false;
+
+		bool isDebugMenuComponent = false;
 	};
 
 }  // namespace vk

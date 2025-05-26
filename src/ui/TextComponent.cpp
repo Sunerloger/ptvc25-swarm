@@ -9,20 +9,26 @@ namespace vk {
 		const std::string &name,
 		bool controllable,
 		bool centerHorizontal,
+		float horizontalOffset,
 		bool centerVertical,
+		float verticalOffset,
+		bool anchorRight,
+		bool anchorBottom,
 		GLFWwindow *window)
 		: UIComponent(UIComponentCreationSettings{
 			  /*model*/ nullptr,
 			  /*name*/ name,
 			  /*controllable*/ controllable,
 			  /*window*/ window,
-			  /*anchorRight*/ false,
-			  /*anchorBottom*/ false,
+			  /*anchorRight*/ anchorRight,
+			  /*anchorBottom*/ anchorBottom,
 			  /*centerHorizontal*/ centerHorizontal,
 			  /*centerVertical*/ centerVertical}),
 		  device(device),
 		  font(font),
-		  textStr(initialText) {
+		  textStr(initialText),
+		  horizontalOffset(horizontalOffset),
+		  verticalOffset(verticalOffset) {
 		std::vector<unsigned char> white = {255, 255, 255, 255};
 		material = std::make_shared<UIMaterial>(device, white, 1, 1, 4);
 		rebuildMesh();
@@ -72,12 +78,15 @@ namespace vk {
 		if (auto wnd = getWindowPtr()) {
 			int w, h;
 			glfwGetFramebufferSize(wnd, &w, &h);
-
+			if (anchorRight)
+				pos.x = w - t.pos.x;
+			if (anchorBottom)
+				pos.y = t.pos.y - h;
 			if (getCenterHorizontal()) {
-				pos.x = w / 2.0f - (textSize.x * t.scale.x) * 0.5f;
+				pos.x = (w / 2.0f - (textSize.x * t.scale.x) * 0.5f) + horizontalOffset;
 			}
 			if (getCenterVertical()) {
-				pos.y = -h / 2.0f + (textSize.y * t.scale.y) * 0.5f;
+				pos.y = (-h / 2.0f + (textSize.y * t.scale.y) * 0.5f) + verticalOffset;
 			}
 		}
 

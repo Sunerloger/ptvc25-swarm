@@ -20,7 +20,11 @@ namespace vk {
 			const std::string &name,
 			bool controllable = false,
 			bool centerHorizontal = false,
+			float horizontalOffset = 0.0f,
 			bool centerVertical = false,
+			float verticalOffset = 0.0f,
+			bool anchorRight = false,
+			bool anchorBottom = false,
 			GLFWwindow *window = nullptr);
 
 		~TextComponent() override = default;
@@ -36,6 +40,8 @@ namespace vk {
 		std::string textStr;
 		std::shared_ptr<Material> material;
 		glm::vec2 textSize{0.0f, 0.0f};
+		float horizontalOffset = 0.0f;
+		float verticalOffset = 0.0f;
 	};
 
 }  // namespace vk
