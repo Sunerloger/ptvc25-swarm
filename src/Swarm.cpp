@@ -131,7 +131,14 @@ void Swarm::onPlayerDeath() {
 	swarmInput.setContext(input::SwarmInputController::ContextID::Death);
 
 	Font font;
-	TextComponent* deathText = new TextComponent(device, font, "You died.", "deathText", false);
+	TextComponent* deathText = new TextComponent(
+		device,
+		font,
+		"You died.",
+		"you_died_text",
+		/* controllable: */ false,
+		/* placeInMiddle: */ true,
+		window.getGLFWWindow());
 	SceneManager::getInstance().addUIObject(std::unique_ptr<UIComponent>(deathText));
 }
 
@@ -282,7 +289,7 @@ void Swarm::init() {
 	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	Font font;
-	TextComponent* gameTimeText = new TextComponent(device, font, "Time: 00:00", "clock", false);
+	TextComponent* gameTimeText = new TextComponent(device, font, "Time: 00:00", "clock", false, true);
 	gameTimeTextID = sceneManager.addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
 }
 

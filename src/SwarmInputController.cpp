@@ -101,7 +101,7 @@ namespace input {
 					onMoveUI(dt, dir);
 			},
 			this,
-			ContextID::Debug);
+			ContextID::Global);
 		inputManager.registerPollingAction(
 			[this](float dt) {
 				// UI rotation

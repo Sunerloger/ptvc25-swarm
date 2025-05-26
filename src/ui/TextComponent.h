@@ -7,15 +7,20 @@
 #include "../rendering/materials/UIMaterial.h"
 
 #include <memory>
+#include <string>
 
 namespace vk {
 
 	class TextComponent : public UIComponent {
 	   public:
-		TextComponent(Device &device, Font &font,
+		TextComponent(Device &device,
+			Font &font,
 			const std::string &initialText,
 			const std::string &name,
-			bool controllable = false);
+			bool controllable = false,
+			bool placeInMiddle = false,
+			GLFWwindow *window = nullptr);
+
 		~TextComponent() override = default;
 
 		void setText(const std::string &text);
