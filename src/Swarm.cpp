@@ -136,8 +136,9 @@ void Swarm::onPlayerDeath() {
 		font,
 		"You died.",
 		"you_died_text",
-		/* controllable: */ false,
-		/* placeInMiddle: */ true,
+		/* controllable: */ true,
+		/* centerHorizontal: */ true,
+		/* centerVertical:   */ true,
 		window.getGLFWWindow());
 	SceneManager::getInstance().addUIObject(std::unique_ptr<UIComponent>(deathText));
 }
@@ -281,16 +282,26 @@ void Swarm::init() {
 
 	hudSettings.model = Model::createModelFromFile(device, "models:red_crosshair.glb", true);
 	hudSettings.name = "red_crosshair";
-	hudSettings.controllable = true;
+	hudSettings.controllable = false;
 	hudSettings.window = window.getGLFWWindow();
 	hudSettings.anchorRight = false;
 	hudSettings.anchorBottom = false;
-	hudSettings.placeInMiddle = true;
+	hudSettings.centerHorizontal = true;
+	hudSettings.centerVertical = true;
 	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	Font font;
-	TextComponent* gameTimeText = new TextComponent(device, font, "Time: 00:00", "clock", false, true);
-	gameTimeTextID = sceneManager.addUIObject(std::unique_ptr<UIComponent>(gameTimeText));
+	TextComponent* gameTimeText = new TextComponent(
+		device,
+		font,
+		"Time: 00:00",
+		"clock",
+		/* controllable: */ false,
+		/* centerHorizontal: */ true,
+		/* centerVertical:   */ false,
+		window.getGLFWWindow());
+	gameTimeTextID = sceneManager.addUIObject(
+		std::unique_ptr<UIComponent>(gameTimeText));
 }
 
 void Swarm::gameActiveUpdate(float deltaTime) {

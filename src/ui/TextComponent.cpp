@@ -8,7 +8,8 @@ namespace vk {
 		const std::string &initialText,
 		const std::string &name,
 		bool controllable,
-		bool placeInMiddle,
+		bool centerHorizontal,
+		bool centerVertical,
 		GLFWwindow *window)
 		: UIComponent(UIComponentCreationSettings{
 			  /*model*/ nullptr,
@@ -17,11 +18,11 @@ namespace vk {
 			  /*window*/ window,
 			  /*anchorRight*/ false,
 			  /*anchorBottom*/ false,
-			  /*placeInMiddle*/ placeInMiddle}),
+			  /*centerHorizontal*/ centerHorizontal,
+			  /*centerVertical*/ centerVertical}),
 		  device(device),
 		  font(font),
 		  textStr(initialText) {
-		// white pixel atlas
 		std::vector<unsigned char> white = {255, 255, 255, 255};
 		material = std::make_shared<UIMaterial>(device, white, 1, 1, 4);
 		rebuildMesh();
@@ -71,8 +72,11 @@ namespace vk {
 		if (auto wnd = getWindowPtr()) {
 			int w, h;
 			glfwGetFramebufferSize(wnd, &w, &h);
-			if (getPlaceInMiddle()) {
+
+			if (getCenterHorizontal()) {
 				pos.x = w / 2.0f - (textSize.x * t.scale.x) * 0.5f;
+			}
+			if (getCenterVertical()) {
 				pos.y = -h / 2.0f + (textSize.y * t.scale.y) * 0.5f;
 			}
 		}

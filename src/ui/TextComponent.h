@@ -19,8 +19,10 @@ namespace vk {
 			const std::string &initialText,
 			const std::string &name,
 			bool controllable = false,
-			bool placeInMiddle = false,
+			bool centerHorizontal = false,
+			bool centerVertical = false,
 			GLFWwindow *window = nullptr);
+
 		~TextComponent() override = default;
 
 		void setText(const std::string &text);

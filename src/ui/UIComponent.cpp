@@ -12,7 +12,8 @@ namespace vk {
 		  window(settings.window),
 		  anchorRight(settings.anchorRight),
 		  anchorBottom(settings.anchorBottom),
-		  placeInMiddle(settings.placeInMiddle) {
+		  centerHorizontal(settings.centerHorizontal),
+		  centerVertical(settings.centerVertical) {
 		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
 			int w, h;
@@ -29,29 +30,30 @@ namespace vk {
 		INIReader reader(iniPath);
 
 		Transform t{};
-		t.pos = {0.0f, 0.0f, 0.0f};
-		t.rot = {0.0f, 0.0f, 0.0f, 0.0f};
-		t.scale = {1.0f, 1.0f, 1.0f};
+		t.pos = glm::vec3{0.0f};
+		t.rot = glm::quat{1.0f, 0.0f, 0.0f, 0.0f};
+		t.scale = glm::vec3{1.0f};
 
-		std::string section = "UIComponent_" + name;
-		if (reader.ParseError() < 0 || reader.Get(section, "pos", "") == "")
+		std::string sect = "UIComponent_" + name;
+		if (reader.ParseError() < 0 || reader.Get(sect, "pos", "").empty())
 			return t;
 
 		{
-			std::stringstream ss(reader.Get(section, "pos", ""));
+			std::stringstream ss(reader.Get(sect, "pos", ""));
 			char c;
 			ss >> t.pos.x >> c >> t.pos.y >> c >> t.pos.z;
 		}
 		{
-			std::stringstream ss(reader.Get(section, "rot", ""));
+			std::stringstream ss(reader.Get(sect, "rot", ""));
 			char c;
 			ss >> t.rot.x >> c >> t.rot.y >> c >> t.rot.z >> c >> t.rot.w;
 		}
 		{
-			std::stringstream ss(reader.Get(section, "scale", ""));
+			std::stringstream ss(reader.Get(sect, "scale", ""));
 			char c;
 			ss >> t.scale.x >> c >> t.scale.y >> c >> t.scale.z;
 		}
+
 		return t;
 	}
 
@@ -60,14 +62,14 @@ namespace vk {
 		std::vector<std::string> lines;
 		std::ifstream ifs(iniPath);
 		std::string header = "[UIComponent_" + name + "]";
-		std::string line;
 		bool skipping = false;
+		std::string line;
 		while (std::getline(ifs, line)) {
 			if (line == header) {
 				skipping = true;
 				continue;
 			}
-			if (skipping && !line.empty() && line[0] == '[')
+			if (skipping && !line.empty() && line.front() == '[')
 				skipping = false;
 			if (!skipping)
 				lines.push_back(line);
@@ -93,10 +95,10 @@ namespace vk {
 				pos.x = w - t.pos.x;
 			if (anchorBottom)
 				pos.y = t.pos.y - h;
-			if (placeInMiddle) {
+			if (centerHorizontal)
 				pos.x = w / 2.0f;
+			if (centerVertical)
 				pos.y = -h / 2.0f;
-			}
 		}
 
 		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
@@ -118,7 +120,7 @@ namespace vk {
 	}
 
 	void UIComponent::updatePosition(float dt, glm::vec3 dir) {
-		if (!controllable || dir == glm::vec3(0.0f))
+		if (!controllable || dir == glm::vec3{0.0f})
 			return;
 		Transform t = loadData();
 		t.pos += dir * (100.0f * dt);
@@ -126,7 +128,7 @@ namespace vk {
 	}
 
 	void UIComponent::updateRotation(float dt, glm::vec3 rotDir) {
-		if (!controllable || rotDir == glm::vec3(0.0f))
+		if (!controllable || rotDir == glm::vec3{0.0f})
 			return;
 		Transform t = loadData();
 		t.rot = glm::angleAxis(0.1f * dt, rotDir) * t.rot;

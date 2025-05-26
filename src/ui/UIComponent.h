@@ -24,7 +24,8 @@ namespace vk {
 		GLFWwindow* window = nullptr;
 		bool anchorRight = false;
 		bool anchorBottom = false;
-		bool placeInMiddle = false;
+		bool centerHorizontal = false;
+		bool centerVertical = false;
 	};
 
 	class UIComponent : public GameObject {
@@ -32,9 +33,9 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
-		void updatePosition(float deltaTime, glm::vec3 dir);
-		void updateRotation(float deltaTime, glm::vec3 rotDir);
-		void updateScale(float deltaTime, int scaleDir);
+		void updatePosition(float dt, glm::vec3 dir);
+		void updateRotation(float dt, glm::vec3 rotDir);
+		void updateScale(float dt, int scaleDir);
 
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
@@ -46,17 +47,18 @@ namespace vk {
 		}
 
 	   protected:
-		// expose placement data to subclasses
 		Transform getTransformData() const {
 			return loadData();
 		}
 		GLFWwindow* getWindowPtr() const {
 			return window;
 		}
-		bool getPlaceInMiddle() const {
-			return placeInMiddle;
+		bool getCenterHorizontal() const {
+			return centerHorizontal;
 		}
-		// allow subclasses to set the mesh
+		bool getCenterVertical() const {
+			return centerVertical;
+		}
 		void setModel(std::shared_ptr<Model> m) {
 			model = std::move(m);
 		}
@@ -73,7 +75,8 @@ namespace vk {
 		float offsetFromRight = 0.0f;
 		bool anchorBottom = false;
 		float offsetFromBottom = 0.0f;
-		bool placeInMiddle = false;
+		bool centerHorizontal = false;
+		bool centerVertical = false;
 	};
 
 }  // namespace vk
