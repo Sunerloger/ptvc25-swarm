@@ -360,20 +360,10 @@ namespace vk {
 					embeddedChannels);
 				std::cout << "Created material from embedded texture data" << std::endl;
 			} else {
-				// Create a default material with a solid color
-				// For now, we'll use a white texture as a fallback
-				material = std::make_shared<UIMaterial>(device, "textures:missing.png");
-				std::cout << "Using default texture: textures:missing.png" << std::endl;
-
-				// Set color from material if available
-				if (gltfMaterial.pbrMetallicRoughness.baseColorFactor.size() >= 3) {
-					// Note: In a more complete implementation, we would set the color
-					// as a uniform in the material
-					std::cout << "Material has color factor: "
-							  << gltfMaterial.pbrMetallicRoughness.baseColorFactor[0] << ", "
-							  << gltfMaterial.pbrMetallicRoughness.baseColorFactor[1] << ", "
-							  << gltfMaterial.pbrMetallicRoughness.baseColorFactor[2] << std::endl;
-				}
+				// No baseColorTexture → embed a 1×1 white pixel so we can still sample
+				std::vector<unsigned char> whitePixel = {255, 255, 255, 255};
+				material = std::make_shared<UIMaterial>(device, whitePixel, 1, 1, 4);
+				std::cout << "Using embedded white pixel for vertex-color fallback\n";
 			}
 		} else {
 			// Create a default material if no material is specified
