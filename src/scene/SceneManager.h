@@ -160,6 +160,10 @@ class SceneManager {
 
 	void clearUIObjects();
 
+	void toggleUIVisibility() {
+		isUIVisible = !isUIVisible;
+	}
+
    private:
 	SceneManager();
 	~SceneManager() = default;
@@ -174,4 +178,6 @@ class SceneManager {
 
 	// enables to recognize objects on collision
 	std::unordered_map<JPH::BodyID, vk::id_t> bodyIDToObjectId = {};
+
+	bool isUIVisible = true;
 };

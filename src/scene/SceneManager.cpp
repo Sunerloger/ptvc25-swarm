@@ -517,6 +517,9 @@ std::vector<std::weak_ptr<lighting::PointLight>> SceneManager::getLights() {
 }
 
 std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
+	if (!this->isUIVisible) {
+		return {};
+	}
 	std::vector<std::weak_ptr<vk::UIComponent>> uiObjects = {};
 
 	for (auto& it : this->scene->uiObjects) {

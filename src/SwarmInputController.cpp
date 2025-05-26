@@ -182,6 +182,14 @@ namespace input {
 				ContextID::Debug);
 
 			inputManager.registerKeyCallback(
+				GLFW_KEY_F1,
+				[this]() {
+					onToggleHudDebug();
+				},
+				this,
+				ContextID::Debug);
+
+			inputManager.registerKeyCallback(
 				GLFW_KEY_F12,
 				[this]() {
 					setContext(ContextID::Gameplay);

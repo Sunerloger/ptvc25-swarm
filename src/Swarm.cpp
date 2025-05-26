@@ -57,6 +57,10 @@ void Swarm::bindInput() {
 		}
 	};
 
+	swarmInput.onToggleHudDebug = [this, &sceneManager]() {
+		sceneManager.toggleUIVisibility();
+	};
+
 	if (debugMode) {
 		swarmInput.onToggleDebug = [this, &sceneManager]() { toggleDebug(); };
 	} else {
@@ -134,7 +138,7 @@ void Swarm::onPlayerDeath() {
 	// Clear existing UI objects
 	sceneManager.clearUIObjects();
 
-	// Create black background
+	// Create background
 	UIComponentCreationSettings hudSettings{};
 	hudSettings.window = window.getGLFWWindow();
 	hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
