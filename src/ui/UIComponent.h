@@ -34,6 +34,7 @@ namespace vk {
 		GLFWwindow* window = nullptr;
 		bool anchorRight = false;
 		bool anchorBottom = false;
+		bool placeInMiddle = false;
 	};
 
 	class UIComponent : public GameObject {
@@ -70,6 +71,7 @@ namespace vk {
 		float offsetFromRight = 0.0f;
 		bool anchorBottom = false;
 		float offsetFromBottom = 0.0f;
+		bool placeInMiddle = false;
 	};
 
 }  // namespace vk

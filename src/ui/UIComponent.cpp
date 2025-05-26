@@ -10,6 +10,7 @@ namespace vk {
 		window = settings.window;
 		anchorRight = settings.anchorRight;
 		anchorBottom = settings.anchorBottom;
+		placeInMiddle = settings.placeInMiddle;
 		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
 			int w, h;
@@ -99,6 +100,10 @@ namespace vk {
 			}
 			if (anchorBottom) {
 				pos.y = t.pos.y - h;
+			}
+			if (placeInMiddle) {
+				pos.x = w / 2.0f;
+				pos.y = -h / 2.0f;
 			}
 		}
 

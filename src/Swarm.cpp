@@ -276,8 +276,9 @@ void Swarm::init() {
 	hudSettings.name = "red_crosshair";
 	hudSettings.controllable = true;
 	hudSettings.window = window.getGLFWWindow();
-	hudSettings.anchorRight = true;
-	hudSettings.anchorBottom = true;
+	hudSettings.anchorRight = false;
+	hudSettings.anchorBottom = false;
+	hudSettings.placeInMiddle = true;
 	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	Font font;
