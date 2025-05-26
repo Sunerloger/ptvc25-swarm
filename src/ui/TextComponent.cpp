@@ -1,5 +1,5 @@
 #include "TextComponent.h"
-#include <GLFW/glfw3.h>
+#include <algorithm>
 
 namespace vk {
 
@@ -11,19 +11,19 @@ namespace vk {
 		bool placeInMiddle,
 		GLFWwindow *window)
 		: UIComponent(UIComponentCreationSettings{
-			  /* model: */ nullptr,
-			  /* name: */ name,
-			  /* controllable: */ controllable,
-			  /* window: */ window,
-			  /* anchorRight: */ false,
-			  /* anchorBottom: */ false,
-			  /* placeInMiddle: */ placeInMiddle}),
+			  /*model*/ nullptr,
+			  /*name*/ name,
+			  /*controllable*/ controllable,
+			  /*window*/ window,
+			  /*anchorRight*/ false,
+			  /*anchorBottom*/ false,
+			  /*placeInMiddle*/ placeInMiddle}),
 		  device(device),
 		  font(font),
 		  textStr(initialText) {
 		// white pixel atlas
-		std::vector<unsigned char> whitePixel = {255, 255, 255, 255};
-		material = std::make_shared<UIMaterial>(device, whitePixel, 1, 1, 4);
+		std::vector<unsigned char> white = {255, 255, 255, 255};
+		material = std::make_shared<UIMaterial>(device, white, 1, 1, 4);
 		rebuildMesh();
 	}
 
@@ -35,23 +35,52 @@ namespace vk {
 	}
 
 	void TextComponent::rebuildMesh() {
-		std::vector<Model::Vertex> vertices;
-		std::vector<uint32_t> indices;
-		font.buildTextMesh(textStr, vertices, indices, 2.0f);
+		std::vector<Model::Vertex> verts;
+		std::vector<uint32_t> inds;
+		font.buildTextMesh(textStr, verts, inds, 2.0f);
 
-		if (vertices.size() < 3) {
+		if (verts.size() < 3) {
 			setModel(nullptr);
+			textSize = {0, 0};
 			return;
 		}
 
-		Model::Builder builder;
-		builder.vertices = std::move(vertices);
-		builder.indices = std::move(indices);
-		builder.isUI = true;
+		float minX = verts[0].position.x, maxX = minX;
+		float minY = verts[0].position.y, maxY = minY;
+		for (auto &v : verts) {
+			minX = std::min(minX, v.position.x);
+			maxX = std::max(maxX, v.position.x);
+			minY = std::min(minY, v.position.y);
+			maxY = std::max(maxY, v.position.y);
+		}
+		textSize = {maxX - minX, maxY - minY};
 
-		auto modelPtr = std::make_shared<Model>(device, builder);
-		modelPtr->setMaterial(material);
-		setModel(modelPtr);
+		Model::Builder b;
+		b.vertices = std::move(verts);
+		b.indices = std::move(inds);
+		b.isUI = true;
+		auto mdl = std::make_shared<Model>(device, b);
+		mdl->setMaterial(material);
+		setModel(mdl);
+	}
+
+	glm::mat4 TextComponent::computeModelMatrix() const {
+		Transform t = getTransformData();
+		glm::vec3 pos = t.pos;
+
+		if (auto wnd = getWindowPtr()) {
+			int w, h;
+			glfwGetFramebufferSize(wnd, &w, &h);
+			if (getPlaceInMiddle()) {
+				pos.x = w / 2.0f - (textSize.x * t.scale.x) * 0.5f;
+				pos.y = -h / 2.0f + (textSize.y * t.scale.y) * 0.5f;
+			}
+		}
+
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
+		glm::mat4 R = glm::toMat4(t.rot);
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), t.scale);
+		return T * R * S;
 	}
 
 }  // namespace vk

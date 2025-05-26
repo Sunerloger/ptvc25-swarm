@@ -1,20 +1,10 @@
 #pragma once
 
 #include "../GameObject.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
-
-#include <memory>
-#include <string>
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-
-#include <GLFW/glfw3.h>
 #include <GLFW/glfw3.h>
 #include "INIReader.h"
 
@@ -50,11 +40,23 @@ namespace vk {
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
+
 		bool isControllable() const {
 			return controllable;
 		}
 
 	   protected:
+		// expose placement data to subclasses
+		Transform getTransformData() const {
+			return loadData();
+		}
+		GLFWwindow* getWindowPtr() const {
+			return window;
+		}
+		bool getPlaceInMiddle() const {
+			return placeInMiddle;
+		}
+		// allow subclasses to set the mesh
 		void setModel(std::shared_ptr<Model> m) {
 			model = std::move(m);
 		}

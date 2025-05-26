@@ -1,43 +1,40 @@
 #include "UIComponent.h"
 #include "../asset_utils/AssetLoader.h"
+#include <fstream>
+#include <sstream>
 
 namespace vk {
 
 	UIComponent::UIComponent(UIComponentCreationSettings settings)
 		: model(std::move(settings.model)),
 		  name(std::move(settings.name)),
-		  controllable(settings.controllable) {
-		window = settings.window;
-		anchorRight = settings.anchorRight;
-		anchorBottom = settings.anchorBottom;
-		placeInMiddle = settings.placeInMiddle;
+		  controllable(settings.controllable),
+		  window(settings.window),
+		  anchorRight(settings.anchorRight),
+		  anchorBottom(settings.anchorBottom),
+		  placeInMiddle(settings.placeInMiddle) {
 		if ((anchorRight || anchorBottom) && window) {
 			Transform t = loadData();
 			int w, h;
 			glfwGetFramebufferSize(window, &w, &h);
-
 			if (anchorRight)
-				offsetFromRight = static_cast<float>(w) - t.pos.x;
+				offsetFromRight = float(w) - t.pos.x;
 			if (anchorBottom)
-				offsetFromBottom = static_cast<float>(h) - t.pos.y;
+				offsetFromBottom = float(h) - t.pos.y;
 		}
 	}
 
 	Transform UIComponent::loadData() const {
-		auto iniPath = vk::AssetLoader::getInstance().resolvePath("settings:ui_placements.ini");
+		auto iniPath = AssetLoader::getInstance().resolvePath("settings:ui_placements.ini");
 		INIReader reader(iniPath);
 
-		Transform t;
-		std::string section = "UIComponent_" + name;
-
-		// defaults
-		t.pos = {89.9749f, -92.3596f, -97.9395f};
+		Transform t{};
+		t.pos = {0.0f, 0.0f, 0.0f};
 		t.rot = {0.0f, 0.0f, 0.0f, 0.0f};
-		t.scale = {5.0f, 5.0f, 5.0};
+		t.scale = {1.0f, 1.0f, 1.0f};
 
-		if (reader.ParseError() < 0)
-			return t;
-		if (reader.Get(section, "pos", "") == "")
+		std::string section = "UIComponent_" + name;
+		if (reader.ParseError() < 0 || reader.Get(section, "pos", "") == "")
 			return t;
 
 		{
@@ -59,8 +56,7 @@ namespace vk {
 	}
 
 	void UIComponent::saveData(const Transform &t) const {
-		auto iniPath = vk::AssetLoader::getInstance().resolvePath("settings:ui_placements.ini", true);
-
+		auto iniPath = AssetLoader::getInstance().resolvePath("settings:ui_placements.ini", true);
 		std::vector<std::string> lines;
 		std::ifstream ifs(iniPath);
 		std::string header = "[UIComponent_" + name + "]";
@@ -71,7 +67,7 @@ namespace vk {
 				skipping = true;
 				continue;
 			}
-			if (skipping && !line.empty() && line.front() == '[')
+			if (skipping && !line.empty() && line[0] == '[')
 				skipping = false;
 			if (!skipping)
 				lines.push_back(line);
@@ -80,7 +76,6 @@ namespace vk {
 
 		std::ofstream ofs(iniPath, std::ios::trunc);
 		for (auto &l : lines) ofs << l << "\n";
-
 		ofs << header << "\n";
 		ofs << "pos=" << t.pos.x << "," << t.pos.y << "," << t.pos.z << "\n";
 		ofs << "rot=" << t.rot.x << "," << t.rot.y << "," << t.rot.z << "," << t.rot.w << "\n";
@@ -94,13 +89,10 @@ namespace vk {
 		if (window) {
 			int w, h;
 			glfwGetFramebufferSize(window, &w, &h);
-
-			if (anchorRight) {
+			if (anchorRight)
 				pos.x = w - t.pos.x;
-			}
-			if (anchorBottom) {
+			if (anchorBottom)
 				pos.y = t.pos.y - h;
-			}
 			if (placeInMiddle) {
 				pos.x = w / 2.0f;
 				pos.y = -h / 2.0f;
@@ -125,52 +117,28 @@ namespace vk {
 		return model;
 	}
 
-	void UIComponent::updatePosition(float deltaTime, glm::vec3 dir) {
+	void UIComponent::updatePosition(float dt, glm::vec3 dir) {
 		if (!controllable || dir == glm::vec3(0.0f))
 			return;
-
 		Transform t = loadData();
-
-		float ps = 100.0f * deltaTime;
-
-		t.pos += ps * dir;
-
-		if ((anchorRight || anchorBottom) && window) {
-			Transform t = loadData();
-			int w, h;
-			glfwGetFramebufferSize(window, &w, &h);
-			if (anchorBottom)
-				offsetFromBottom = static_cast<float>(h) - t.pos.y;
-			if (anchorRight)
-				offsetFromRight = static_cast<float>(w) - t.pos.x;
-		}
+		t.pos += dir * (100.0f * dt);
 		saveData(t);
 	}
 
-	void UIComponent::updateRotation(float deltaTime, glm::vec3 rotDir) {
+	void UIComponent::updateRotation(float dt, glm::vec3 rotDir) {
 		if (!controllable || rotDir == glm::vec3(0.0f))
 			return;
-
 		Transform t = loadData();
-
-		float rs = 0.1f * deltaTime;
-
-		t.rot = glm::angleAxis(rs, rotDir) * t.rot;
-
+		t.rot = glm::angleAxis(0.1f * dt, rotDir) * t.rot;
 		saveData(t);
 	}
 
-	void UIComponent::updateScale(float deltaTime, int scaleDir) {
+	void UIComponent::updateScale(float dt, int scaleDir) {
 		if (!controllable || scaleDir == 0)
 			return;
-
 		Transform t = loadData();
-
-		float ss = 1.25f * deltaTime;
-
-		t.scale *= (1.0 + scaleDir * ss);
-		t.scale = glm::max(t.scale, glm::vec3(0.0001f));
-
+		t.scale *= (1.0f + scaleDir * 1.25f * dt);
 		saveData(t);
 	}
-}
+
+}  // namespace vk
