@@ -164,6 +164,10 @@ class SceneManager {
 		isUIVisible = !isUIVisible;
 	}
 
+	void toggleDebugMenu() {
+		isDebugMenuVisible = !isDebugMenuVisible;
+	}
+
    private:
 	SceneManager();
 	~SceneManager() = default;
@@ -180,4 +184,5 @@ class SceneManager {
 	std::unordered_map<JPH::BodyID, vk::id_t> bodyIDToObjectId = {};
 
 	bool isUIVisible = true;
+	bool isDebugMenuVisible = false;
 };

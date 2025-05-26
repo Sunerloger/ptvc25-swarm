@@ -14,6 +14,7 @@ namespace vk {
 		float verticalOffset,
 		bool anchorRight,
 		bool anchorBottom,
+		bool isDebugMenuComponent,
 		GLFWwindow *window)
 		: UIComponent(UIComponentCreationSettings{
 			  /*model*/ nullptr,
@@ -23,7 +24,8 @@ namespace vk {
 			  /*anchorRight*/ anchorRight,
 			  /*anchorBottom*/ anchorBottom,
 			  /*centerHorizontal*/ centerHorizontal,
-			  /*centerVertical*/ centerVertical}),
+			  /*centerVertical*/ centerVertical,
+			  /*isDebugMenuComponent*/ isDebugMenuComponent}),
 		  device(device),
 		  font(font),
 		  textStr(initialText),

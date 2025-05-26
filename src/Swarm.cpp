@@ -126,7 +126,7 @@ void Swarm::toggleDebug() {
 
 		printf("Switched to debug mode: yaw=%f, pitch=%f\n", currentYaw, currentPitch);
 	}
-
+	sceneManager.toggleDebugMenu();
 	isDebugActive = !isDebugActive;
 }
 
@@ -148,6 +148,7 @@ void Swarm::onPlayerDeath() {
 	hudSettings.anchorBottom = false;
 	hudSettings.centerHorizontal = true;
 	hudSettings.centerVertical = true;
+	hudSettings.isDebugMenuComponent = false;
 	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	// Create "You died" text
@@ -164,6 +165,7 @@ void Swarm::onPlayerDeath() {
 		/* verticalOffset: */ 0.0f,
 		/* anchorRight: */ false,
 		/* anchorBottom: */ false,
+		/* isDebugMenuComponent: */ false,
 		window.getGLFWWindow());
 	sceneManager.addUIObject(std::unique_ptr<UIComponent>(deathText));
 }
@@ -301,20 +303,61 @@ void Swarm::init() {
 		Font font;
 		hudSettings.window = window.getGLFWWindow();
 
-		TextComponent* debug_text = new TextComponent(
+		// Standard Debug quad
+		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
+		hudSettings.name = "debug_quad_standard";
+		hudSettings.controllable = true;
+		hudSettings.anchorRight = true;
+		hudSettings.anchorBottom = false;
+		hudSettings.centerHorizontal = false;
+		hudSettings.centerVertical = true;
+		hudSettings.isDebugMenuComponent = false;
+		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		// Debug quad
+		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
+		hudSettings.name = "debug_quad";
+		hudSettings.controllable = false;
+		hudSettings.anchorRight = true;
+		hudSettings.anchorBottom = false;
+		hudSettings.centerHorizontal = false;
+		hudSettings.centerVertical = true;
+		hudSettings.isDebugMenuComponent = true;
+		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		// F1: Toggle HUD
+		TextComponent* debug_text_f1 = new TextComponent(
 			device,
 			font,
-			"F12: Toggle \n Debug Mode",
-			"debug_text",
-			/* controllable: */ true,
+			"F1: Toggle HUD",
+			"debug_text_toggle_hud",
+			/* controllable: */ false,
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
 			/* verticalOffset: */ 100.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
 			window.getGLFWWindow());
-		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text));
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f1));
+
+		// F12: Toggle Debug Mode
+		TextComponent* debug_text_f12 = new TextComponent(
+			device,
+			font,
+			"F12: Toggle \n Debug Mode",
+			"debug_text_toggle_menu",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ true,
+			/* verticalOffset: */ 000.0f,
+			/* anchorRight: */ true,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ false,
+			window.getGLFWWindow());
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f12));
 
 		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
 		hudSettings.name = "clock_quad";
@@ -323,6 +366,7 @@ void Swarm::init() {
 		hudSettings.anchorBottom = false;
 		hudSettings.centerHorizontal = true;
 		hudSettings.centerVertical = false;
+		hudSettings.isDebugMenuComponent = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		TextComponent* gameTimeText = new TextComponent(
@@ -337,6 +381,7 @@ void Swarm::init() {
 			/* verticalOffset: */ 0.0f,
 			/* anchorRight: */ false,
 			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ false,
 			window.getGLFWWindow());
 		gameTimeTextID = sceneManager.addUIObject(
 			std::unique_ptr<UIComponent>(gameTimeText));

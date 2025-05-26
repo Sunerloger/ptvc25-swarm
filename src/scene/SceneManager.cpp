@@ -524,6 +524,15 @@ std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
 
 	for (auto& it : this->scene->uiObjects) {
 		std::weak_ptr<vk::UIComponent> uiObject = it.second;
+		std::shared_ptr<vk::UIComponent> uiComponentPtr = uiObject.lock();
+		if (this->isDebugMenuVisible && uiComponentPtr && uiComponentPtr->isDebugMenuComponent) {
+			// If the debug menu is visible, only include UI components that are marked as debug menu components
+			uiObjects.push_back(uiObject);
+			continue;
+		} else if (!this->isDebugMenuVisible && uiComponentPtr && uiComponentPtr->isDebugMenuComponent) {
+			// If the debug menu is not visible, skip debug menu components
+			continue;
+		}
 		uiObjects.push_back(uiObject);
 	}
 

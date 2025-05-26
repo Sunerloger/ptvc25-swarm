@@ -48,6 +48,8 @@ namespace vk {
 			return controllable;
 		}
 
+		bool isDebugMenuComponent = false;
+
 	   protected:
 		Transform getTransformData() const {
 			return loadData();
@@ -79,8 +81,6 @@ namespace vk {
 		float offsetFromBottom = 0.0f;
 		bool centerHorizontal = false;
 		bool centerVertical = false;
-
-		bool isDebugMenuComponent = false;
 	};
 
 }  // namespace vk

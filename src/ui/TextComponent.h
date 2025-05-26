@@ -25,6 +25,7 @@ namespace vk {
 			float verticalOffset = 0.0f,
 			bool anchorRight = false,
 			bool anchorBottom = false,
+			bool isDebugMenuComponent = false,
 			GLFWwindow *window = nullptr);
 
 		~TextComponent() override = default;
