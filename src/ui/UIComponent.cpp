@@ -121,8 +121,9 @@ namespace vk {
 	}
 
 	void UIComponent::updatePosition(float deltaTime, glm::vec3 dir) {
-		if (!controllable || dir == glm::vec3(0.0f)) return;
-		
+		if (!controllable || dir == glm::vec3(0.0f))
+			return;
+
 		Transform t = loadData();
 
 		float ps = 100.0f * deltaTime;
@@ -142,7 +143,8 @@ namespace vk {
 	}
 
 	void UIComponent::updateRotation(float deltaTime, glm::vec3 rotDir) {
-		if (!controllable || rotDir == glm::vec3(0.0f)) return;
+		if (!controllable || rotDir == glm::vec3(0.0f))
+			return;
 
 		Transform t = loadData();
 
@@ -154,7 +156,8 @@ namespace vk {
 	}
 
 	void UIComponent::updateScale(float deltaTime, int scaleDir) {
-		if (!controllable || scaleDir == 0) return;
+		if (!controllable || scaleDir == 0)
+			return;
 
 		Transform t = loadData();
 
