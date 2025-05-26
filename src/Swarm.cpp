@@ -136,9 +136,14 @@ void Swarm::onPlayerDeath() {
 
 	// Create black background
 	UIComponentCreationSettings hudSettings{};
+	hudSettings.window = window.getGLFWWindow();
 	hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
 	hudSettings.name = "you_died_quad";
 	hudSettings.controllable = false;
+	hudSettings.anchorRight = false;
+	hudSettings.anchorBottom = false;
+	hudSettings.centerHorizontal = true;
+	hudSettings.centerVertical = true;
 	sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 	// Create "You died" text
