@@ -306,7 +306,7 @@ void Swarm::init() {
 		// Standard Debug quad
 		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
 		hudSettings.name = "debug_quad_standard";
-		hudSettings.controllable = true;
+		hudSettings.controllable = false;
 		hudSettings.anchorRight = true;
 		hudSettings.anchorBottom = false;
 		hudSettings.centerHorizontal = false;
@@ -335,12 +335,29 @@ void Swarm::init() {
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
-			/* verticalOffset: */ 100.0f,
+			/* verticalOffset: */ 175.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ true,
 			window.getGLFWWindow());
 		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f1));
+
+		// F11: Toggle Fullscreen
+		TextComponent* debug_text_f11 = new TextComponent(
+			device,
+			font,
+			"F11: Toggle \n Fullscreen",
+			"debug_text_toggle_fullscreen",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ true,
+			/* verticalOffset: */ 100.0f,
+			/* anchorRight: */ true,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
+			window.getGLFWWindow());
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f11));
 
 		// F12: Toggle Debug Mode
 		TextComponent* debug_text_f12 = new TextComponent(
