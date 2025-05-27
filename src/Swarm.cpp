@@ -135,6 +135,17 @@ void Swarm::onPlayerDeath() {
 	swarmInput.setContext(input::SwarmInputController::ContextID::Death);
 	SceneManager& sceneManager = SceneManager::getInstance();
 
+	std::string time = "";
+
+	auto objPair = sceneManager.getObject(gameTimeTextID);
+	if (objPair.first != SceneClass::INVALID) {
+		if (auto ui = objPair.second) {
+			if (auto text = static_cast<TextComponent*>(ui)) {
+				time = text->getText();
+			}
+		}
+	}
+
 	// Clear existing UI objects
 	sceneManager.clearUIObjects();
 
@@ -168,6 +179,23 @@ void Swarm::onPlayerDeath() {
 		/* isDebugMenuComponent: */ false,
 		window.getGLFWWindow());
 	sceneManager.addUIObject(std::unique_ptr<UIComponent>(deathText));
+
+	// Create "Time: <time>" text
+	TextComponent* deathTime = new TextComponent(
+		device,
+		font,
+		time,
+		"you_died_time",
+		/* controllable: */ true,
+		/* centerHorizontal: */ true,
+		/* horizontalOffset: */ 0.0f,
+		/* centerVertical:   */ true,
+		/* verticalOffset: */ -300.0f,
+		/* anchorRight: */ false,
+		/* anchorBottom: */ false,
+		/* isDebugMenuComponent: */ false,
+		window.getGLFWWindow());
+	sceneManager.addUIObject(std::unique_ptr<UIComponent>(deathTime));
 }
 
 void Swarm::init() {
@@ -376,6 +404,7 @@ void Swarm::init() {
 			window.getGLFWWindow());
 		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f12));
 
+		// Clock quad
 		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
 		hudSettings.name = "clock_quad";
 		hudSettings.controllable = false;
@@ -386,6 +415,7 @@ void Swarm::init() {
 		hudSettings.isDebugMenuComponent = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
+		// Clock
 		TextComponent* gameTimeText = new TextComponent(
 			device,
 			font,
@@ -403,6 +433,7 @@ void Swarm::init() {
 		gameTimeTextID = sceneManager.addUIObject(
 			std::unique_ptr<UIComponent>(gameTimeText));
 
+		// USPS
 		hudSettings.model = Model::createModelFromFile(device, "models:USPS.glb", true);
 		hudSettings.name = "usps";
 		hudSettings.controllable = false;
@@ -412,6 +443,7 @@ void Swarm::init() {
 		hudSettings.centerVertical = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
+		// Crosshair
 		hudSettings.model = Model::createModelFromFile(device, "models:crosshair.glb", true);
 		hudSettings.name = "crosshair";
 		hudSettings.controllable = false;

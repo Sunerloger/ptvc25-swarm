@@ -43,6 +43,10 @@ namespace vk {
 		}
 	}
 
+	std::string TextComponent::getText() const {
+		return textStr;
+	}
+
 	void TextComponent::rebuildMesh() {
 		std::vector<Model::Vertex> verts;
 		std::vector<uint32_t> inds;

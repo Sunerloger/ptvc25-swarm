@@ -31,6 +31,7 @@ namespace vk {
 		~TextComponent() override = default;
 
 		void setText(const std::string &text);
+		std::string getText() const;
 		glm::mat4 computeModelMatrix() const override;
 
 	   private:
