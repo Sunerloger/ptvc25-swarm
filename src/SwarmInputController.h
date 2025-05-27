@@ -65,4 +65,5 @@ namespace input {
 
 		bool debugMode = false;
 	};
+
 }
