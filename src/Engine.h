@@ -32,7 +32,7 @@ namespace vk {
 		float maxFrameTime = 0.2f; // 5 fps
 		bool debugTime = false;
 		bool debugPlayer = false;
-		bool debugEnemies = false;
+		bool debugEnemies = false; // be careful with this flag, it heavily impacts performance
 	};
 
 	class Engine {

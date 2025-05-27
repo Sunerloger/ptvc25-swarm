@@ -138,7 +138,7 @@ namespace vk {
 		instanceCount--;
 		if (instanceCount == 0) {
 			std::cout << "Cleaning up UIMaterial static resources" << std::endl;
-			cleanupResources(device);
+			cleanupResources();
 		}
 	}
 
@@ -405,9 +405,7 @@ namespace vk {
 		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	void UIMaterial::cleanupResources(Device& device) {
-		// wait for the device to finish operations before destroying resources
-        vkDeviceWaitIdle(device.device());
+	void UIMaterial::cleanupResources() {
 
 		if (descriptorPool) {
 			descriptorPool->resetPool();

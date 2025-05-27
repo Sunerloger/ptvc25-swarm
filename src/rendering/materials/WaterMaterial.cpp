@@ -171,7 +171,7 @@ namespace vk {
 		instanceCount--;
 		if (instanceCount == 0) {
 			std::cout << "Cleaning up WaterMaterial static resources" << std::endl;
-			cleanupResources(device);
+			cleanupResources();
 		}
 	}
 
@@ -438,7 +438,7 @@ namespace vk {
 		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	void WaterMaterial::cleanupResources(Device& device) {
+	void WaterMaterial::cleanupResources() {
 		if (descriptorPool) {
 			descriptorPool->resetPool();
 			descriptorPool.reset();

@@ -14,15 +14,9 @@ namespace vk {
     std::unique_ptr<DescriptorPool> StandardMaterial::descriptorPool;
     std::unique_ptr<DescriptorSetLayout> StandardMaterial::descriptorSetLayout;
     int StandardMaterial::instanceCount = 0;
-    int StandardMaterial::s_id = -1;
 
     StandardMaterial::StandardMaterial(Device& device, const std::string& texturePath)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
 
         // Increment instance count
         instanceCount++;
@@ -42,11 +36,6 @@ namespace vk {
                                      const std::string& vertShaderPath, const std::string& fragShaderPath)
         : Material(device) {
 
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
-
         // Increment instance count
         instanceCount++;
         
@@ -64,11 +53,6 @@ namespace vk {
     StandardMaterial::StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
                                      int width, int height, int channels)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
 
         // Increment instance count
         instanceCount++;
@@ -90,11 +74,6 @@ namespace vk {
                                      int width, int height, int channels,
                                      const std::string& vertShaderPath, const std::string& fragShaderPath)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
 
         // Increment instance count
         instanceCount++;
@@ -134,7 +113,7 @@ namespace vk {
         instanceCount--;
         if (instanceCount == 0) {
             std::cout << "Cleaning up StandardMaterial static resources" << std::endl;
-            cleanupResources(device);
+            cleanupResources();
         }
     }
 
@@ -413,7 +392,7 @@ namespace vk {
         vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
     }
 
-    void StandardMaterial::cleanupResources(Device& device) {
+    void StandardMaterial::cleanupResources() {
         if (descriptorPool) {
             descriptorPool->resetPool();
             descriptorPool.reset();
@@ -422,9 +401,5 @@ namespace vk {
         if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
             descriptorSetLayout.reset();
         }
-    }
-
-    int StandardMaterial::getID() const {
-        return s_id;
     }
 }

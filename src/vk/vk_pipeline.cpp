@@ -332,6 +332,7 @@ namespace vk {
 		// Change input assembly topology to patch list
 		configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 
+		configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
 	}
 
 }

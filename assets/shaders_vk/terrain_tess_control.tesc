@@ -32,26 +32,28 @@ void main() {
     
     // Only the first invocation computes tessellation levels
     if (gl_InvocationID == 0) {
-        // Calculate the center of the patch
-        vec3 center = (fragPosWorld[0] + fragPosWorld[1] + fragPosWorld[2]) / 3.0;
-        
-        // Calculate distance from camera to patch center
-        float distance = distance(viewPosition[0], center);
-        
-        // Calculate tessellation level based on distance
-        float tessLevel = push.params1.w;  // maxTessLevel is in params1.w
-        
-        if (distance > push.params2.x) {  // tessDistance is in params2.x
-            // Linearly decrease tessellation level with distance
-            float factor = 1.0 - clamp((distance - push.params2.x) / (push.params2.y - push.params2.x), 0.0, 1.0);
-            tessLevel = mix(1.0, push.params1.w, factor);
+        // distances at the three control points
+        float d0 = distance(viewPosition[0], fragPosWorld[0]);
+        float d1 = distance(viewPosition[0], fragPosWorld[1]);
+        float d2 = distance(viewPosition[0], fragPosWorld[2]);
+
+        // helper to map a distance to a tess level
+        float calcLevel(float dist) {
+            float lvl = push.params1.w;
+            if (dist > push.params2.x) {
+                float f = 1.0 - clamp((dist - push.params2.x)/(push.params2.y - push.params2.x),0,1);
+                lvl = mix(1.0, push.params1.w, f);
+            }
+            // snap to integer to avoid tiny mismatches
+            return floor(lvl + 0.5);
         }
         
-        // Set tessellation levels for the patch
-        gl_TessLevelOuter[0] = tessLevel;
-        gl_TessLevelOuter[1] = tessLevel;
-        gl_TessLevelOuter[2] = tessLevel;
-        
-        gl_TessLevelInner[0] = tessLevel;
+         // per-edge levels
+        gl_TessLevelOuter[0] = calcLevel((d0 + d1)*0.5);  // edge between v0–v1
+        gl_TessLevelOuter[1] = calcLevel((d1 + d2)*0.5);  // v1–v2
+        gl_TessLevelOuter[2] = calcLevel((d2 + d0)*0.5);  // v2–v0
+
+        // interior can be average
+        gl_TessLevelInner[0] = calcLevel((d0 + d1 + d2)/3.0);
     }
 }

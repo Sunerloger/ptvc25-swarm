@@ -93,7 +93,7 @@ namespace vk {
 
 				game.gameActiveUpdate(deltaTime);
 
-				while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
+				for (int subSteps = 0; physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime && subSteps < physicsSimulation.maxPhysicsSubSteps; subSteps++) {
 					game.prePhysicsUpdate();
 					
 					physicsSimulation.preSimulation();
@@ -101,9 +101,10 @@ namespace vk {
 					physicsSimulation.postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
 					
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
-
+					// TODO substep system + last min?
 					game.postPhysicsUpdate();
 				}
+				physicsTimeAccumulator = glm::min(physicsTimeAccumulator, engineSettings.cPhysicsDeltaTime);
 			}
 			else {
 				game.gamePauseUpdate(deltaTime);
@@ -143,6 +144,7 @@ namespace vk {
 				clearRect.baseArrayLayer = 0;
 				clearRect.layerCount = 1;
 
+				// write values directly into color/depth attachments for ui drawing
 				vkCmdClearAttachments(
 					frameInfo.commandBuffer,
 					1,
@@ -154,9 +156,6 @@ namespace vk {
 				renderer->endSwapChainRenderPass(commandBuffer);
 				renderer->endFrame();
 			}
-
-			// TODO use fences / semaphores instead (next line forces sync of cpu and gpu and heavily impacts performance):
-			vkDeviceWaitIdle(device.device());
 		}
 	}
 }

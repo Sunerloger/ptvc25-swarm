@@ -11,16 +11,10 @@ namespace vk {
     std::unique_ptr<DescriptorPool> TessellationMaterial::descriptorPool = nullptr;
     std::unique_ptr<DescriptorSetLayout> TessellationMaterial::descriptorSetLayout = nullptr;
     int TessellationMaterial::instanceCount = 0;
-    int TessellationMaterial::s_id = -1;
 
     // Constructor with color texture and default shader paths
     TessellationMaterial::TessellationMaterial(Device& device, const std::string& texturePath)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
         
         // Increment instance count
         instanceCount++;
@@ -51,11 +45,6 @@ namespace vk {
                                            const std::string& tessControlShaderPath,
                                            const std::string& tessEvalShaderPath)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
         
         // Set shader paths
         pipelineConfig.vertShaderPath = vertShaderPath;
@@ -88,11 +77,6 @@ namespace vk {
                                            const std::string& tessControlShaderPath,
                                            const std::string& tessEvalShaderPath)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
         
         // Set shader paths
         pipelineConfig.vertShaderPath = vertShaderPath;
@@ -128,11 +112,6 @@ namespace vk {
                                            const std::string& tessControlShaderPath,
                                            const std::string& tessEvalShaderPath)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
         
         // Set shader paths
         pipelineConfig.vertShaderPath = vertShaderPath;
@@ -176,11 +155,11 @@ namespace vk {
         
         // Clean up static resources if this is the last instance
         if (instanceCount == 0) {
-            cleanupResources(device);
+            cleanupResources();
         }
     }
 
-    void TessellationMaterial::cleanupResources(Device& device) {
+    void TessellationMaterial::cleanupResources() {
         descriptorPool.reset();
         descriptorSetLayout.reset();
     }
@@ -428,9 +407,5 @@ namespace vk {
     void TessellationMaterial::setTileScale(float x, float y) {
         // Store the values in member variables for later access
         this->tileScale = glm::vec2(x, y);
-    }
-
-    int TessellationMaterial::getID() const {
-        return s_id;
     }
 }

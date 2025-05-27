@@ -30,7 +30,7 @@ namespace vk {
 		static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
 		static int instanceCount;
 
-		static void cleanupResources(Device& device);
+		static void cleanupResources();
 
 	   private:
 		void createTextureImage(const std::string& texturePath);

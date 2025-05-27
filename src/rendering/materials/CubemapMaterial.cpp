@@ -8,15 +8,8 @@
 
 namespace vk {
 
-    int CubemapMaterial::s_id = -1;
-
     CubemapMaterial::CubemapMaterial(Device& device, const std::array<std::string, 6>& facePaths)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
 
         // Increment instance count
         instanceCount++;
@@ -36,11 +29,6 @@ namespace vk {
 
     CubemapMaterial::CubemapMaterial(Device& device, const std::string& singleImagePath, bool isHorizontalStrip)
         : Material(device) {
-
-        if (s_id == -1) {
-            s_id = Material::s_nextID;
-            Material::s_nextID++;
-        }
 
         // Increment instance count
         instanceCount++;
@@ -80,7 +68,7 @@ namespace vk {
         instanceCount--;
         if (instanceCount == 0) {
             std::cout << "Cleaning up CubemapMaterial static resources" << std::endl;
-            cleanupResources(device);
+            cleanupResources();
         }
     }
 
@@ -586,9 +574,7 @@ namespace vk {
         vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
     }
 
-    void CubemapMaterial::cleanupResources(Device& device) {
-        // wait for the device to finish operations before destroying resources
-        vkDeviceWaitIdle(device.device());
+    void CubemapMaterial::cleanupResources() {
         
         if (descriptorPool) {
             descriptorPool->resetPool();
@@ -598,9 +584,5 @@ namespace vk {
         if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
             descriptorSetLayout.reset();
         }
-    }
-
-    int CubemapMaterial::getID() const {
-        return s_id;
     }
 }

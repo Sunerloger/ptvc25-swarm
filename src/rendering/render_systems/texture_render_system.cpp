@@ -11,10 +11,7 @@ namespace vk {
 		: device{ device }, renderPass{ renderPass }, globalSetLayout{ globalSetLayout } {
 	}
 
-	TextureRenderSystem::~TextureRenderSystem() {
-		// wait for the device to finish operations before destroying resources
-		vkDeviceWaitIdle(device.device());
-		
+	TextureRenderSystem::~TextureRenderSystem() {		
 		for (auto& [key, layout] : pipelineLayoutCache) {
 			vkDestroyPipelineLayout(device.device(), layout, nullptr);
 		}
