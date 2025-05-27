@@ -11,8 +11,7 @@
 
 namespace physics {
 
-	PhysicsPlayer::PhysicsPlayer(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) :
-	settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
+	PhysicsPlayer::PhysicsPlayer(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) : settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
 		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, playerCreationSettings.position, playerCreationSettings.rotation, playerCreationSettings.inUserData, &this->physics_system));
 	}
 
@@ -35,7 +34,9 @@ namespace physics {
 	void PhysicsPlayer::handleMovement(float deltaTime) {
 		// deltaTime can be used for e.g. setting a fixed time it should take for the character to reach max velocity
 
-		if (currentMovementDirection == glm::vec3{ 0,0,0 }) { return; }
+		if (currentMovementDirection == glm::vec3{0, 0, 0}) {
+			return;
+		}
 
 		JPH::Vec3 playerMovementDirection = GLMToRVec3(currentMovementDirection);
 
@@ -59,7 +60,6 @@ namespace physics {
 		}
 
 		if (settings.controlMovementDuringJump || character->IsSupported()) {
-			
 			JPH::Vec3 current_velocity = character->GetLinearVelocity();
 			JPH::Vec3 desired_velocity = settings.movementSpeed * movementDirectionWorld;
 			desired_velocity.SetY(current_velocity.GetY());
@@ -72,7 +72,6 @@ namespace physics {
 
 	void PhysicsPlayer::handleJump() {
 		if (settings.controlMovementDuringJump || character->IsSupported()) {
-
 			JPH::Vec3 new_velocity = character->GetLinearVelocity();
 
 			// Jump - OnGround also means you have friction
@@ -94,7 +93,7 @@ namespace physics {
 		glm::vec3 forward = camera.getFront();
 		JPH::Vec3 direction = GLMToRVec3(forward) * settings.shootRange;
 
-		JPH::RRayCast ray{ origin, direction };
+		JPH::RRayCast ray{origin, direction};
 
 		JPH::IgnoreSingleBodyFilter filter(character->GetBodyID());
 
@@ -104,8 +103,7 @@ namespace physics {
 			result,
 			JPH::BroadPhaseLayerFilter(),
 			JPH::ObjectLayerFilter(),
-			filter
-		);
+			filter);
 
 		if (hit) {
 			JPH::BodyID hitBodyID = result.mBodyID;
@@ -121,12 +119,10 @@ namespace physics {
 					if (isDead) {
 						std::cout << "Enemy died" << std::endl;
 					}
-				}
-				else {
+				} else {
 					std::cout << "Error: Enemy didn't take any damage because cast to class failed!" << std::endl;
 				}
-			}
-			else {
+			} else {
 				std::cout << "Hit non-enemy with ID: " << hitBodyID.GetIndexAndSequenceNumber() << std::endl;
 			}
 
@@ -136,8 +132,7 @@ namespace physics {
 				<< pt.GetX() << ", "
 				<< pt.GetY() << ", "
 				<< pt.GetZ() << ")\n";
-		}
-		else {
+		} else {
 			std::cout << "No hit\n";
 		}
 	}
@@ -149,26 +144,33 @@ namespace physics {
 	float PhysicsPlayer::getMaxHealth() const {
 		return settings.maxHealth;
 	}
-	
+
 	float PhysicsPlayer::getCurrentHealth() const {
 		return currentHealth;
 	}
-	
+
 	// @returns true if dead
 	void PhysicsPlayer::takeDamage(float damage) {
 		currentHealth -= damage;
-		
-		if (currentHealth <= 0) settings.deathCallback();
+
+		if (currentHealth <= 0)
+			settings.deathCallback();
 	}
-	
+
 	bool PhysicsPlayer::isDead() const {
 		return currentHealth <= 0;
 	}
 
 	void PhysicsPlayer::postSimulation() {
 		character->PostSimulation(settings.maxFloorSeparationDistance);
-
 		camera.setPhysicsPosition(character->GetPosition());
+
+		float playerY = character->GetPosition().GetY();
+		float deathHeight = -10.0f;
+
+		if (playerY < deathHeight && !isDead()) {
+			settings.deathCallback();
+		}
 	}
 
 	const glm::vec3 PhysicsPlayer::getCameraPosition() const {
@@ -200,13 +202,12 @@ namespace physics {
 	}
 
 	PhysicsPlayer::PlayerCreationSettings PhysicsPlayer::getCreationSettings() const {
-		
 		PlayerCreationSettings creationSettings;
 		creationSettings.position = character->GetPosition();
 		creationSettings.playerSettings = settings;
 		creationSettings.cameraSettings = camera.getSettings();
 		creationSettings.characterSettings = characterSettings;
-		
+
 		return creationSettings;
 	}
 }

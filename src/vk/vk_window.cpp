@@ -23,13 +23,20 @@ namespace vk {
 		window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
 		windows[window] = this;
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+		{
+			int fbWidth = 0, fbHeight = 0;
+			glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+			width = fbWidth;
+			height = fbHeight;
+		}
 	}
 
 	void Window::framebufferResizeCallback(GLFWwindow* glfwWindow, int width, int height) {
 		auto it = windows.find(glfwWindow);
 
-		if (it == windows.end()) return;
-		
+		if (it == windows.end())
+			return;
+
 		it->second->framebufferResized = true;
 		it->second->width = width;
 		it->second->height = height;

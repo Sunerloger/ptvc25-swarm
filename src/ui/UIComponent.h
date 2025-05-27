@@ -1,20 +1,10 @@
 #pragma once
 
 #include "../GameObject.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
-
-#include <memory>
-#include <string>
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-
-#include <GLFW/glfw3.h>
 #include <GLFW/glfw3.h>
 #include "INIReader.h"
 
@@ -34,6 +24,10 @@ namespace vk {
 		GLFWwindow* window = nullptr;
 		bool anchorRight = false;
 		bool anchorBottom = false;
+		bool centerHorizontal = false;
+		bool centerVertical = false;
+
+		bool isDebugMenuComponent = false;
 	};
 
 	class UIComponent : public GameObject {
@@ -41,22 +35,39 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
-		void updatePosition(float deltaTime, glm::vec3 dir);
-		void updateRotation(float deltaTime, glm::vec3 rotDir);
-		void updateScale(float deltaTime, int scaleDir);
+		void updatePosition(float dt, glm::vec3 dir);
+		void updateRotation(float dt, glm::vec3 rotDir);
+		void updateScale(float dt, int scaleDir);
 
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
+
 		bool isControllable() const {
 			return controllable;
 		}
 
+		bool isDebugMenuComponent = false;
+
 	   protected:
+		Transform getTransformData() const {
+			return loadData();
+		}
+		GLFWwindow* getWindowPtr() const {
+			return window;
+		}
+		bool getCenterHorizontal() const {
+			return centerHorizontal;
+		}
+		bool getCenterVertical() const {
+			return centerVertical;
+		}
 		void setModel(std::shared_ptr<Model> m) {
 			model = std::move(m);
 		}
+		bool anchorRight = false;
+		bool anchorBottom = false;
 
 	   private:
 		Transform loadData() const;
@@ -66,10 +77,10 @@ namespace vk {
 		std::string name;
 		bool controllable;
 		GLFWwindow* window = nullptr;
-		bool anchorRight = false;
 		float offsetFromRight = 0.0f;
-		bool anchorBottom = false;
 		float offsetFromBottom = 0.0f;
+		bool centerHorizontal = false;
+		bool centerVertical = false;
 	};
 
 }  // namespace vk

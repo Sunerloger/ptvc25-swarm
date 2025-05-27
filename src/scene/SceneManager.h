@@ -73,7 +73,6 @@ struct Scene {
 // manages active scenes
 class SceneManager {
    public:
-
 	static SceneManager& getInstance();
 
 	SceneManager(const SceneManager&) = delete;
@@ -159,8 +158,17 @@ class SceneManager {
 	// Get tessellation render objects
 	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 
-   private:
+	void clearUIObjects();
 
+	void toggleUIVisibility() {
+		isUIVisible = !isUIVisible;
+	}
+
+	void toggleDebugMenu() {
+		isDebugMenuVisible = !isDebugMenuVisible;
+	}
+
+   private:
 	SceneManager();
 	~SceneManager() = default;
 
@@ -174,4 +182,7 @@ class SceneManager {
 
 	// enables to recognize objects on collision
 	std::unordered_map<JPH::BodyID, vk::id_t> bodyIDToObjectId = {};
+
+	bool isUIVisible = true;
+	bool isDebugMenuVisible = false;
 };

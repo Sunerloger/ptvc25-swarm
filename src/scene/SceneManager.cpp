@@ -36,7 +36,7 @@ void SceneManager::updateUIScale(float deltaTime, int scaleDir) {
 
 std::unique_ptr<Player> SceneManager::setPlayer(std::unique_ptr<Player> newPlayer) {
 	std::unique_ptr<Player> outPlayer;
-	
+
 	if (this->scene->player) {
 		this->idToClass.erase(this->scene->player->getId());
 		this->bodyIDToObjectId.erase(this->scene->player->getBodyID());
@@ -46,7 +46,7 @@ std::unique_ptr<Player> SceneManager::setPlayer(std::unique_ptr<Player> newPlaye
 	scene->player = std::move(newPlayer);
 
 	this->idToClass.emplace(this->scene->player->getId(), PLAYER);
-	
+
 	// Only add to bodyIDToObjectId if the body ID is valid
 	JPH::BodyID bodyID = this->scene->player->getBodyID();
 	if (bodyID != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
@@ -61,7 +61,6 @@ std::unique_ptr<Player> SceneManager::setPlayer(std::unique_ptr<Player> newPlaye
 }
 
 vk::id_t SceneManager::setSun(std::unique_ptr<lighting::Sun> sun) {
-	
 	if (this->scene->sun) {
 		this->idToClass.erase(this->scene->sun->getId());
 	}
@@ -518,10 +517,22 @@ std::vector<std::weak_ptr<lighting::PointLight>> SceneManager::getLights() {
 }
 
 std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
+	if (!this->isUIVisible) {
+		return {};
+	}
 	std::vector<std::weak_ptr<vk::UIComponent>> uiObjects = {};
 
 	for (auto& it : this->scene->uiObjects) {
 		std::weak_ptr<vk::UIComponent> uiObject = it.second;
+		std::shared_ptr<vk::UIComponent> uiComponentPtr = uiObject.lock();
+		if (this->isDebugMenuVisible && uiComponentPtr && uiComponentPtr->isDebugMenuComponent) {
+			// If the debug menu is visible, only include UI components that are marked as debug menu components
+			uiObjects.push_back(uiObject);
+			continue;
+		} else if (!this->isDebugMenuVisible && uiComponentPtr && uiComponentPtr->isDebugMenuComponent) {
+			// If the debug menu is not visible, skip debug menu components
+			continue;
+		}
 		uiObjects.push_back(uiObject);
 	}
 
@@ -529,11 +540,11 @@ std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
 }
 // Get water objects for rendering
 std::vector<std::weak_ptr<vk::WaterObject>> SceneManager::getWaterObjects() {
-    std::vector<std::weak_ptr<vk::WaterObject>> waterObjs;
-    for (auto& it : this->scene->waterObjects) {
-        waterObjs.push_back(it.second);
-    }
-    return waterObjs;
+	std::vector<std::weak_ptr<vk::WaterObject>> waterObjs;
+	for (auto& it : this->scene->waterObjects) {
+		waterObjs.push_back(it.second);
+	}
+	return waterObjs;
 }
 
 std::pair<SceneClass, vk::GameObject*> SceneManager::getObject(vk::id_t id) {
@@ -619,4 +630,9 @@ std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTessellationRenderOb
 	}
 
 	return tessellationObjects;
+}
+
+void SceneManager::clearUIObjects() {
+	this->scene->uiObjects.clear();
+	this->idToClass.clear();
 }
