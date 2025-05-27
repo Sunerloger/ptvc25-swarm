@@ -1,24 +1,33 @@
 #pragma once
 
+#include "../GameObject.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include "../GameObject.h"
+#include <glm/gtx/quaternion.hpp>
+#include <GLFW/glfw3.h>
+#include "INIReader.h"
 
 namespace vk {
+
+	struct Transform {
+		glm::vec3 pos;
+		glm::quat rot;
+		glm::vec3 scale;
+	};
+
 	class UIComponentCreationSettings {
 	   public:
 		std::shared_ptr<Model> model;
-
-		glm::vec3 position;
-		glm::vec3 scale;
-
-		// angle around axis in degrees (pitch, yaw, roll)
-		glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-
-		// specifies if there is a file to read from / write to
+		std::string name;
 		bool controllable = false;
+		GLFWwindow* window = nullptr;
+		bool anchorRight = false;
+		bool anchorBottom = false;
+		bool centerHorizontal = false;
+		bool centerVertical = false;
+
+		bool isDebugMenuComponent = false;
 	};
 
 	class UIComponent : public GameObject {
@@ -26,32 +35,52 @@ namespace vk {
 		UIComponent(UIComponentCreationSettings settings);
 		virtual ~UIComponent() = default;
 
-		void updateTransform(float deltaTime, int placementTransform = -1);
+		void updatePosition(float dt, glm::vec3 dir);
+		void updateRotation(float dt, glm::vec3 rotDir);
+		void updateScale(float dt, int scaleDir);
 
 		glm::mat4 computeModelMatrix() const override;
-
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
-		
-		// if no filename use ui_state_index.txt
-		void saveData(const std::string& filename = "");
-		void loadData(const std::string& filename = "");
 
-		static int nextIndex;
+		bool isControllable() const {
+			return controllable;
+		}
+
+		bool isDebugMenuComponent = false;
+
+	   protected:
+		Transform getTransformData() const {
+			return loadData();
+		}
+		GLFWwindow* getWindowPtr() const {
+			return window;
+		}
+		bool getCenterHorizontal() const {
+			return centerHorizontal;
+		}
+		bool getCenterVertical() const {
+			return centerVertical;
+		}
+		void setModel(std::shared_ptr<Model> m) {
+			model = std::move(m);
+		}
+		bool anchorRight = false;
+		bool anchorBottom = false;
 
 	   private:
+		Transform loadData() const;
+		void saveData(const Transform& t) const;
+
 		std::shared_ptr<Model> model;
-
-		glm::vec3 position;
-		glm::quat orientation;
-		glm::vec3 scale;
-
-		float windowWidth;
-		float windowHeight;
-
-		bool controllable = false;
-
-		int index;
+		std::string name;
+		bool controllable;
+		GLFWwindow* window = nullptr;
+		float offsetFromRight = 0.0f;
+		float offsetFromBottom = 0.0f;
+		bool centerHorizontal = false;
+		bool centerVertical = false;
 	};
-}
+
+}  // namespace vk

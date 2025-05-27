@@ -16,13 +16,13 @@ namespace physics {
 
 		void removePhysicsBody() override;
 
-		JPH::BodyID getBodyID() override { return this->bodyID; }
+		JPH::BodyID getBodyID() const override { return this->bodyID; }
 	
 	protected:
 
-		ManagedPhysicsEntity(std::shared_ptr<JPH::PhysicsSystem> physics_system);
+		ManagedPhysicsEntity(JPH::PhysicsSystem& physics_system);
 
-		std::shared_ptr<JPH::PhysicsSystem> physics_system;
+		JPH::PhysicsSystem& physics_system;
 		JPH::BodyID bodyID;
 	};
 }

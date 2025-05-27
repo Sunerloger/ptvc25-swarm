@@ -1,5 +1,70 @@
 cmake_minimum_required(VERSION 3.22)
+
 project(Swarm)
+
+option(USE_STATIC_MSVC_RUNTIME_LIBRARY "Link Swarm and all FetchContent deps with the static CRT" OFF)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (MSVC)
+    set(CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE "x64")
+    if (USE_STATIC_MSVC_RUNTIME_LIBRARY)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    endif()
+
+    add_compile_options(/FS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
+
+    if (GENERATE_DEBUG_SYMBOLS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
+    endif()
+
+    string(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+
+    if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+    endif()
+
+    set(CMAKE_CXX_FLAGS_DEBUG "/GS /Od /Ob0 /RTC1")
+    set(CMAKE_CXX_FLAGS_RELEASE "/GS- /Gy /O2 /Oi /Ot")
+    set(CMAKE_CXX_FLAGS_DISTRIBUTION "/GS- /Gy /O2 /Oi /Ot")
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        if (CROSS_PLATFORM_DETERMINISTIC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast")
+        endif()
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /showFilenames")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
+    endif()
+else()
+    # Unix/Mac compilers
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    if (GENERATE_DEBUG_SYMBOLS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    endif()
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-stringop-overflow -ffp-contract=off")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
+        if (CMAKE_CXX_COMPILER_VERSION LESS 14 OR CROSS_PLATFORM_DETERMINISTIC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
+        endif()
+    endif()
+
+    # Disable error for missing override
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=inconsistent-missing-override")
+endif()
+
+message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -65,16 +130,45 @@ endif()
 include(FetchContent)
 
 FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG        master
+  GIT_SHALLOW    ON
+)
+FetchContent_MakeAvailable(stb)
+
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_TAG        master
+  GIT_SHALLOW    ON
+)
+FetchContent_MakeAvailable(fmt)
+
+FetchContent_Declare(
+  inih
+  GIT_REPOSITORY https://github.com/benhoyt/inih.git
+  GIT_TAG r60
+  GIT_SHALLOW ON
+)
+
+# no cmake support in inih
+FetchContent_Populate(inih)
+add_library(inih STATIC
+  ${inih_SOURCE_DIR}/ini.c
+  ${inih_SOURCE_DIR}/cpp/INIReader.cpp
+)
+
+set(JPH_BUILD_SHARED_LIBRARY ON CACHE BOOL "Build JoltPhysics as a DLL" FORCE)
+set(JPH_SHARED_LIBRARY ON CACHE BOOL "Use JoltPhysics as a shared library" FORCE)
+FetchContent_Declare(
     Jolt
     GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
     GIT_TAG "v5.2.0"
     SOURCE_SUBDIR "Build"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(Jolt)
-if(NOT Jolt_POPULATED)
-  FetchContent_MakeAvailable(Jolt)
-endif()
+FetchContent_MakeAvailable(Jolt)
 
 if(MSVC)
   target_compile_options(Jolt PRIVATE
@@ -90,10 +184,7 @@ FetchContent_Declare(
     GIT_TAG "v2.9.5"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(tinygltf)
-if(NOT tinygltf_POPULATED)
-  FetchContent_MakeAvailable(tinygltf)
-endif()
+FetchContent_MakeAvailable(tinygltf)
 
 FetchContent_Declare(
     glm
@@ -101,10 +192,7 @@ FetchContent_Declare(
     GIT_TAG "0.9.9.8"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(glm)
-if(NOT glm_POPULATED)
-  FetchContent_MakeAvailable(glm)
-endif()
+FetchContent_MakeAvailable(glm)
 
 set(GLFW_BUILD_DOCS      OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
@@ -116,18 +204,7 @@ FetchContent_Declare(
     GIT_TAG "3.3.8"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(glfw)
-if(NOT glfw_POPULATED)
-  FetchContent_MakeAvailable(glfw)
-endif()
-
 FetchContent_MakeAvailable(glfw)
-if (MSVC)
-  # force GLFW to static CRT (/MTd in Debug, /MT in Release/Distribution)
-  set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY
-    "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-  )
-endif()
 
 FetchContent_Declare(
     tinyobjloader
@@ -135,72 +212,7 @@ FetchContent_Declare(
     GIT_TAG "v1.0.6"
     GIT_SHALLOW ON
 )
-FetchContent_GetProperties(tinyobjloader)
-if(NOT tinyobjloader_POPULATED)
-  FetchContent_MakeAvailable(tinyobjloader)
-endif()
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
-
-if (MSVC)
-    set(CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE "x64")
-    if (USE_STATIC_MSVC_RUNTIME_LIBRARY)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    else()
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-    endif()
-
-    add_compile_options(/FS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Qpar")
-
-    if (GENERATE_DEBUG_SYMBOLS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
-    endif()
-
-    string(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
-
-    if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
-    endif()
-
-    set(CMAKE_CXX_FLAGS_DEBUG "/GS /Od /Ob0 /RTC1")
-    set(CMAKE_CXX_FLAGS_RELEASE "/GS- /Gy /O2 /Oi /Ot")
-    set(CMAKE_CXX_FLAGS_DISTRIBUTION "/GS- /Gy /O2 /Oi /Ot")
-
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-        if (CROSS_PLATFORM_DETERMINISTIC)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise")
-        else()
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast")
-        endif()
-    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /showFilenames")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
-    endif()
-else()
-    # Unix/Mac compilers
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-    if (GENERATE_DEBUG_SYMBOLS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    endif()
-
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-stringop-overflow -ffp-contract=off")
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
-        if (CMAKE_CXX_COMPILER_VERSION LESS 14 OR CROSS_PLATFORM_DETERMINISTIC)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
-        endif()
-    endif()
-
-    # Disable error for missing override
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=inconsistent-missing-override")
-endif()
+FetchContent_MakeAvailable(tinyobjloader)
 
 # Platform-specific pthread linking
 if(UNIX AND NOT APPLE)
@@ -228,6 +240,7 @@ set(LINK_LIBRARIES
     Jolt
     tinygltf
     tinyobjloader
+    fmt
     $<$<BOOL:${APPLE}>:
         "-framework CoreFoundation"
         "-framework CoreGraphics"
@@ -262,8 +275,18 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
+target_include_directories(inih PUBLIC
+  ${inih_SOURCE_DIR}
+  ${inih_SOURCE_DIR}/cpp
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${stb_SOURCE_DIR}
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${LINK_LIBRARIES}
+    inih
 )
 
 # Setup shader compilation

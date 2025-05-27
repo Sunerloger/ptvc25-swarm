@@ -20,17 +20,15 @@ namespace vk {
 	}
 
 	void Renderer::recreateSwapChain() {
-		auto extent = window.getExtent();
-		while (extent.width == 0 || extent.height == 0) {
-			extent = window.getExtent();
+		while (window.getWidth() == 0 || window.getHeight() == 0) {
 			glfwWaitEvents();
 		}
 
 		if (m_swapChain == nullptr) {
-			m_swapChain = std::make_unique<SwapChain>(device, extent);
+			m_swapChain = std::make_unique<SwapChain>(device, window.getExtent());
 		} else {
 			std::shared_ptr<SwapChain> oldSwapChain = std::move(m_swapChain);
-			m_swapChain = std::make_unique<SwapChain>(device, extent, oldSwapChain);
+			m_swapChain = std::make_unique<SwapChain>(device, window.getExtent(), oldSwapChain);
 
 			if (!oldSwapChain->compareSwapFormats(*m_swapChain.get())) {
 				throw std::runtime_error("Swap chain image(or depth) format has changed!");
@@ -113,8 +111,8 @@ namespace vk {
 
 		auto result = m_swapChain->submitCommandBuffers(&commandBuffer, &currentImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
-			window.wasWindowResized()) {
-			window.resetWindowResizedFlag();
+			window.framebufferResized) {
+			window.framebufferResized = false;
 			recreateSwapChain();
 		} else if (result != VK_SUCCESS) {
 			throw std::runtime_error("failed to present swap chain image!");

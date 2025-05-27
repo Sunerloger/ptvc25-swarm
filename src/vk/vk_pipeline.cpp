@@ -1,6 +1,6 @@
 #include "vk_pipeline.h"
 #include "vk_model.h"
-#include "../asset_utils/AssetManager.h"
+#include "../asset_utils/AssetLoader.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -44,7 +44,7 @@ namespace vk {
 	}
 
 	std::vector<char> Pipeline::readFile(const std::string& filepath) {
-		return AssetManager::getInstance().loadShader(filepath);
+		return AssetLoader::getInstance().loadShader(filepath);
 	}
 
 	void Pipeline::createGraphicsPipeline(const std::string& vertFilepath, const std::string& fragFilepath, const PipelineConfigInfo& configInfo) {

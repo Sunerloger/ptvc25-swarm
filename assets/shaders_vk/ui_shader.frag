@@ -8,8 +8,6 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
-    mat4 uiPerspectiveProjection;
-    mat4 uiView;
 } ubo;
 
 layout(location = 0) out vec4 outColor;
@@ -21,8 +19,10 @@ layout(push_constant) uniform Push {
 } push;
 
 void main() {
-    if(push.hasTexture == 1) {
-        outColor = texture(texSampler, fragUV);
+    vec4 texC = texture(texSampler, fragUV);
+
+    if (push.hasTexture == 1) {
+        outColor = vec4(fragColor, 1.0) * texC;
     } else {
         outColor = vec4(fragColor, 1.0);
     }

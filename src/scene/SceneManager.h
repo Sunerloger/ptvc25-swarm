@@ -2,33 +2,45 @@
 
 #include <map>
 #include <queue>
+#include <memory>
 
 #include "../GameObject.h"
 #include "../simulation/objects/ManagedPhysicsEntity.h"
 #include "../simulation/objects/actors/Player.h"
 #include "../simulation/objects/actors/enemies/Enemy.h"
+#include "../rendering/structures/WaterObject.h"
 #include "../lighting/PointLight.h"
 #include "../lighting/Sun.h"
 #include "../ui/UIComponent.h"
-#include "ISceneManagerInteraction.h"
 
 enum SceneClass {
+	INVALID,
 	PLAYER,
 	SUN,
+	WATER,
 	LIGHT,
 	ENEMY,
 	UI_COMPONENT,
 	PHYSICS_OBJECT,
 	SPECTRAL_OBJECT,
-	TESSELLATION_OBJECT  // New class for tessellation objects
+	TESSELLATION_OBJECT	 // New class for tessellation objects
 };
+
+// TODO simplify GameObject and SceneManager
+// TODO GameObject stores SceneClass
+// TODO make singleton
+// TODO store assets + models + materials in sceneManager
+// TODO sceneGraph
 
 // provides scene information to the renderer and the physics engine
 struct Scene {
-	std::shared_ptr<physics::Player> player;
+	std::unique_ptr<Player> player;
 
 	// not rendered and not in physics engine
 	std::shared_ptr<lighting::Sun> sun;
+
+	// rendered and not in physics engine
+	std::unordered_map<vk::id_t, std::shared_ptr<vk::WaterObject>> waterObjects = {};
 
 	// not rendered and not in physics engine
 	std::unordered_map<vk::id_t, std::shared_ptr<lighting::PointLight>> lights = {};
@@ -41,7 +53,7 @@ struct Scene {
 
 	// non actor physics objects (e.g. terrain, drops, bullets, ...)
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::ManagedPhysicsEntity>> physicsObjects = {};
-	
+
 	// objects that use tessellation shaders
 	std::unordered_map<vk::id_t, std::shared_ptr<physics::ManagedPhysicsEntity>> tessellationObjects = {};
 
@@ -53,22 +65,32 @@ struct Scene {
 
 	// objects scheduled for deletion from scene manager
 	std::queue<vk::id_t> staleQueue = {};
+
+	// TODO + store information if timer is running only when game is running in timers themselves
+	// std::vector<Timer> timers;
 };
 
 // manages active scenes
-class SceneManager : public std::enable_shared_from_this<SceneManager>, public ISceneManagerInteraction {
+class SceneManager {
    public:
-	SceneManager();
-	virtual ~SceneManager() = default;
+	static SceneManager& getInstance();
 
-	void updateUIWindowDimensions(float windowWidth, float windowHeight);
-	void updateUITransforms(float deltaTime, int placementTransform = -1);
+	SceneManager(const SceneManager&) = delete;
+	SceneManager& operator=(const SceneManager&) = delete;
+	SceneManager(SceneManager&&) = delete;
+	SceneManager& operator=(SceneManager&&) = delete;
+
+	void updateUIPosition(float deltaTime, glm::vec3 dir);
+	void updateUIRotation(float deltaTime, glm::vec3 rotDir);
+	void updateUIScale(float deltaTime, int scaleDir);
 
 	// always replaces old player!
-	vk::id_t setPlayer(std::unique_ptr<physics::Player> player);
+	std::unique_ptr<Player> setPlayer(std::unique_ptr<Player> player);
 
 	// always replaces old sun!
 	vk::id_t setSun(std::unique_ptr<lighting::Sun> sun);
+
+	vk::id_t addWaterObject(std::unique_ptr<vk::WaterObject> waterObject);
 
 	// @return false if object could not be added because it already exists
 	vk::id_t addSpectralObject(std::unique_ptr<vk::GameObject> spectralObject);
@@ -81,7 +103,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 
 	// @return false if object could not be added because it already exists
 	vk::id_t addManagedPhysicsEntity(std::unique_ptr<physics::ManagedPhysicsEntity> managedPhysicsEntity);
-	
+
 	// @return false if object could not be added because it already exists
 	vk::id_t addTessellationObject(std::unique_ptr<physics::ManagedPhysicsEntity> tessellationObject);
 
@@ -97,8 +119,11 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	// delete objects in staleQueue
 	void removeStaleObjects();
 
-	// update step of all active enemies according to their behaviour
-	void updateEnemies(float cPhysicsDeltaTime);
+	// update step of all active enemies according to their behaviour in physics system
+	void updateEnemyPhysics(float cPhysicsDeltaTime);
+
+	// update step of all active enemies according to their behaviour in rendering system
+	void updateEnemyVisuals(float deltaTime);
 
 	// activates detached bodies (added to simulation again)
 	bool activatePhysicsObject(vk::id_t id);
@@ -114,11 +139,13 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 	std::vector<std::weak_ptr<vk::UIComponent>> getUIObjects();
 
 	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
-	std::unique_ptr<std::pair<SceneClass, std::weak_ptr<vk::GameObject>>> getObject(vk::id_t id);
+	std::pair<SceneClass, vk::GameObject*> getObject(vk::id_t id);
 
-	std::shared_ptr<physics::Player> getPlayer() override;
+	Player* getPlayer();
 
 	std::shared_ptr<lighting::Sun> getSun();
+
+	std::vector<std::weak_ptr<vk::WaterObject>> getWaterObjects();
 
 	// returns the boolean and resets it to false
 	bool isBroadPhaseOptimizationNeeded();
@@ -127,11 +154,24 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 
 	// Get standard render objects (non-tessellated)
 	std::vector<std::weak_ptr<vk::GameObject>> getStandardRenderObjects();
-	
+
 	// Get tessellation render objects
 	std::vector<std::weak_ptr<vk::GameObject>> getTessellationRenderObjects();
 
+	void clearUIObjects();
+
+	void toggleUIVisibility() {
+		isUIVisible = !isUIVisible;
+	}
+
+	void toggleDebugMenu() {
+		isDebugMenuVisible = !isDebugMenuVisible;
+	}
+
    private:
+	SceneManager();
+	~SceneManager() = default;
+
 	// for optimize broad phase -> optimize broad phase before simulation step if bodies in physics system changed
 	bool physicsSceneIsChanged = false;
 
@@ -142,4 +182,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager>, public I
 
 	// enables to recognize objects on collision
 	std::unordered_map<JPH::BodyID, vk::id_t> bodyIDToObjectId = {};
+
+	bool isUIVisible = true;
+	bool isDebugMenuVisible = false;
 };
