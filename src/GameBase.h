@@ -13,7 +13,6 @@ public:
         : inputController(ctrl) {}
 
     void setupInput() override {
-        inputController.setup();
         bindInput();
     }
 

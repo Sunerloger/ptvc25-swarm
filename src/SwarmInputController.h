@@ -46,7 +46,7 @@ namespace input {
         std::function<void(float deltaTime, const glm::vec3& rotDir)>       onRotateUI;
         std::function<void(float deltaTime, int scaleDir)>                  onScaleUI;
 
-        std::function<void(float dt, const glm::vec3& dir)>                           onMoveDebug;
+        std::function<void(float dt, const glm::vec3& dir)>                 onMoveDebug;
         std::function<void(float dx, float dy)>                             onLookDebug;
         std::function<void(float scrollOffset)>                             onChangeSpeedDebug;
 
