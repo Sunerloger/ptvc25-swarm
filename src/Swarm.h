@@ -38,9 +38,7 @@
 using namespace vk;
 
 class Swarm : public GameBase {
-
-public:
-
+   public:
 	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode = false);
 	~Swarm() override = default;
 
@@ -56,18 +54,22 @@ public:
 	void gamePauseUpdate(float deltaTime) override;
 
 	static inline std::string Name = "Swarm";
-	std::string getName() const override { return Name; }
+	std::string getName() const override {
+		return Name;
+	}
 
-	bool isPaused() const override { return inputController.isPaused(); }
+	bool isPaused() const override {
+		return inputController.isPaused();
+	}
 
 	void onPlayerDeath();
 
-private:
-
+   private:
 	void bindInput() override;
 	void toggleDebug();
 
 	id_t gameTimeTextID;
+	id_t gameHealthTextID;
 	float elapsedTime = 0;
 	int oldSecond = 0;
 
@@ -80,6 +82,6 @@ private:
 	bool debugMode;
 
 	bool isDebugActive = false;
-	
+
 	physics::PhysicsPlayer::PlayerCreationSettings originalPlayerSettings;
 };

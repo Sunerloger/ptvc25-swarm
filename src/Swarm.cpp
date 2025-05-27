@@ -186,7 +186,7 @@ void Swarm::onPlayerDeath() {
 		font,
 		time,
 		"you_died_time",
-		/* controllable: */ true,
+		/* controllable: */ false,
 		/* centerHorizontal: */ true,
 		/* horizontalOffset: */ 0.0f,
 		/* centerVertical:   */ true,
@@ -415,6 +415,35 @@ void Swarm::init() {
 		hudSettings.isDebugMenuComponent = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
+		// Health quad
+		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
+		hudSettings.name = "health_quad";
+		hudSettings.controllable = false;
+		hudSettings.anchorRight = false;
+		hudSettings.anchorBottom = true;
+		hudSettings.centerHorizontal = true;
+		hudSettings.centerVertical = false;
+		hudSettings.isDebugMenuComponent = false;
+		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
+
+		// Health text
+		TextComponent* healthText = new TextComponent(
+			device,
+			font,
+			"Health: 100%",
+			"health_text",
+			/* controllable: */ false,
+			/* centerHorizontal: */ true,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ false,
+			/* verticalOffset: */ 0.0f,
+			/* anchorRight: */ false,
+			/* anchorBottom: */ true,
+			/* isDebugMenuComponent: */ false,
+			window.getGLFWWindow());
+		gameHealthTextID = sceneManager.addUIObject(
+			std::unique_ptr<UIComponent>(healthText));
+
 		// Clock
 		TextComponent* gameTimeText = new TextComponent(
 			device,
@@ -476,6 +505,24 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	}
 
 	sceneManager.updateEnemyVisuals(deltaTime);
+
+	// Update health text
+	if (isDebugActive) {
+		// In debug mode, we don't update the health text
+		return;
+	}
+	auto player = sceneManager.getPlayer();
+	if (player) {
+		auto objPair = sceneManager.getObject(gameHealthTextID);
+		if (objPair.first != SceneClass::INVALID) {
+			if (auto ui = objPair.second) {
+				if (auto text = static_cast<TextComponent*>(ui)) {
+					float health = player->getCurrentHealth();
+					text->setText(fmt::format("Health: {:.0f}%", health));
+				}
+			}
+		}
+	}
 }
 
 void Swarm::prePhysicsUpdate() {
