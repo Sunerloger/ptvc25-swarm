@@ -65,7 +65,15 @@ namespace vk {
 			int gridSize,
 			const std::string& tileTexturePath,
 			float noiseScale = 1.0f,
-			float heightScale = 1.0f);
+			float heightScale = 1.0f,
+			bool loadHeightTexture = false,
+			const std::string& heightTexturePath = "none",
+			int seed = -1, // if -1: use random
+			glm::vec2 tileScale = glm::vec2(0.25f, 0.25f),
+			bool useTessellation = true,
+			float maxTessLevel = 16.0f,
+			float minTessDistance = 20.0f,
+			float maxTessDistance = 100.0f);
 
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);

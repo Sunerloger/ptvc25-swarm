@@ -246,7 +246,16 @@ void Swarm::init() {
 			samplesPerSide,
 			"textures:ground/dirt.png",	 // Tile texture path
 			noiseScale,
-			maxTerrainHeight);
+			maxTerrainHeight,
+			/* loadHeightTexture */ false,
+			/* heightTexturePath */ "none",
+			/* seed */ -1, // if -1: use random
+			/* textureRepetition */ glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f),
+			/* useTessellation */ true,
+			/* maxTessLevel */ 8.0f,
+			/* minTessDistance */ 20.0f,
+			/* maxTessDistance */ 100.0f
+		);
 
 		// create terrain with procedural heightmap using perlin noise
 		// create terrain with the generated heightmap data

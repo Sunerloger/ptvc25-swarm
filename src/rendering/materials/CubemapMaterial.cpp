@@ -20,9 +20,10 @@ namespace vk {
         createCubemapSampler();
         createDescriptorSet();
 
-        pipelineConfig.depthWriteEnable = false;
-        pipelineConfig.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-        pipelineConfig.cullMode = VK_CULL_MODE_NONE;
+        Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
+        pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
         pipelineConfig.vertShaderPath = "skybox_shader.vert";
         pipelineConfig.fragShaderPath = "skybox_shader.frag";
     }
@@ -39,9 +40,10 @@ namespace vk {
         createCubemapSampler();
         createDescriptorSet();
 
-        pipelineConfig.depthWriteEnable = false;
-        pipelineConfig.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-        pipelineConfig.cullMode = VK_CULL_MODE_NONE;
+        Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
+        pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
         pipelineConfig.vertShaderPath = "skybox_shader.vert";
         pipelineConfig.fragShaderPath = "skybox_shader.frag";
     }

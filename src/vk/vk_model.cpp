@@ -571,7 +571,15 @@ namespace vk {
 		int gridSize,
 		const std::string& tileTexturePath,
 		float noiseScale,
-		float heightScale) {
+		float heightScale,
+		bool loadHeightTexture,
+		const std::string& heightTexturePath,
+		int seed,
+		glm::vec2 textureRepetition,
+		bool useTessellation,
+		float maxTessLevel,
+		float minTessDistance,
+		float maxTessDistance) {
 		// Create a vector to store the heightmap data
 		std::vector<float> heightData(gridSize * gridSize);
 		std::vector<unsigned char> imageData(gridSize * gridSize * 4);	// RGBA format (this only enables png for now)
@@ -582,10 +590,15 @@ namespace vk {
 			p[i] = i;
 		}
 
-		// Use a random seed for the shuffle
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(p.begin(), p.begin() + 256, g);
+		if (seed == -1) {
+			std::random_device rd;
+			std::mt19937 g(rd());
+			std::shuffle(p.begin(), p.begin() + 256, g);
+		}
+		else {
+			std::mt19937 g(seed);
+			std::shuffle(p.begin(), p.begin() + 256, g);
+		}
 
 		// Duplicate the permutation to avoid overflow
 		for (int i = 0; i < 256; i++) {
@@ -627,7 +640,7 @@ namespace vk {
 			}
 		}
 
-		// Save the heightmap using the AssetManager
+		// save the heightmap
 		std::string heightmapPath = "terrain/temp_heightmap.png";
 		std::string texturePath = AssetLoader::getInstance().saveTexture(
 			heightmapPath,
@@ -650,21 +663,19 @@ namespace vk {
 		if (gridSize < 2)
 			gridSize = 2;
 
-		// Calculate the number of vertices and indices
+		// calculate the number of vertices and indices
 		int numVertices = gridSize * gridSize;
-		int numIndices = (gridSize - 1) * (gridSize - 1) * 6;  // 2 triangles per grid cell
+		int numIndices = (gridSize - 1) * (gridSize - 1) * 4;  // 4 control points per grid cell
 
-		// Create vertices
 		std::vector<Model::Vertex> vertices;
 		vertices.reserve(numVertices);
 
-		// Size of the grid (from -1 to 1 in both x and z)
+		// size of the grid (from -1 to 1 in both x and z)
 		const float size = 1.0f;
 
-		// Calculate the step size
 		float step = (2.0f * size) / (gridSize - 1);
 
-		// Generate vertices
+		// generate vertices
 		for (int z = 0; z < gridSize; z++) {
 			for (int x = 0; x < gridSize; x++) {
 				float xPos = -size + x * step;
@@ -694,36 +705,29 @@ namespace vk {
 				// UV coordinates (tiled)
 				// Map UV from 0 to gridSize to create tiling effect
 				glm::vec2 uv = {
-					static_cast<float>(x) / (gridSize - 1) * 4.0f,	// Tile 4 times
-					static_cast<float>(z) / (gridSize - 1) * 4.0f	// Tile 4 times
+					static_cast<float>(x) / (gridSize - 1),
+					static_cast<float>(z) / (gridSize - 1)
 				};
 
 				vertices.push_back({position, color, normal, uv});
 			}
 		}
 
-		// Create indices
 		std::vector<uint32_t> indices;
 		indices.reserve(numIndices);
 
-		// Generate indices for triangles
+		// Generate indices for grid cells
 		for (int z = 0; z < gridSize - 1; z++) {
 			for (int x = 0; x < gridSize - 1; x++) {
-				// Calculate the indices of the four corners of the current grid cell
 				uint32_t topLeft = z * gridSize + x;
 				uint32_t topRight = topLeft + 1;
 				uint32_t bottomLeft = (z + 1) * gridSize + x;
 				uint32_t bottomRight = bottomLeft + 1;
 
-				// counter-clockwise
-				indices.push_back(topLeft);
-				indices.push_back(bottomRight);
 				indices.push_back(bottomLeft);
-
-				// counter-clockwise
+				indices.push_back(bottomRight);
 				indices.push_back(topLeft);
 				indices.push_back(topRight);
-				indices.push_back(bottomRight);
 			}
 		}
 
@@ -733,28 +737,23 @@ namespace vk {
 		builder.vertices = std::move(vertices);
 		builder.indices = std::move(indices);
 
-		// Create the model
 		auto model = std::make_unique<Model>(device, builder);
 
-		// Create a material with the tile texture and heightmap
 		auto material = std::make_shared<TessellationMaterial>(
 			device,
 			tileTexturePath,
-			texturePath,  // Use the path returned by the AssetLoader
+			texturePath,
 			"terrain_shader.vert",
 			"terrain_shader.frag",
 			"terrain_tess_control.tesc",
 			"terrain_tess_eval.tese");
 
-		// Set tessellation parameters
-		material->setTileScale(0.25f, 0.25f);  // Control texture tiling
-		material->setTessellationParams(16.0f, 20.0f, 100.0f, heightScale);
+		material->setTextureRepetition(textureRepetition); // control texture tiling
+		material->setTessellationParams(maxTessLevel, minTessDistance, maxTessDistance, heightScale);
 
-		// Enable tessellation
 		auto& config = material->getPipelineConfig();
-		config.useTessellation = true;
+		config.useTessellation = useTessellation;
 
-		// Apply the material to the model
 		model->setMaterial(material);
 
 		return {std::move(model), heightData};

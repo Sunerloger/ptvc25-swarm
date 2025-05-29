@@ -19,10 +19,9 @@ namespace vk {
 
         // Pipeline configuration
         // Non-const version for modifying the pipeline config
-        virtual PipelineConfigInfo& getPipelineConfig() { return pipelineConfig; }
+        virtual PipelineConfigInfo& getPipelineConfigRef() { return pipelineConfig; }
         
-        // Const version for reading the pipeline config
-        virtual const PipelineConfigInfo& getPipelineConfig() const { return pipelineConfig; }
+        virtual PipelineConfigInfo getPipelineConfig() const { return pipelineConfig; }
 
         // Descriptor set access
         virtual VkDescriptorSet getDescriptorSet() const = 0;

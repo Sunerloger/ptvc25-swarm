@@ -173,7 +173,7 @@ namespace physics {
 		}
 	}
 
-	const glm::vec3 PhysicsPlayer::getCameraPosition() const {
+	glm::vec3 PhysicsPlayer::getCameraPosition() const {
 		return camera.getPosition();
 	}
 

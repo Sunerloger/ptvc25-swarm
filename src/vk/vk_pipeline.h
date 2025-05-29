@@ -1,19 +1,18 @@
 #pragma once
 
-#include "string"
-#include "vector"
+#include <string>
+#include <vector>
+#include <functional>
+
 #include "vk_device.h"
 
 namespace vk {
 
     struct PipelineConfigInfo {
-        PipelineConfigInfo(const PipelineConfigInfo&) = delete;
-        PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
-        
-        // Convenience accessors for backward compatibility
-        bool& depthWriteEnable = *reinterpret_cast<bool*>(&depthStencilInfo.depthWriteEnable);
-        VkCompareOp& depthCompareOp = depthStencilInfo.depthCompareOp;
-        VkCullModeFlags& cullMode = rasterizationInfo.cullMode;
+
+        PipelineConfigInfo() = default;
+        PipelineConfigInfo(PipelineConfigInfo const&) = default;
+        PipelineConfigInfo& operator=(PipelineConfigInfo const&) = default;
 
         std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
@@ -26,35 +25,40 @@ namespace vk {
         VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
         std::vector<VkDynamicState> dynamicStateEnables;
         VkPipelineDynamicStateCreateInfo dynamicStateInfo;
+
         VkPipelineLayout pipelineLayout = nullptr;
         VkRenderPass renderPass = nullptr;
         uint32_t subpass = 0;
-        
+
         // Shader paths
         std::string vertShaderPath = "texture_shader.vert";
         std::string fragShaderPath = "texture_shader.frag";
-        
+
         // Tessellation support
         bool useTessellation = false;
         std::string tessControlShaderPath = "";
         std::string tessEvalShaderPath = "";
         VkPipelineTessellationStateCreateInfo tessellationInfo{};
-        uint32_t patchControlPoints = 3;  // Default for triangles
+        uint32_t patchControlPoints = 4;
+
+        bool operator==(PipelineConfigInfo const& o) const {
+            return vertShaderPath == o.vertShaderPath
+                && tessControlShaderPath == o.tessControlShaderPath
+                && tessEvalShaderPath == o.tessEvalShaderPath
+                && fragShaderPath == o.fragShaderPath
+                && patchControlPoints == o.patchControlPoints
+                && rasterizationInfo.cullMode == o.rasterizationInfo.cullMode
+                && rasterizationInfo.polygonMode == o.rasterizationInfo.polygonMode
+                && depthStencilInfo.depthWriteEnable == o.depthStencilInfo.depthWriteEnable
+                && depthStencilInfo.depthCompareOp == o.depthStencilInfo.depthCompareOp
+                && renderPass == o.renderPass
+                && subpass == o.subpass;
+        }
     };
 
     class Pipeline {
     public:
         Pipeline(Device &device,
-                 const std::string& vertFilepath,
-                 const std::string& fragFilepath,
-                 const PipelineConfigInfo& configInfo);
-                 
-        // Constructor with tessellation shaders
-        Pipeline(Device &device,
-                 const std::string& vertFilepath,
-                 const std::string& tessControlFilepath,
-                 const std::string& tessEvalFilepath,
-                 const std::string& fragFilepath,
                  const PipelineConfigInfo& configInfo);
                  
         ~Pipeline();
@@ -65,23 +69,16 @@ namespace vk {
         void bind(VkCommandBuffer commandBuffer);
 
         static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
-        static void tessellationPipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t patchControlPoints = 3);
+        static void defaultTessellationPipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t patchControlPoints = 4);
 
 
     private:
-        static std::vector<char> readFile(const std::string& filepath);
 
-        void createGraphicsPipeline(const std::string& vertFilepath,
-                                    const std::string& fragFilepath,
-                                    const PipelineConfigInfo& configInfo);
-                                    
-        void createTessellationPipeline(const std::string& vertFilepath,
-                                       const std::string& tessControlFilepath,
-                                       const std::string& tessEvalFilepath,
-                                       const std::string& fragFilepath,
-                                       const PipelineConfigInfo& configInfo);
+        void createPipeline(const PipelineConfigInfo& configInfo);
 
-        void createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
+        void createShaderModule(const std::string& filepath, VkShaderModule* shaderModule);
+
+        VkPipelineShaderStageCreateInfo makeStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);
 
         Device& device;
         VkPipeline graphicsPipeline;
@@ -89,5 +86,33 @@ namespace vk {
         VkShaderModule fragShaderModule;
         VkShaderModule tessControlShaderModule = VK_NULL_HANDLE;
         VkShaderModule tessEvalShaderModule = VK_NULL_HANDLE;
+    };
+}
+
+namespace std {
+    template<>
+    struct hash<vk::PipelineConfigInfo> {
+        size_t operator()(vk::PipelineConfigInfo const& c) const noexcept {
+            size_t h = 0;
+            auto hc = [](auto& seed, auto const& v) {
+                // hash_combine
+                using T = std::decay_t<decltype(v)>;
+                seed ^= std::hash<T>()(v)
+                    + 0x9e3779b97f4a7c15ULL
+                    + (seed << 6) + (seed >> 2);
+                };
+            hc(h, c.vertShaderPath);
+            hc(h, c.tessControlShaderPath);
+            hc(h, c.tessEvalShaderPath);
+            hc(h, c.fragShaderPath);
+            hc(h, c.patchControlPoints);
+            hc(h, c.rasterizationInfo.cullMode);
+            hc(h, c.rasterizationInfo.polygonMode);
+            hc(h, c.depthStencilInfo.depthWriteEnable);
+            hc(h, c.depthStencilInfo.depthCompareOp);
+            hc(h, (uint64_t)c.renderPass);
+            hc(h, c.subpass);
+            return h;
+        }
     };
 }

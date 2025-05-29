@@ -31,4 +31,6 @@ public:
 	virtual CharacterCameraSettings getCameraSettings() const = 0;
 	
 	virtual bool isPhysicsPlayer() const { return false; }
+
+	virtual glm::vec3 getCameraPosition() const = 0;
 };

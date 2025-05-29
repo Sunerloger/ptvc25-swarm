@@ -17,7 +17,7 @@ namespace vk {
 		}
 	}
 
-	void TextureRenderSystem::createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
+	void TextureRenderSystem::getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
 		// Check if we already have a pipeline layout for this material layout
 		auto it = pipelineLayoutCache.find(materialSetLayout);
 		if (it != pipelineLayoutCache.end()) {
@@ -50,62 +50,41 @@ namespace vk {
 
 	TextureRenderSystem::PipelineInfo& TextureRenderSystem::getPipeline(const Material& material) {
 		// Get the material's pipeline configuration
-		const auto& config = material.getPipelineConfig();
-		
-		// Create a key for the pipeline cache
-		PipelineKey key{
-			config.vertShaderPath,
-			config.fragShaderPath,
-			config.depthStencilInfo.depthWriteEnable == VK_TRUE,
-			config.depthStencilInfo.depthCompareOp,
-			config.rasterizationInfo.cullMode
-		};
-
-		// Check if we already have a pipeline for this configuration
-		auto it = pipelineCache.find(key);
-		if (it != pipelineCache.end()) {
-			return it->second;
-		}
+		PipelineConfigInfo config = material.getPipelineConfig();
 
 		// Get the descriptor set layout directly from the material
 		VkDescriptorSetLayout materialSetLayout = material.getDescriptorSetLayout();
 
-		// Create pipeline layout
+		// Create or retrieve pipeline layout
 		VkPipelineLayout pipelineLayout;
-		createPipelineLayout(materialSetLayout, pipelineLayout);
+		getPipelineLayout(materialSetLayout, pipelineLayout);
 
-		// Create pipeline config
-		PipelineConfigInfo pipelineConfig{};
-		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+		config.renderPass = renderPass;
+		config.pipelineLayout = pipelineLayout;
 
-		// Apply material properties
-		pipelineConfig.depthStencilInfo.depthWriteEnable = config.depthStencilInfo.depthWriteEnable;
-		pipelineConfig.depthStencilInfo.depthCompareOp = config.depthStencilInfo.depthCompareOp;
-		pipelineConfig.rasterizationInfo.cullMode = config.rasterizationInfo.cullMode;
+		// Check if we already have a pipeline for this configuration
+		auto it = pipelineCache.find(config);
+		if (it != pipelineCache.end()) {
+			return it->second;
+		}
 
-		pipelineConfig.renderPass = renderPass;
-		pipelineConfig.pipelineLayout = pipelineLayout;
-
-		// Create pipeline
+		// Create pipeline because it doesn't exist yet
 		PipelineInfo pipelineInfo{};
 		pipelineInfo.pipelineLayout = pipelineLayout;
 		
-		// Create standard pipeline
 		pipelineInfo.pipeline = std::make_unique<Pipeline>(
 			device,
-			config.vertShaderPath,
-			config.fragShaderPath,
-			pipelineConfig
+			config
 		);
 
 		// Cache and return
-		return pipelineCache[key] = std::move(pipelineInfo);
+		return pipelineCache[config] = std::move(pipelineInfo);
 	}
 
 	void TextureRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
 		SceneManager& sceneManager = SceneManager::getInstance();
 
-		// Render all standard objects (non-tessellated)
+		// render all standard objects (non-tessellated)
 		for (std::weak_ptr<GameObject> weakObj : sceneManager.getStandardRenderObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject || !gameObject->getModel())
@@ -114,13 +93,11 @@ namespace vk {
 			auto material = gameObject->getModel()->getMaterial();
 			if (!material) continue;
 
-			// Get pipeline for this material
 			auto& pipelineInfo = getPipeline(*material);
 
-			// Bind pipeline
 			pipelineInfo.pipeline->bind(frameInfo.commandBuffer);
 
-			// Bind global descriptor set
+			// bind global descriptor set
 			vkCmdBindDescriptorSets(
 				frameInfo.commandBuffer,
 				VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -131,22 +108,18 @@ namespace vk {
 				0, nullptr
 			);
 
-			// Set push constants
 			SimplePushConstantData push{};
 
-			// Use the game object's model matrix and normal matrix
-			// The skybox GameObject class overrides these methods to return identity matrices
+			// use the game object's model matrix and normal matrix
+			// the skybox GameObject class overrides these methods to return identity matrices
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
 
 			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
-			
-			// No type checking - trust the implementation
 
-			// Determine shader stages to push constants to
 			VkShaderStageFlags stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			
-			// If using tessellation, include those shader stages
+			// if tessellation is used, include those shader stages (potential future unification with tessellation render system)
 			if (material->getPipelineConfig().useTessellation) {
 				stageFlags |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 			}
@@ -160,7 +133,7 @@ namespace vk {
 				&push
 			);
 
-			// Bind material descriptor set
+			// bind material descriptor set
 			VkDescriptorSet materialDS = material->getDescriptorSet();
 			if (materialDS != VK_NULL_HANDLE) {
 				vkCmdBindDescriptorSets(
@@ -174,10 +147,9 @@ namespace vk {
 				);
 			}
 
-			// Draw
 			gameObject->getModel()->bind(frameInfo.commandBuffer);
 			gameObject->getModel()->draw(frameInfo.commandBuffer);
 		}
 	}
 
-} // namespace vk
+}

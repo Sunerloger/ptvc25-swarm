@@ -3,14 +3,15 @@
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragPosWorld;
 layout(location = 2) in vec2 fragTexCoord;
+layout(location = 3) in float fragHeight;
 
 layout(location = 0) out vec4 outColor;
 
 layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
-    vec4 params1;  // x: hasTexture, yz: tileScale, w: maxTessLevel
-    vec4 params2;  // x: tessDistance, y: minTessDistance, z: heightScale, w: useHeightmapTexture
+    vec4 params1;  // x: hasTexture, yz: textureRepetition, w: maxTessLevel
+    vec4 params2;  // x: minTessDistance, y: maxTessDistance, z: heightScale, w: useHeightmapTexture
 } push;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {

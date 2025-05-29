@@ -72,7 +72,7 @@ namespace physics {
 		void takeDamage(float damage) override;
 		bool isDead() const;
 
-		const glm::vec3 getCameraPosition() const;
+		glm::vec3 getCameraPosition() const override;
 		inline const glm::mat4 calculateViewMat() const override { return camera.calculateViewMat(); }
 		inline const glm::mat4 getProjMat() const override { return camera.getProjMat(); }
 		inline const glm::vec3 getFront() const { return camera.getFront(); }

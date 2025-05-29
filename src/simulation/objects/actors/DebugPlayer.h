@@ -53,6 +53,8 @@ public:
 	inline glm::vec3 getPosition() const override { return camera.getPosition(); }
 	inline std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
 
+	glm::vec3 getCameraPosition() const override { return camera.getPosition(); };
+
 private:
 
 	float movementSpeed = 7.0f;
