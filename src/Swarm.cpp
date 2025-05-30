@@ -254,7 +254,7 @@ void Swarm::init() {
 			/* loadHeightTexture */ false,
 			/* heightTexturePath */ "none",
 			/* seed */ -1, // if -1: use random
-			/* textureRepetition */ glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f),
+			/* textureRepetition */ glm::vec2(samplesPerSide / 2.0f, samplesPerSide / 2.0f),
 			/* useTessellation */ true,
 			/* maxTessLevel */ 16.0f,
 			/* minTessDistance */ 10.0f,
