@@ -80,6 +80,11 @@ class SceneManager {
 	SceneManager(SceneManager&&) = delete;
 	SceneManager& operator=(SceneManager&&) = delete;
 
+	// TODO refactor into timer class
+	float realTime = 0;
+	float gameTime = 0;
+	float simulationTime = 0;
+
 	void updateUIPosition(float deltaTime, glm::vec3 dir);
 	void updateUIRotation(float deltaTime, glm::vec3 rotDir);
 	void updateUIScale(float deltaTime, int scaleDir);

@@ -63,7 +63,6 @@ namespace vk {
 			globalSetLayout->getDescriptorSetLayout()};
 
 		startTime = std::chrono::high_resolution_clock::now();
-		float gameTime = 0;
 		auto currentTime = startTime;
 		float physicsTimeAccumulator = 0.0f;
 
@@ -71,6 +70,7 @@ namespace vk {
 			auto newTime = std::chrono::high_resolution_clock::now();
 			float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
 			currentTime = newTime;
+			float realDeltaTime = deltaTime;
 			deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
 
 			glfwPollEvents();
@@ -83,16 +83,21 @@ namespace vk {
 			}
 
 			if (!game.isPaused()) {
+
+				sceneManager.realTime += realDeltaTime;
+				sceneManager.gameTime += deltaTime;
+
 				// Time
-				int newSecond = floor(gameTime + deltaTime);
-				if (engineSettings.debugTime && newSecond > floor(gameTime)) {
+				int newSecond = floor(sceneManager.realTime + realDeltaTime);
+				if (engineSettings.debugTime && newSecond > floor(sceneManager.realTime)) {
 					std::cout << "Time since start: " << newSecond << "s" << std::endl;
 				}
-				physicsTimeAccumulator += deltaTime;
-				gameTime += deltaTime;
 
 				game.gameActiveUpdate(deltaTime);
 
+				physicsTimeAccumulator += deltaTime;
+
+				// maximum: subSteps * cPhysicsDeltaTime, if more: physics runs slower to prevent spiral of death
 				for (int subSteps = 0; physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime && subSteps < physicsSimulation.maxPhysicsSubSteps; subSteps++) {
 					game.prePhysicsUpdate();
 					
@@ -101,9 +106,11 @@ namespace vk {
 					physicsSimulation.postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
 					
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
-					// TODO substep system + last min?
+					sceneManager.simulationTime += engineSettings.cPhysicsDeltaTime;
+
 					game.postPhysicsUpdate();
 				}
+				// throw away more than one physics update to prevent physics running too often next step
 				physicsTimeAccumulator = glm::min(physicsTimeAccumulator, engineSettings.cPhysicsDeltaTime);
 			}
 			else {

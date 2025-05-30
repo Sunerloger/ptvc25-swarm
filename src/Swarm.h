@@ -70,7 +70,6 @@ class Swarm : public GameBase {
 
 	id_t gameTimeTextID;
 	id_t gameHealthTextID;
-	float elapsedTime = 0;
 	int oldSecond = 0;
 
 	physics::PhysicsSimulation& physicsSimulation;

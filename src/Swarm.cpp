@@ -497,9 +497,7 @@ void Swarm::init() {
 void Swarm::gameActiveUpdate(float deltaTime) {
 	SceneManager& sceneManager = SceneManager::getInstance();
 
-	// TODO refactor into timer class
-	elapsedTime += deltaTime;
-	int newSecond = static_cast<int>(elapsedTime);
+	int newSecond = static_cast<int>(sceneManager.realTime);
 
 	if (newSecond > oldSecond) {
 		auto objPair = sceneManager.getObject(gameTimeTextID);
