@@ -68,22 +68,23 @@ namespace procedural {
 		int seed) {
 		LSystem lsystem = LSystem::createFern(seed);
 
-		// Create more detailed fern with precisely 4 iterations for better visibility
-		std::string lsystemString = lsystem.generate(4);
+		// Create larger, more detailed fern with 3-4 iterations for good complexity
+		std::string lsystemString = lsystem.generate(3);
 
 		// Get the default turtle parameters
 		TurtleParameters params = lsystem.getTurtleParameters();
 
-		// Customize the parameters for more realistic ferns with our new 3D system
-		params.stepLength = 0.2f;						 // Good segment length for visibility
-		params.angleIncrement = 35.0f;					 // Wider angles for classic fern look
-		params.radiusDecay = 0.85f;						 // Good taper
-		params.lengthDecay = 0.9f;						 // Gradual length decay
-		params.initialRadius = 0.025f;					 // Visible but not too thick
-		params.leafColor = glm::vec3(0.15f, 0.7f, 0.15f); // Brighter green for better visibility
+		// Customize the parameters for larger, more realistic ferns
+		params.stepLength = 0.6f;						 // Much larger segments for bigger ferns
+		params.angleIncrement = 30.0f;					 // Good angle for natural frond spread
+		params.radiusDecay = 0.88f;						 // Gradual taper to maintain main stem
+		params.lengthDecay = 0.92f;						 // Slow decay for larger overall structure
+		params.initialRadius = 0.12f;					 // Much thicker main stem
+		params.initialColor = glm::vec3(0.3f, 0.2f, 0.1f); // Brown stem color
+		params.leafColor = glm::vec3(0.15f, 0.8f, 0.2f);   // Vibrant green for fronds
 
-		// Generate geometry with customized parameters
-		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, params, glm::vec3(0.0f), seed);
+		// Generate geometry with customized parameters, starting at ground level
+		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, params, glm::vec3(0.0f, 0.0f, 0.0f), seed);
 		geometry.type = VegetationType::Fern;
 
 		// Create the vegetation object

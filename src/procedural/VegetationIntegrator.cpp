@@ -43,7 +43,8 @@ namespace procedural {
 			float slope = calculateSlope(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 
 			if (isSuitableForVegetation(VegetationType::Fern, pos2D, height, slope, settings)) {
-				glm::vec3 position(pos2D.x, height, pos2D.y);
+				// Ensure fern is properly grounded - place it slightly below terrain surface
+				glm::vec3 position(pos2D.x, height - 0.1f, pos2D.y);
 				float scale = getRandomScale(settings.fernScaleRange, rng);
 
 				// Generate unique seed for each fern for variety

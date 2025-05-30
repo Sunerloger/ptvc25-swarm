@@ -352,26 +352,28 @@ namespace procedural {
 		LSystem fern;
 		fern.rng.seed(seed);
 
-		// Improved fern with better 3D structure using multiple symbols
-		fern.setAxiom("F");
+		// Improved fern with a strong main stem and side fronds
+		// Start with main stem growth, then branch out
+		fern.setAxiom("FFFFFF");  // Start with an even stronger main stem
 
-		// Create a more realistic fern frond structure
-		// Main spine with alternating side branches and leaflets
-		fern.addRule('F', "F[+FG][-FG]F", 0.6f);     // Main growth with small leaflets
-		fern.addRule('F', "F[++FL][--FL]F", 0.3f);   // Variation with complex leaflets
-		fern.addRule('F', "F[+G][-G]", 0.1f);        // Simple leaflet variation
+		// Main stem continues growing while producing side fronds
+		fern.addRule('F', "FF[+FG][-FG]", 0.4f);      // Main growth with side branches
+		fern.addRule('F', "FFF[++FL][--FL]", 0.3f);   // Stronger main stem with complex fronds
+		fern.addRule('F', "FF[+G][-G]", 0.2f);        // Simple side leaflets
+		fern.addRule('F', "FFF", 0.1f);               // Pure main stem growth for strength
 		
-		// Leaflet generation - creates small branching structures
-		fern.addRule('L', "G[+G][-G]", 0.7f);        // Leaflet with small cylinders
-		fern.addRule('L', "FG", 0.3f);               // Simple leaflet with cylinder
+		// Leaflet generation - creates realistic frond structures
+		fern.addRule('L', "FG[+G][-G]", 0.7f);        // Complex frond with sub-leaflets
+		fern.addRule('L', "FGG", 0.3f);               // Simple frond with leaflets
 
 		TurtleParameters params;
-		params.stepLength = 0.15f;						 // Even shorter steps for more detail
-		params.angleIncrement = 30.0f;					 // Wider angles for better fern shape
-		params.radiusDecay = 0.8f;						 // More pronounced taper
-		params.lengthDecay = 0.85f;						 // Gradual length decrease
-		params.initialRadius = 0.015f;					 // Very thin initial stem
-		params.leafColor = glm::vec3(0.1f, 0.6f, 0.1f); // Darker green for leaves
+		params.stepLength = 0.5f;						 // Large steps for impressive size
+		params.angleIncrement = 22.0f;					 // Slightly narrower for more upright growth
+		params.radiusDecay = 0.88f;						 // Gradual taper to maintain thick main stem
+		params.lengthDecay = 0.92f;						 // Slow length decrease for larger structure
+		params.initialRadius = 0.1f;					 // Thick main stem for strong central trunk
+		params.initialColor = glm::vec3(0.35f, 0.25f, 0.1f); // Brown stem color for main trunk
+		params.leafColor = glm::vec3(0.15f, 0.8f, 0.2f);     // Bright green for fronds
 		fern.setTurtleParameters(params);
 
 		return fern;

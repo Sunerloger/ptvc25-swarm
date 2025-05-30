@@ -289,8 +289,8 @@ void Swarm::init() {
 			// Slope constraints for realistic placement
 			vegSettings.maxBushSlope = 30.0f;
 
-			// Scale variation for natural look - reduced size for better appearance
-			vegSettings.fernScaleRange = glm::vec2(0.2f, 0.6f);	 // Smaller ferns look better
+			// Scale variation for much larger, more impressive ferns
+			vegSettings.fernScaleRange = glm::vec2(1.2f, 2.5f);	 // Much bigger ferns for better visibility
 
 			// Use random seed for deterministic vegetation
 			vegSettings.placementSeed = 12345;	// Different seed for new patterns
