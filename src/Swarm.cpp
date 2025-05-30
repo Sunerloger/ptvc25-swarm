@@ -279,20 +279,21 @@ void Swarm::init() {
 			
 			// Configure vegetation settings with optimized density for ferns only
 			procedural::VegetationIntegrator::VegetationSettings vegSettings;
-			vegSettings.fernDensity = 0.0008f;    // Low density for ferns to avoid resource exhaustion
-			
-			// Set terrain bounds to match our terrain
-			vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
-			vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
-			
-			// Slope constraints for realistic placement
-			vegSettings.maxBushSlope = 30.0f;
-			
-			// Scale variation for natural look
-			vegSettings.fernScaleRange = glm::vec2(0.4f, 1.1f);
-			
-			// Use random seed for deterministic vegetation
-			vegSettings.placementSeed = 42;  // Changed seed for variety
+			vegSettings.fernDensity = 0.0008f;    // Low density for ferns to avoid resource exhaustion            // Set terrain bounds to match our terrain
+            vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
+            vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
+            
+            // Increase fern density for more plants
+            vegSettings.fernDensity = 0.002f;    // Increased density for more ferns
+            
+            // Slope constraints for realistic placement
+            vegSettings.maxBushSlope = 30.0f;
+            
+            // Scale variation for natural look - reduced size for better appearance
+            vegSettings.fernScaleRange = glm::vec2(0.2f, 0.6f);   // Smaller ferns look better
+            
+            // Use random seed for deterministic vegetation
+            vegSettings.placementSeed = 12345;   // Different seed for new patterns
 			
 			try {
 				// Generate vegetation on terrain using the heightfield data

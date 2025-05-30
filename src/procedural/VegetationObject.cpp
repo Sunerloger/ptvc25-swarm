@@ -74,25 +74,38 @@ namespace procedural {
     ) {
         LSystem lsystem = LSystem::createFern(seed);
         
-        // Create more detailed fern with more iterations
-        std::string lsystemString = lsystem.generate(4);
+        // Create more detailed fern with precisely 5 iterations for better visibility
+        std::string lsystemString = lsystem.generate(5);
         
         // Get the default turtle parameters
         TurtleParameters params = lsystem.getTurtleParameters();
         
         // Customize the parameters for more realistic ferns
-        params.stepLength = 0.7f;                          // Slightly shorter segments
-        params.angleIncrement = 30.0f;                     // Wider angle between branches
-        params.radiusDecay = 0.9f;                         // Slower radius decay
-        params.lengthDecay = 0.85f;                        // Slower length decay
-        params.initialRadius = 0.04f;                      // Thinner initial stem
-        params.leafColor = glm::vec3(0.15f, 0.65f, 0.2f);  // Slightly adjusted green color
+        params.stepLength = 0.25f;                        // Much shorter segments for detailed structure
+        params.angleIncrement = 22.5f;                    // Classic fern angle (more recognizable)
+        params.radiusDecay = 0.92f;                       // Slower radius decay
+        params.lengthDecay = 0.90f;                       // Slower length decay
+        params.initialRadius = 0.03f;                     // Thinner initial stem
+        params.leafColor = glm::vec3(0.1f, 0.5f, 0.1f);   // More saturated green for better visibility
         
         // Generate geometry with customized parameters
         LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, params, glm::vec3(0.0f), seed);
         geometry.type = VegetationType::Fern;
         
-        return std::make_unique<VegetationObject>(device, geometry, position, scale);
+        // Create the vegetation object
+        auto fernObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
+        
+        // Create a proper material for the fern with backface culling disabled
+        std::vector<unsigned char> fernGreen = {34, 139, 34, 255}; // Forest green
+        auto material = std::make_shared<vk::StandardMaterial>(device, fernGreen, 1, 1, 4);
+        
+        // Disable backface culling by configuring the material
+        material->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+        
+        // Assign the material to the model
+        fernObject->getModel()->setMaterial(material);
+        
+        return fernObject;
     }
 
     std::shared_ptr<vk::Model> VegetationObject::createModelFromGeometry(
