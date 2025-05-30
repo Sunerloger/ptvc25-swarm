@@ -28,6 +28,8 @@ namespace vk {
 			return modelPtr;
 		}
 
+		void toggleWireframeModeIfSupported() override;
+
 	private:
 
 		std::shared_ptr<Model> modelPtr;

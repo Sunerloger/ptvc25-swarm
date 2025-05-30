@@ -1,34 +1,43 @@
 #version 450
 
-layout(location = 0) in vec3  position;
-layout(location = 1) in vec3  color;
-layout(location = 2) in vec3  normal;  // unused now
-layout(location = 3) in vec2  uv;
-
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
     vec4 sunDirection;
     vec4 sunColor;
-} ubo;
+} globalUbo;
 
-layout(push_constant) uniform Push {
+layout(set = 1, binding = 1) uniform Ubo {
+    // x = maxTessLevel, max tessellation subdivisions
+    // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
+    // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
+    // w = heightScale, multiplication factor for waves
+    vec4 tessParams;
+
+    // xy = textureRepetition, how often the texture repeats across the whole tessellation object
+    // zw = uvOffset, scroll UV coordinates per time unit to animate water surface
+    vec4 textureParams;
+
     mat4 modelMatrix;
     mat4 normalMatrix;
-    vec2 uvOffset;
-    float time;
-    int  hasTexture;
+
+    // x = hasTexture, yzw = unused
+    vec4 flags;
+} modelUbo;
+
+layout(push_constant) uniform Push {
+    // x = time, yzw = unused
+    vec4 timeData;
 } push;
 
 layout(location = 0) out vec2  fragUV;
-layout(location = 1) out vec3  fragColor;
-layout(location = 2) out vec3  posWorld;
-layout(location = 3) out vec3  normWorld;
+layout(location = 1) out vec3  posWorld;
+layout(location = 2) out vec3  normWorld;
 
 void main() {
     // 1) Base world‐space position
-    vec3 worldPos0 = (push.modelMatrix * vec4(position, 1.0)).xyz;
+    vec3 worldPos0 = (modelUbo.modelMatrix * vec4(position, 1.0)).xyz;
 
     float waveFrequency = 100.0;
     float waveHeight    = 5.0;
@@ -58,10 +67,9 @@ void main() {
     // 5) Pass to fragment shader
     posWorld  = displaced;
     normWorld = nW;
-    fragUV    = uv * 1.0 + push.uvOffset;
-    fragColor = color;
+    fragUV    = uv * 1.0 + modelUbo.textureParams.zw * push.timeData.x;
 
     // 6) Final clip-space position
-    vec4 viewPos = ubo.view * vec4(displaced, 1.0);
-    gl_Position  = ubo.projection * viewPos;
+    vec4 viewPos = globalUbo.view * vec4(displaced, 1.0);
+    gl_Position  = globalUbo.projection * viewPos;
 }

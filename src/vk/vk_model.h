@@ -58,6 +58,7 @@ namespace vk {
 		static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename, bool isUI = false);
 		static std::unique_ptr<Model> createCubeModel(Device& device);
 		static std::unique_ptr<Model> createGridModel(Device& device, int gridSize);
+		static std::unique_ptr<Model> createGridModelWithoutGeometry(Device& device, int gridSize);
 		
 		// Generate a heightmap texture and return both the model with the heightmap and the height data
 		static std::pair<std::unique_ptr<Model>, std::vector<float>> createTerrainModel(
@@ -78,6 +79,8 @@ namespace vk {
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);
 
+		uint32_t patchCount = 1;
+		uint32_t pointsPerPatch = 1;
 
 	   private:
 		void createVertexBuffers(const std::vector<Vertex>& vertices);

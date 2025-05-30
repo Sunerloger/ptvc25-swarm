@@ -174,6 +174,7 @@ class SceneManager {
 	}
 
 	void toggleWireframeOnTessellationObjects();
+	void toggleWireframeOnWaterObjects();
 
    private:
 	SceneManager();

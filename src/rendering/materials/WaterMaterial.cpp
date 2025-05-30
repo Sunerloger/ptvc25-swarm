@@ -16,7 +16,7 @@ namespace vk {
 	int WaterMaterial::instanceCount = 0;
 
 	WaterMaterial::WaterMaterial(Device& device, const std::string& texturePath)
-		: Material(device) {
+		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
 		// Increment instance count
 		instanceCount++;
 
@@ -24,11 +24,18 @@ namespace vk {
 		createTextureImage(texturePath);
 		createTextureImageView();
 		createTextureSampler();
+
+		paramsBuffer.map();
+
 		createDescriptorSet();
 
+		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
+		
 		// Set default pipeline configuration
 		pipelineConfig.vertShaderPath = "water_shader.vert";
 		pipelineConfig.fragShaderPath = "water_shader.frag";
+		pipelineConfig.tessControlShaderPath = "water_shader.tesc";
+		pipelineConfig.tessEvalShaderPath = "water_shader.tese";
 		pipelineConfig.depthStencilInfo = {};
 		pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
@@ -44,11 +51,16 @@ namespace vk {
         pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+		pipelineConfig.bindingDescriptions.clear();
+		pipelineConfig.attributeDescriptions.clear();
+
+		setWaterData();
 	}
 
 	WaterMaterial::WaterMaterial(Device& device, const std::string& texturePath,
 		const std::string& vertShaderPath, const std::string& fragShaderPath)
-		: Material(device) {
+		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
 		// Increment instance count
 		instanceCount++;
 
@@ -56,31 +68,43 @@ namespace vk {
 		createTextureImage(texturePath);
 		createTextureImageView();
 		createTextureSampler();
+
+		paramsBuffer.map();
+
 		createDescriptorSet();
 
-		// Set custom pipeline configuration
-		pipelineConfig.vertShaderPath = vertShaderPath;
-		pipelineConfig.fragShaderPath = fragShaderPath;
+		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
+
+		// Set default pipeline configuration
+		pipelineConfig.vertShaderPath = "water_shader.vert";
+		pipelineConfig.fragShaderPath = "water_shader.frag";
+		pipelineConfig.tessControlShaderPath = "water_shader.tesc";
+		pipelineConfig.tessEvalShaderPath = "water_shader.tese";
 		pipelineConfig.depthStencilInfo = {};
 		pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        // Enable alpha blending for transparency
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		// Enable alpha blending for transparency
+		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+		pipelineConfig.bindingDescriptions.clear();
+		pipelineConfig.attributeDescriptions.clear();
+
+		setWaterData();
 	}
 
 	WaterMaterial::WaterMaterial(Device& device, const std::vector<unsigned char>& imageData,
 		int width, int height, int channels)
-		: Material(device) {
+		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
 		// Increment instance count
 		instanceCount++;
 
@@ -90,32 +114,44 @@ namespace vk {
 		createTextureFromImageData(imageData, width, height, channels);
 		createTextureImageView();
 		createTextureSampler();
+
+		paramsBuffer.map();
+
 		createDescriptorSet();
+
+		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
 
 		// Set default pipeline configuration
 		pipelineConfig.vertShaderPath = "water_shader.vert";
 		pipelineConfig.fragShaderPath = "water_shader.frag";
+		pipelineConfig.tessControlShaderPath = "water_shader.tesc";
+		pipelineConfig.tessEvalShaderPath = "water_shader.tese";
 		pipelineConfig.depthStencilInfo = {};
 		pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        // Enable alpha blending for transparency
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		// Enable alpha blending for transparency
+		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+		pipelineConfig.bindingDescriptions.clear();
+		pipelineConfig.attributeDescriptions.clear();
+
+		setWaterData();
 	}
 
 	WaterMaterial::WaterMaterial(Device& device, const std::vector<unsigned char>& imageData,
 		int width, int height, int channels,
 		const std::string& vertShaderPath, const std::string& fragShaderPath)
-		: Material(device) {
+		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
 		// Increment instance count
 		instanceCount++;
 
@@ -125,28 +161,40 @@ namespace vk {
 		createTextureFromImageData(imageData, width, height, channels);
 		createTextureImageView();
 		createTextureSampler();
+
+		paramsBuffer.map();
+
 		createDescriptorSet();
 
-		// Set custom pipeline configuration
-		pipelineConfig.vertShaderPath = vertShaderPath;
-		pipelineConfig.fragShaderPath = fragShaderPath;
+		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
+
+		// Set default pipeline configuration
+		pipelineConfig.vertShaderPath = "water_shader.vert";
+		pipelineConfig.fragShaderPath = "water_shader.frag";
+		pipelineConfig.tessControlShaderPath = "water_shader.tesc";
+		pipelineConfig.tessEvalShaderPath = "water_shader.tese";
 		pipelineConfig.depthStencilInfo = {};
 		pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        // Enable alpha blending for transparency
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		// Enable alpha blending for transparency
+		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 		// pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+
+		pipelineConfig.bindingDescriptions.clear();
+		pipelineConfig.attributeDescriptions.clear();
+
+		setWaterData();
 	}
 
 	WaterMaterial::~WaterMaterial() {
@@ -178,15 +226,17 @@ namespace vk {
 	void WaterMaterial::createDescriptorSetLayoutIfNeeded(Device& device) {
 		if (!descriptorSetLayout) {
 			auto layoutBuilder = DescriptorSetLayout::Builder(device)
-									 .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.addBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
 			// Store the layout in a static member to prevent it from being destroyed
 			descriptorSetLayout = layoutBuilder.build();
 
 			descriptorPool = DescriptorPool::Builder(device)
-								 .setMaxSets(100)
-								 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
-								 .build();
+				.setMaxSets(100)
+				.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
+				.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100)
+				.build();
 		}
 	}
 
@@ -409,33 +459,30 @@ namespace vk {
 	}
 
 	void WaterMaterial::createDescriptorSet() {
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool->getPool();
-		allocInfo.descriptorSetCount = 1;
 
-		VkDescriptorSetLayout layout = descriptorSetLayout->getDescriptorSetLayout();
-		allocInfo.pSetLayouts = &layout;
-
-		if (vkAllocateDescriptorSets(device.device(), &allocInfo, &textureDescriptorSet) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to allocate texture descriptor set!");
-		}
+		descriptorPool->allocateDescriptor(descriptorSetLayout->getDescriptorSetLayout(), textureDescriptorSet);
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = textureImageView;
 		imageInfo.sampler = textureSampler;
 
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = textureDescriptorSet;
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
+		VkDescriptorBufferInfo bufInfo{};
+		bufInfo.buffer = paramsBuffer.getBuffer();
+		bufInfo.offset = 0;
+		bufInfo.range = sizeof(WaterData);
 
-		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
+		DescriptorWriter writer{*descriptorSetLayout, *descriptorPool};
+		writer.writeImage(0, &imageInfo)
+			.writeBuffer(1, &bufInfo)
+			.build(textureDescriptorSet);
+	}
+
+	void WaterMaterial::setWaterData(glm::vec2 textureRepetition, float maxLevel, float minDistance, float maxDistance, float heightScale, glm::vec2 uvOffset) {
+		waterData.tessParams = glm::vec4(maxLevel, minDistance, maxDistance, heightScale);
+		waterData.textureParams = glm::vec4(textureRepetition, uvOffset);
+
+		waterData.flags.x = textureDescriptorSet != VK_NULL_HANDLE ? 1 : 0;
 	}
 
 	void WaterMaterial::cleanupResources() {

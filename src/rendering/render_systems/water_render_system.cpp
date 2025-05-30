@@ -111,12 +111,8 @@ namespace vk {
 			// The skybox GameObject class overrides these methods to return identity matrices
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
-			// Scroll UV coordinates to animate water surface
-			push.uvOffset = glm::vec2(elapsedTime * 0.03f, elapsedTime * 0.05f);
 			// Pass elapsed time for wave animation
-			push.time = elapsedTime;
-			// Texture presence flag
-			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
+			push.timeData.x = elapsedTime;
 
 			// Determine shader stages to push constants to
 			VkShaderStageFlags stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;

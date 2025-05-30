@@ -643,3 +643,10 @@ void SceneManager::toggleWireframeOnTessellationObjects() {
 		object->toggleWireframeModeIfSupported();
 	}
 }
+
+void SceneManager::toggleWireframeOnWaterObjects() {
+	for (auto& it : this->scene->waterObjects) {
+		std::shared_ptr<vk::GameObject> object = it.second;
+		object->toggleWireframeModeIfSupported();
+	}
+}

@@ -63,6 +63,7 @@ void Swarm::bindInput() {
 
 	swarmInput.onToggleWireframeMode = [this, &sceneManager]() {
 		sceneManager.toggleWireframeOnTessellationObjects();
+		sceneManager.toggleWireframeOnWaterObjects();
 	};
 
 	if (debugMode) {
@@ -329,13 +330,16 @@ void Swarm::init() {
 
 	// Water
 	{
-		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModel(device, 1000));
+		int samplesPerSide = 1000;
+		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModelWithoutGeometry(device, samplesPerSide));
 
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
+		waterMaterial->setWaterData(glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f));
 		waterModel->setMaterial(waterMaterial);
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};
 		waterCreationSettings.position = glm::vec3{ 0.0f, -30.0f, 0.0f };
+		waterCreationSettings.waterScale = 2000.0f;
 		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
 	}
 

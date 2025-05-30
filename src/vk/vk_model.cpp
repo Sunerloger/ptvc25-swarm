@@ -62,6 +62,7 @@ namespace vk {
 
 	void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
 		vertexCount = static_cast<uint32_t>(vertices.size());
+		if (vertexCount == 0) { return; }
 		assert(vertexCount >= 3 && "Vertex count must be at least 3");
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertexCount;
 		uint32_t vertexSize = sizeof(vertices[0]);
@@ -119,15 +120,21 @@ namespace vk {
 		if (hasIndexBuffer) {
 			vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 			return;
+		}
+		else if (patchCount > 1) {
+			vkCmdDraw(commandBuffer, pointsPerPatch, patchCount, 0, 0);
 		} else {
 			vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
 		}
 	}
 
 	void Model::bind(VkCommandBuffer commandBuffer) {
-		VkBuffer buffers[] = {vertexBuffer->getBuffer()};
-		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+
+		if (vertexCount > 0) {
+			VkBuffer buffers[] = { vertexBuffer->getBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+		}
 
 		if (hasIndexBuffer) {
 			// If model has more than 2^32 vertices, change the index type to uint64_t and the indexType to VK_INDEX_TYPE_UINT64
@@ -837,5 +844,17 @@ namespace vk {
 		builder.indices = std::move(indices);
 
 		return std::make_unique<Model>(device, builder);
+	}
+
+	std::unique_ptr<Model> Model::createGridModelWithoutGeometry(Device& device, int gridSize) {
+		Builder builder{};
+
+		int numPatches = gridSize * gridSize;
+
+		auto model = std::make_unique<Model>(device, builder);
+		model->pointsPerPatch = 4;
+		model->patchCount = numPatches;
+
+		return model;
 	}
 }

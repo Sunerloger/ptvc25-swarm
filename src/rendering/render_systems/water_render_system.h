@@ -12,11 +12,13 @@
 namespace vk {
 
 	struct WaterPushConstantData {
-		glm::mat4 modelMatrix{1.0f};
-		glm::mat4 normalMatrix{1.0f};
-		glm::vec2 uvOffset{0.0f};
-		float time = 0.0f;
-		int hasTexture = 0;
+		// TODO put this in a ubo binding of a descriptor set kept by the rendering system
+		// x = time, yz = uvOffset, w = unused
+		glm::vec4 timeData = glm::vec4{0.0f};
+
+		// TODO put this in a ubo binding of a descriptor set kept by the model
+		glm::mat4 modelMatrix{ 1.0f };
+		glm::mat4 normalMatrix{ 1.0f };
 	};
 
 	class WaterRenderSystem {
