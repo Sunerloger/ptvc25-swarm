@@ -38,19 +38,19 @@ void main() {
     float v = gl_TessCoord.y;
 
     vec2 t0 = mix(fragTexCoordTesc[0], fragTexCoordTesc[1], u);
-    vec2 t1 = mix(fragTexCoordTesc[2], fragTexCoordTesc[3], u);
+    vec2 t1 = mix(fragTexCoordTesc[3], fragTexCoordTesc[2], u);
     fragTexCoord = mix(t0, t1, v);
 
     vec3 c0 = mix(fragColorTesc[0], fragColorTesc[1], u);
-    vec3 c1 = mix(fragColorTesc[2], fragColorTesc[3], u);
+    vec3 c1 = mix(fragColorTesc[3], fragColorTesc[2], u);
     fragColor = mix(c0, c1, v);
 
     vec3 p0 = mix(fragPosWorldTesc[0], fragPosWorldTesc[1], u);
-    vec3 p1 = mix(fragPosWorldTesc[2], fragPosWorldTesc[3], u);
+    vec3 p1 = mix(fragPosWorldTesc[3], fragPosWorldTesc[2], u);
     vec3 position = mix(p0, p1, v);
 
     vec2 uv0 = mix(rawUVTesc[0], rawUVTesc[1], u);
-    vec2 uv1 = mix(rawUVTesc[2], rawUVTesc[3], u);
+    vec2 uv1 = mix(rawUVTesc[3], rawUVTesc[2], u);
     vec2 uv = mix(uv0, uv1, v);
     
     // Apply displacement mapping if heightmap is available

@@ -50,7 +50,7 @@ void main() {
     }
     
     // Apply lighting
-    vec3 litColor = calculateLighting(normalize(adjustedNormal), color);
+    vec3 litColor = calculateLighting(adjustedNormal, color);
     
     // Output final color
     outColor = vec4(litColor, 1.0);

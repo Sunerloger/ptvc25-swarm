@@ -12,61 +12,6 @@ namespace vk {
     std::unique_ptr<DescriptorSetLayout> TessellationMaterial::descriptorSetLayout = nullptr;
     int TessellationMaterial::instanceCount = 0;
 
-    // Constructor with color texture and default shader paths
-    TessellationMaterial::TessellationMaterial(Device& device, const std::string& texturePath, uint32_t patchControlPoints)
-        : Material(device) {
-        
-        instanceCount++;
-        
-        createDescriptorSetLayoutIfNeeded(device);
-        
-        // Create texture
-        createTextureImage(texturePath);
-        textureImageView = createImageView(textureImage);
-        createTextureSampler();
-        createDescriptorSet();
-        
-        Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, patchControlPoints);
-
-        pipelineConfig.vertShaderPath = "terrain_shader.vert";
-        pipelineConfig.fragShaderPath = "terrain_shader.frag";
-        pipelineConfig.tessControlShaderPath = "terrain_tess_control.tesc";
-        pipelineConfig.tessEvalShaderPath = "terrain_tess_eval.tese";
-    }
-    
-    // Constructor with color texture and shader paths
-    TessellationMaterial::TessellationMaterial(Device& device, const std::string& texturePath,
-                                           const std::string& vertShaderPath,
-                                           const std::string& fragShaderPath,
-                                           const std::string& tessControlShaderPath,
-                                           const std::string& tessEvalShaderPath,
-                                           uint32_t patchControlPoints)
-        : Material(device) {
-        
-        // Configure for tessellation if tessellation shaders are provided
-        if (!tessControlShaderPath.empty() && !tessEvalShaderPath.empty()) {
-            Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, patchControlPoints);
-            pipelineConfig.tessControlShaderPath = tessControlShaderPath;
-            pipelineConfig.tessEvalShaderPath = tessEvalShaderPath;
-        }
-        else {
-            Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-        }
-
-        pipelineConfig.vertShaderPath = vertShaderPath;
-        pipelineConfig.fragShaderPath = fragShaderPath;
-        
-        createDescriptorSetLayoutIfNeeded(device);
-        
-        instanceCount++;
-        
-        // Create texture
-        createTextureImage(texturePath);
-        textureImageView = createImageView(textureImage);
-        createTextureSampler();
-        createDescriptorSet();
-    }
-
     // Constructor with separate color and heightmap textures and shader paths
     TessellationMaterial::TessellationMaterial(Device& device, const std::string& texturePath, const std::string& heightmapPath,
                                            const std::string& vertShaderPath,
@@ -93,52 +38,16 @@ namespace vk {
         
         instanceCount++;
         
-        // Create textures
-        createTextureImage(texturePath);
-        createHeightmapImage(heightmapPath);
+        uint32_t textureMipLevels = createTextureImage(texturePath);
         textureImageView = createImageView(textureImage);
+        createTextureSampler(static_cast<float>(textureMipLevels), textureSampler);
 
+        uint32_t heightmapMipLevels = createHeightmapImage(heightmapPath);
         if (m_hasHeightmapTexture) {
             heightmapImageView = createImageView(heightmapImage);
-        }
-        
-        createTextureSampler();
-        createDescriptorSet();
-    }
-
-    // Constructor with embedded texture data and shader paths
-    TessellationMaterial::TessellationMaterial(Device& device, const std::vector<unsigned char>& imageData,
-                                           int width, int height, int channels,
-                                           const std::string& vertShaderPath,
-                                           const std::string& fragShaderPath,
-                                           const std::string& tessControlShaderPath,
-                                           const std::string& tessEvalShaderPath,
-                                           uint32_t patchControlPoints)
-        : Material(device) {
-        
-        // Configure for tessellation if tessellation shaders are provided
-        if (!tessControlShaderPath.empty() && !tessEvalShaderPath.empty()) {
-            Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, patchControlPoints);
-            pipelineConfig.tessControlShaderPath = tessControlShaderPath;
-            pipelineConfig.tessEvalShaderPath = tessEvalShaderPath;
-        }
-        else {
-            Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+            createTextureSampler(static_cast<float>(heightmapMipLevels), heightmapSampler);
         }
 
-        pipelineConfig.vertShaderPath = vertShaderPath;
-        pipelineConfig.fragShaderPath = fragShaderPath;
-        
-        // Create descriptor set layout if needed
-        createDescriptorSetLayoutIfNeeded(device);
-        
-        // Increment instance count
-        instanceCount++;
-        
-        // Create texture from image data
-        createTextureFromImageData(imageData, width, height, channels, textureImage, textureImageMemory);
-        textureImageView = createImageView(textureImage);
-        createTextureSampler();
         createDescriptorSet();
     }
 
@@ -152,10 +61,10 @@ namespace vk {
         if (m_hasHeightmapTexture) {
             vkDestroyImageView(device.device(), heightmapImageView, nullptr);
             vkDestroyImage(device.device(), heightmapImage, nullptr);
+            vkDestroySampler(device.device(), heightmapSampler, nullptr);
             vkFreeMemory(device.device(), heightmapImageMemory, nullptr);
         }
         
-        // Decrement instance count
         instanceCount--;
         
         // Clean up static resources if this is the last instance
@@ -185,17 +94,23 @@ namespace vk {
         }
     }
 
-    void TessellationMaterial::createTextureImage(const std::string& texturePath) {
+    // @return mipLevels
+    uint32_t TessellationMaterial::createTextureImage(const std::string& texturePath) {
         auto textureData = AssetLoader::getInstance().loadTexture(texturePath);
-        createTextureFromImageData(textureData.pixels, textureData.width, textureData.height, textureData.channels, textureImage, textureImageMemory);
+        return createTextureFromImageData(textureData.pixels, textureData.width, textureData.height, textureData.channels, textureImage, textureImageMemory);
     }
 
-    void TessellationMaterial::createHeightmapImage(const std::string& heightmapPath) {
+    // @return mipLevels
+    uint32_t TessellationMaterial::createHeightmapImage(const std::string& heightmapPath) {
         auto heightmapData = AssetLoader::getInstance().loadTexture(heightmapPath);
-        createTextureFromImageData(heightmapData.pixels, heightmapData.width, heightmapData.height, heightmapData.channels, heightmapImage, heightmapImageMemory, true);       
+
+        m_hasHeightmapTexture = true;
+
+        return createTextureFromImageData(heightmapData.pixels, heightmapData.width, heightmapData.height, heightmapData.channels, heightmapImage, heightmapImageMemory);       
     }
 
-    void TessellationMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData, int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory, bool createHeightmapTexture) {
+    // @return mipLevels
+    uint32_t TessellationMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData, int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory) {
         VkDeviceSize imageSize = width * height * channels;
         
         // Create staging buffer
@@ -214,6 +129,8 @@ namespace vk {
         vkMapMemory(device.device(), stagingBufferMemory, 0, imageSize, 0, &data);
         memcpy(data, imageData.data(), static_cast<size_t>(imageSize));
         vkUnmapMemory(device.device(), stagingBufferMemory);
+
+        uint32_t mipLevels = std::floor(std::log2(std::max(width, height))) + 1;
         
         // Create image
         VkImageCreateInfo imageInfo{};
@@ -222,12 +139,12 @@ namespace vk {
         imageInfo.extent.width = width;
         imageInfo.extent.height = height;
         imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = 1;
+        imageInfo.mipLevels = mipLevels;
         imageInfo.arrayLayers = 1;
         imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         
@@ -247,16 +164,14 @@ namespace vk {
         vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
         vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
 
-        if (createHeightmapTexture) {
-            m_hasHeightmapTexture = true;
-        }
+        return mipLevels;
     }
 
     VkImageView TessellationMaterial::createImageView(VkImage image) {
         return device.createImageView(image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
-    void TessellationMaterial::createTextureSampler() {
+    void TessellationMaterial::createTextureSampler(float maxLod, VkSampler& sampler) {
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -273,9 +188,9 @@ namespace vk {
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.0f;
+        samplerInfo.maxLod = maxLod;
         
-        if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+        if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");
         }
     }
@@ -320,7 +235,7 @@ namespace vk {
             heightmapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             heightmapInfo.imageView = heightmapImageView;
-            heightmapInfo.sampler = textureSampler;
+            heightmapInfo.sampler = heightmapSampler;
 
             VkWriteDescriptorSet heightmapWrite{};
             heightmapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

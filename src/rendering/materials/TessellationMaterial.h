@@ -8,28 +8,9 @@ namespace vk {
 
     class TessellationMaterial : public Material {
     public:
-        // Constructor with color texture and shader paths
-        TessellationMaterial(Device& device, const std::string& texturePath,
-                       const std::string& vertShaderPath,
-                       const std::string& fragShaderPath,
-                       const std::string& tessControlShaderPath,
-                       const std::string& tessEvalShaderPath,
-                       uint32_t patchControlPoints = 4);
-        
-        // Constructor with color texture and default shader paths
-        TessellationMaterial(Device& device, const std::string& texturePath, uint32_t patchControlPoints = 4);
         
         // Constructor with separate color and heightmap textures and shader paths
         TessellationMaterial(Device& device, const std::string& texturePath, const std::string& heightmapPath,
-                       const std::string& vertShaderPath = "texture_shader.vert",
-                       const std::string& fragShaderPath = "texture_shader.frag",
-                       const std::string& tessControlShaderPath = "",
-                       const std::string& tessEvalShaderPath = "",
-                       uint32_t patchControlPoints = 4);
-        
-        // Constructor with embedded texture data and shader paths
-        TessellationMaterial(Device& device, const std::vector<unsigned char>& imageData,
-                       int width, int height, int channels,
                        const std::string& vertShaderPath = "texture_shader.vert",
                        const std::string& fragShaderPath = "texture_shader.frag",
                        const std::string& tessControlShaderPath = "",
@@ -62,12 +43,12 @@ namespace vk {
         static void cleanupResources();
 
     private:
-        void createTextureImage(const std::string& texturePath);
-        void createHeightmapImage(const std::string& heightmapPath);
-        void createTextureFromImageData(const std::vector<unsigned char>& imageData,
-                                      int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory, bool createHeightmapTexture = false);
+        uint32_t createTextureImage(const std::string& texturePath);
+        uint32_t createHeightmapImage(const std::string& heightmapPath);
+        uint32_t createTextureFromImageData(const std::vector<unsigned char>& imageData,
+                                      int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image);
-        void createTextureSampler();
+        void createTextureSampler(float maxLod, VkSampler& sampler);
         void createDescriptorSet();
         
         static void createDescriptorSetLayoutIfNeeded(Device& device);
@@ -82,6 +63,7 @@ namespace vk {
         VkImage heightmapImage = VK_NULL_HANDLE;
         VkDeviceMemory heightmapImageMemory = VK_NULL_HANDLE;
         VkImageView heightmapImageView = VK_NULL_HANDLE;
+        VkSampler heightmapSampler = VK_NULL_HANDLE;
         bool m_hasHeightmapTexture = false;
         
         // Descriptor set

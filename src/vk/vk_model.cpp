@@ -726,8 +726,8 @@ namespace vk {
 
 				indices.push_back(bottomLeft);
 				indices.push_back(bottomRight);
-				indices.push_back(topLeft);
 				indices.push_back(topRight);
+				indices.push_back(topLeft);
 			}
 		}
 
