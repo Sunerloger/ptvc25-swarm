@@ -55,6 +55,7 @@ void main() {
     
     // Apply displacement mapping if heightmap is available
     if (push.params2.w > 0.5) {
+        // texture automatically normalized to [0,1]
         float hNorm = texture(heightMap, uv).r;
         fragHeight = (hNorm * 2.0 - 1.0) * push.params2.z;   // heightScale is in params2.z
         position.y += fragHeight;
