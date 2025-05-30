@@ -238,9 +238,9 @@ void Swarm::init() {
 
 	// Terrain
 	float maxTerrainHeight = 15.0f;	 // Controls the height of the terrain
-	int samplesPerSide = 100;  // Resolution of the heightmap - moved out for vegetation use
+	int samplesPerSide = 100;		 // Resolution of the heightmap - moved out for vegetation use
 	{
-		float noiseScale = 5.0f;   // Controls the "frequency" of the noise
+		float noiseScale = 5.0f;  // Controls the "frequency" of the noise
 
 		// Generate terrain model with heightmap
 		auto result = vk::Model::createTerrainModel(
@@ -253,7 +253,7 @@ void Swarm::init() {
 		// Store heightfield data for vegetation
 		std::vector<float> heightfieldData;
 		if (result.second.size() >= samplesPerSide * samplesPerSide) {
-			heightfieldData = result.second; // Copy the heightfield data
+			heightfieldData = result.second;  // Copy the heightfield data
 		} else {
 			// Create flat heightfield if result doesn't have enough data
 			heightfieldData.resize(samplesPerSide * samplesPerSide, 0.0f);
@@ -276,42 +276,41 @@ void Swarm::init() {
 		// Vegetation (L-Systems) - moved inside terrain block to access heightfield data
 		{
 			procedural::VegetationIntegrator vegetationIntegrator(device);
-			
+
 			// Configure vegetation settings with optimized density for ferns only
 			procedural::VegetationIntegrator::VegetationSettings vegSettings;
-			vegSettings.fernDensity = 0.0008f;    // Low density for ferns to avoid resource exhaustion            // Set terrain bounds to match our terrain
-            vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
-            vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
-            
-            // Increase fern density for more plants
-            vegSettings.fernDensity = 0.002f;    // Increased density for more ferns
-            
-            // Slope constraints for realistic placement
-            vegSettings.maxBushSlope = 30.0f;
-            
-            // Scale variation for natural look - reduced size for better appearance
-            vegSettings.fernScaleRange = glm::vec2(0.2f, 0.6f);   // Smaller ferns look better
-            
-            // Use random seed for deterministic vegetation
-            vegSettings.placementSeed = 12345;   // Different seed for new patterns
-			
+			vegSettings.fernDensity = 0.0008f;	// Low density for ferns to avoid resource exhaustion            // Set terrain bounds to match our terrain
+			vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
+			vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
+
+			// Increase fern density for more plants
+			vegSettings.fernDensity = 0.002f;  // Increased density for more ferns
+
+			// Slope constraints for realistic placement
+			vegSettings.maxBushSlope = 30.0f;
+
+			// Scale variation for natural look - reduced size for better appearance
+			vegSettings.fernScaleRange = glm::vec2(0.2f, 0.6f);	 // Smaller ferns look better
+
+			// Use random seed for deterministic vegetation
+			vegSettings.placementSeed = 12345;	// Different seed for new patterns
+
 			try {
 				// Generate vegetation on terrain using the heightfield data
 				vegetationIntegrator.generateVegetationOnTerrain(
-					vegSettings, 
-					heightfieldData, 
-					samplesPerSide, 
-					glm::vec3(100.0f, maxTerrainHeight, 100.0f), 
-					glm::vec3(0.0, -2.0, 0.0)
-				);
-				
+					vegSettings,
+					heightfieldData,
+					samplesPerSide,
+					glm::vec3(100.0f, maxTerrainHeight, 100.0f),
+					glm::vec3(0.0, -2.0, 0.0));
+
 				// Add generated vegetation to scene
 				vegetationIntegrator.addVegetationToScene(sceneManager);
-				
+
 				// Report statistics
 				auto stats = vegetationIntegrator.getVegetationStats();
 				printf("Added L-System vegetation: %d ferns\n", stats.fernCount);
-				
+
 			} catch (const std::exception& e) {
 				printf("Error generating vegetation: %s\n", e.what());
 			}

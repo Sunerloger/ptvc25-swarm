@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <cstdlib>
 
 namespace procedural {
 
@@ -122,6 +123,13 @@ namespace procedural {
 				break;
 			}
 
+			case 'G': {  // Generate small leaflet cylinder
+				glm::vec3 leafletEnd = state.position + state.heading * (state.stepLength * 0.6f);
+				float leafletRadius = state.radius * 0.3f; // Thinner than main branch
+				generateCylinder(state.position, leafletEnd, leafletRadius, leafletRadius * 0.5f, params.leafColor, geometry, 4);
+				break;
+			}
+
 			case '+':  // Turn left (yaw)
 				state.heading = glm::normalize(
 					state.heading * std::cos(glm::radians(params.angleIncrement)) +
@@ -199,10 +207,10 @@ namespace procedural {
 		float minRadius = 0.01f;
 		float actualRadiusStart = std::max(radiusStart, minRadius);
 		float actualRadiusEnd = std::max(radiusEnd, minRadius);
-		
+
 		// Skip rendering extremely tiny branches
 		if (glm::distance(start, end) < 0.01f) {
-			return; // Too short to be visible
+			return;	 // Too short to be visible
 		}
 
 		glm::vec3 direction = glm::normalize(end - start);
@@ -222,10 +230,10 @@ namespace procedural {
 
 			// Start circle
 			glm::vec3 offsetStart = (right * cosAngle + up * sinAngle) * actualRadiusStart;
-			
+
 			// Use slightly darker color for stems compared to leaves
-			glm::vec3 stemColor = glm::vec3(color.x * 0.7f, color.y * 0.7f, color.z * 0.7f); 
-			
+			glm::vec3 stemColor = glm::vec3(color.x * 0.7f, color.y * 0.7f, color.z * 0.7f);
+
 			geometry.vertices.push_back({start + offsetStart,
 				stemColor,
 				glm::normalize(offsetStart),
@@ -248,97 +256,46 @@ namespace procedural {
 
 			// Two triangles per quad
 			geometry.indices.insert(geometry.indices.end(), {bottomLeft, topLeft, bottomRight,
-															 bottomRight, topLeft, topRight});
+																bottomRight, topLeft, topRight});
 		}
 	}
 
 	void LSystem::generateLeaf(const glm::vec3& position, const glm::vec3& direction,
 		const glm::vec3& color, LSystemGeometry& geometry) const {
-		// Create a more complex leaf shape (fern leaflet) that's recognizable
-		float leafLength = 0.3f;
-		float leafWidth = 0.1f;
+		// Instead of 2D triangular leaves, create small 3D cylindrical leaflets
+		// This makes ferns visible from all angles and look more realistic
 		
-		// Calculate orientation vectors
-		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
-		if (glm::length(right) < 0.1f) {
-			right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
-		}
-		glm::vec3 up = glm::normalize(glm::cross(right, direction));
+		float leafletLength = 0.15f;
+		float leafletRadius = 0.008f;  // Very thin but visible
+		int numLeaflets = 4;  // Number of small leaflets per leaf node
 		
-		// Generate a more detailed leaf shape with multiple segments (like a small frond)
-		int segments = 6; // Number of segments in the leaf
-		float segmentLength = leafLength / segments;
-		
-		uint32_t startIndex = geometry.vertices.size();
-		std::vector<uint32_t> leftSide;
-		std::vector<uint32_t> rightSide;
-		
-		// Create a tapered leaf shape that gets narrower at the tip
-		for (int i = 0; i <= segments; i++) {
-			float t = static_cast<float>(i) / segments;
-			float width = leafWidth * (1.0f - 0.8f * t); // Tapers to 20% width at tip
+		// Create multiple small cylindrical leaflets at different angles
+		for (int i = 0; i < numLeaflets; i++) {
+			float angle = (i * 360.0f / numLeaflets) + (rand() % 60 - 30); // Random variation
+			float angleRad = glm::radians(angle);
 			
-			glm::vec3 pos = position + direction * (segmentLength * i);
+			// Calculate leaflet direction with some random variation
+			glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
+			if (glm::length(right) < 0.1f) {
+				right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
+			}
+			glm::vec3 up = glm::normalize(glm::cross(right, direction));
 			
-			// Add vertices for both sides of the leaf
-			uint32_t leftIdx = geometry.vertices.size();
-			geometry.vertices.push_back({
-				pos - right * width,
-				color,
-				up,
-				glm::vec2(0, t)
-			});
-			leftSide.push_back(leftIdx);
+			// Rotate the leaflet direction around the main direction
+			glm::vec3 leafletDir = glm::normalize(
+				right * std::cos(angleRad) + up * std::sin(angleRad) + direction * 0.3f
+			);
 			
-			uint32_t rightIdx = geometry.vertices.size();
-			geometry.vertices.push_back({
-				pos + right * width,
-				color,
-				up,
-				glm::vec2(1, t)
-			});
-			rightSide.push_back(rightIdx);
+			// Create end position for the leaflet
+			glm::vec3 leafletEnd = position + leafletDir * leafletLength;
+			
+			// Generate a small cylinder for this leaflet
+			generateCylinder(position, leafletEnd, leafletRadius, leafletRadius * 0.5f, color, geometry, 4);
 		}
 		
-		// Create triangles connecting the vertices
-		for (int i = 0; i < segments; i++) {
-			geometry.indices.push_back(leftSide[i]);
-			geometry.indices.push_back(rightSide[i]);
-			geometry.indices.push_back(leftSide[i+1]);
-			
-			geometry.indices.push_back(leftSide[i+1]);
-			geometry.indices.push_back(rightSide[i]);
-			geometry.indices.push_back(rightSide[i+1]);
-		}
-		
-		// Generate secondary leaflets to make it look more like a fern
-		int numLeaflets = 3;
-		float leafletSize = 0.15f;
-		
-		for (int i = 1; i <= numLeaflets; i++) {
-			float t = static_cast<float>(i) / (numLeaflets + 1);
-			glm::vec3 leafletPos = position + direction * (leafLength * t);
-			
-			// Left leaflet
-			uint32_t leftLeafletStart = geometry.vertices.size();
-			geometry.vertices.push_back({leafletPos, color, up, glm::vec2(0.5f, 0.5f)});
-			geometry.vertices.push_back({leafletPos - right * leafletSize - direction * (leafletSize * 0.5f), color, up, glm::vec2(0, 0)});
-			geometry.vertices.push_back({leafletPos - right * leafletSize * 1.5f, color, up, glm::vec2(0, 1)});
-			
-			geometry.indices.push_back(leftLeafletStart);
-			geometry.indices.push_back(leftLeafletStart + 1);
-			geometry.indices.push_back(leftLeafletStart + 2);
-			
-			// Right leaflet
-			uint32_t rightLeafletStart = geometry.vertices.size();
-			geometry.vertices.push_back({leafletPos, color, up, glm::vec2(0.5f, 0.5f)});
-			geometry.vertices.push_back({leafletPos + right * leafletSize - direction * (leafletSize * 0.5f), color, up, glm::vec2(1, 0)});
-			geometry.vertices.push_back({leafletPos + right * leafletSize * 1.5f, color, up, glm::vec2(1, 1)});
-			
-			geometry.indices.push_back(rightLeafletStart);
-			geometry.indices.push_back(rightLeafletStart + 1);
-			geometry.indices.push_back(rightLeafletStart + 2);
-		}
+		// Add a central small cylinder pointing forward (main leaflet)
+		glm::vec3 mainLeafletEnd = position + direction * (leafletLength * 1.2f);
+		generateCylinder(position, mainLeafletEnd, leafletRadius * 1.5f, leafletRadius * 0.3f, color, geometry, 4);
 	}
 
 	// Predefined plant types
@@ -394,27 +351,27 @@ namespace procedural {
 	LSystem LSystem::createFern(unsigned int seed) {
 		LSystem fern;
 		fern.rng.seed(seed);
+
+		// Improved fern with better 3D structure using multiple symbols
+		fern.setAxiom("F");
+
+		// Create a more realistic fern frond structure
+		// Main spine with alternating side branches and leaflets
+		fern.addRule('F', "F[+FG][-FG]F", 0.6f);     // Main growth with small leaflets
+		fern.addRule('F', "F[++FL][--FL]F", 0.3f);   // Variation with complex leaflets
+		fern.addRule('F', "F[+G][-G]", 0.1f);        // Simple leaflet variation
 		
-		// Classic fractal fern (more visible structure)
-		fern.setAxiom("X");
-		
-		// Main stem with multiple fronds
-		fern.addRule('X', "F+[[X]-X]-F[-FX]+X", 0.8f);
-		fern.addRule('X', "F+[[X]-X]-F[-FX]+X[+FX-X]", 0.2f);
-		
-		// Simple growth rule
-		fern.addRule('F', "FF");
-		
-		// Add leaves at branch tips
-		fern.addRule('[', "[L", 0.3f);  // 30% chance to add leaf at branch start
-		
+		// Leaflet generation - creates small branching structures
+		fern.addRule('L', "G[+G][-G]", 0.7f);        // Leaflet with small cylinders
+		fern.addRule('L', "FG", 0.3f);               // Simple leaflet with cylinder
+
 		TurtleParameters params;
-		params.stepLength = 0.4f;         // Shorter steps for higher detail
-		params.angleIncrement = 22.5f;    // More natural angle
-		params.radiusDecay = 0.9f;        // Thinner branches 
-		params.lengthDecay = 0.9f;        // Less length decay for longer branches
-		params.initialRadius = 0.05f;     // Thinner branches
-		params.leafColor = glm::vec3(0.1f, 0.6f, 0.1f);  // Darker green for leaves
+		params.stepLength = 0.15f;						 // Even shorter steps for more detail
+		params.angleIncrement = 30.0f;					 // Wider angles for better fern shape
+		params.radiusDecay = 0.8f;						 // More pronounced taper
+		params.lengthDecay = 0.85f;						 // Gradual length decrease
+		params.initialRadius = 0.015f;					 // Very thin initial stem
+		params.leafColor = glm::vec3(0.1f, 0.6f, 0.1f); // Darker green for leaves
 		fern.setTurtleParameters(params);
 
 		return fern;
