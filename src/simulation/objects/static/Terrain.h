@@ -37,6 +37,8 @@ namespace physics {
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
+
+		void toggleWireframeModeIfSupported() override;
 		
 		std::shared_ptr<vk::Model> model;
 		glm::vec3 scale;

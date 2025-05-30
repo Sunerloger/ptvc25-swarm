@@ -36,6 +36,8 @@ namespace vk {
 		// returns a nullptr if object has no model (e.g. light)
 		virtual std::shared_ptr<Model> getModel() const = 0;
 
+		virtual void toggleWireframeModeIfSupported() {};
+
 		/**
 		 * The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
 		 * Doesn't destroy player or sun.

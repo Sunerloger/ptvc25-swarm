@@ -180,7 +180,6 @@ namespace input {
 				},
 				this,
 				ContextID::Debug);
-
 			inputManager.registerKeyCallback(
 				GLFW_KEY_F1,
 				[this]() {
@@ -188,9 +187,16 @@ namespace input {
 				},
 				this,
 				ContextID::Debug);
+			inputManager.registerKeyCallback(
+				GLFW_KEY_F9,
+				[this]() {
+					onToggleWireframeMode();
+				},
+				this,
+				ContextID::Debug);
 
 			inputManager.registerKeyCallback(
-				GLFW_KEY_F12,
+				GLFW_KEY_F10,
 				[this]() {
 					setContext(ContextID::Gameplay);
 					onToggleDebug();
@@ -198,7 +204,7 @@ namespace input {
 				this,
 				ContextID::Debug);
 			inputManager.registerKeyCallback(
-				GLFW_KEY_F12,
+				GLFW_KEY_F10,
 				[this]() {
 					setContext(ContextID::Debug);
 					onToggleDebug();

@@ -32,7 +32,7 @@ namespace vk {
             VkPipelineLayout pipelineLayout; // store handle to pipeline layout but manage in own map to be able to share layout among pipelines with the same descriptor sets
         };
 
-        PipelineInfo& getPipeline(const Material& material, bool wireframeMode = false);
+        PipelineInfo& getPipeline(const Material& material);
         void getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
 
         Device& device;

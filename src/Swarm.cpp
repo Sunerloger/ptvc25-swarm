@@ -61,6 +61,10 @@ void Swarm::bindInput() {
 		sceneManager.toggleUIVisibility();
 	};
 
+	swarmInput.onToggleWireframeMode = [this, &sceneManager]() {
+		sceneManager.toggleWireframeOnTessellationObjects();
+	};
+
 	if (debugMode) {
 		swarmInput.onToggleDebug = [this, &sceneManager]() { toggleDebug(); };
 	} else {
@@ -380,12 +384,12 @@ void Swarm::init() {
 			window.getGLFWWindow());
 		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f1));
 
-		// F11: Toggle Fullscreen
-		TextComponent* debug_text_f11 = new TextComponent(
+		// F9: Toggle Wireframe terrain
+		TextComponent* debug_text_f9 = new TextComponent(
 			device,
 			font,
-			"F11: Toggle \n Fullscreen",
-			"debug_text_toggle_fullscreen",
+			"F9: Toggle \n Wireframe Terrain",
+			"debug_text_toggle_menu",
 			/* controllable: */ false,
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
@@ -395,13 +399,13 @@ void Swarm::init() {
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ true,
 			window.getGLFWWindow());
-		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f11));
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f9));
 
-		// F12: Toggle Debug Mode
-		TextComponent* debug_text_f12 = new TextComponent(
+		// F10: Toggle Debug Mode
+		TextComponent* debug_text_f10 = new TextComponent(
 			device,
 			font,
-			"F12: Toggle \n Debug Mode",
+			"F10: Toggle \n Debug Mode",
 			"debug_text_toggle_menu",
 			/* controllable: */ false,
 			/* centerHorizontal: */ false,
@@ -412,7 +416,24 @@ void Swarm::init() {
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ false,
 			window.getGLFWWindow());
-		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f12));
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f10));
+
+		// F11: Toggle Fullscreen
+		TextComponent* debug_text_f11 = new TextComponent(
+			device,
+			font,
+			"F11: Toggle \n Fullscreen",
+			"debug_text_toggle_fullscreen",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ true,
+			/* verticalOffset: */ -100.0f,
+			/* anchorRight: */ true,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
+			window.getGLFWWindow());
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f11));
 
 		// Clock quad
 		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);

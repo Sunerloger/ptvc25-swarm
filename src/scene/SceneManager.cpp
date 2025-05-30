@@ -625,7 +625,7 @@ std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTessellationRenderOb
 	std::vector<std::weak_ptr<vk::GameObject>> tessellationObjects = {};
 
 	for (auto& it : this->scene->tessellationObjects) {
-		std::weak_ptr<vk::GameObject> object = it.second;
+		std::shared_ptr<vk::GameObject> object = it.second;
 		tessellationObjects.push_back(object);
 	}
 
@@ -635,4 +635,11 @@ std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTessellationRenderOb
 void SceneManager::clearUIObjects() {
 	this->scene->uiObjects.clear();
 	this->idToClass.clear();
+}
+
+void SceneManager::toggleWireframeOnTessellationObjects() {
+	for (auto& it : this->scene->tessellationObjects) {
+		std::shared_ptr<vk::GameObject> object = it.second;
+		object->toggleWireframeModeIfSupported();
+	}
 }

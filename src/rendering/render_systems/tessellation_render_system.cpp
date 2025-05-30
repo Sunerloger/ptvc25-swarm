@@ -51,16 +51,9 @@ namespace vk {
 	}
 
 
-	TessellationRenderSystem::PipelineInfo& TessellationRenderSystem::getPipeline(const Material& material, bool wireframeMode) {
+	TessellationRenderSystem::PipelineInfo& TessellationRenderSystem::getPipeline(const Material& material) {
 		// Get the material's pipeline configuration
 		PipelineConfigInfo config = material.getPipelineConfig();
-
-		if (wireframeMode) {
-			config.rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-		}
-		else {
-			config.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-		}
 
 		// Get the descriptor set layout directly from the material
 		VkDescriptorSetLayout materialSetLayout = material.getDescriptorSetLayout();

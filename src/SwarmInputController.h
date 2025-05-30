@@ -50,6 +50,7 @@ namespace input {
 		std::function<void(float dx, float dy)> onLookDebug;
 		std::function<void(float scrollOffset)> onChangeSpeedDebug;
 		std::function<void()> onToggleHudDebug;
+		std::function<void()> onToggleWireframeMode;
 
 	   private:
 		vk::Window& window;

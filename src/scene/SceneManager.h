@@ -173,6 +173,8 @@ class SceneManager {
 		isDebugMenuVisible = !isDebugMenuVisible;
 	}
 
+	void toggleWireframeOnTessellationObjects();
+
    private:
 	SceneManager();
 	~SceneManager() = default;
