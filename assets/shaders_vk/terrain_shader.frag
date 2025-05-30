@@ -41,7 +41,7 @@ void main() {
 
     vec3 dpdx = dFdx(fragPosWorld);
     vec3 dpdy = dFdy(fragPosWorld);
-    vec3 adjustedNormal = normalize(cross(dpdx, dpdy)); // after tessellation
+    vec3 adjustedNormal = -normalize(cross(dpdx, dpdy)); // after tessellation
 
     // Get base color (from texture or vertex color)
     vec3 color = fragColor;

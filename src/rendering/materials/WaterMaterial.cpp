@@ -31,8 +31,8 @@ namespace vk {
 		pipelineConfig.fragShaderPath = "water_shader.frag";
 		pipelineConfig.depthStencilInfo = {};
 		pipelineConfig.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		pipelineConfig.depthStencilInfo.depthTestEnable = VK_FALSE;
-		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
+		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
+		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
        pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;

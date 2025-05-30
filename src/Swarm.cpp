@@ -252,8 +252,8 @@ void Swarm::init() {
 			/* seed */ -1, // if -1: use random
 			/* textureRepetition */ glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f),
 			/* useTessellation */ true,
-			/* maxTessLevel */ 8.0f,
-			/* minTessDistance */ 20.0f,
+			/* maxTessLevel */ 16.0f,
+			/* minTessDistance */ 10.0f,
 			/* maxTessDistance */ 100.0f
 		);
 
@@ -331,6 +331,7 @@ void Swarm::init() {
 		waterModel->setMaterial(waterMaterial);
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};
+		waterCreationSettings.position = glm::vec3{ 0.0f, -30.0f, 0.0f };
 		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
 	}
 
