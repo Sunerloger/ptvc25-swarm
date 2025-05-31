@@ -32,6 +32,7 @@ file(GLOB SHADER_SOURCE_FILES
     "*.geom"
     "*.tesc"
     "*.tese"
+    "*.glsl"
 )
 
 message(STATUS "Found ${CMAKE_ELEMENTS_LENGTH(SHADER_SOURCE_FILES)} shaders to compile:")

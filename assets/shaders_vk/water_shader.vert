@@ -36,46 +36,38 @@ layout(set = 1, binding = 1) uniform Ubo {
 } modelUbo;
 
 layout(push_constant) uniform Push {
-    mat4 modelMatrix;
-    mat4 normalMatrix;
-
     // x = time, yzw = unused
     vec4 timeData;
+
+    mat4 modelMatrix;
+    mat4 normalMatrix;
+    // x = patchCount, yzw = unused
+    vec4 gridInfo;
 } push;
 
-layout(location = 0) out vec2  fragUV;
-layout(location = 1) out vec3  posWorld;
-layout(location = 2) out vec3  normWorld;
+layout(location = 0) out vec2 uv;
 
 void main() {
-    // 1) Base world‐space position
-    vec3 worldPos0 = (push.modelMatrix * vec4(position, 1.0)).xyz;
+    int cornerID = gl_VertexIndex % 4;
+    int patchID = int(gl_VertexIndex / 4);
+    int gridSize = int(sqrt(push.gridInfo.x));
 
-    // 2) Three superposed wave components
-    float w1 = sin(worldPos0.x * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.y) * modelUbo.waveParams2.x;
-    float w2 = sin(worldPos0.z * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.z) * modelUbo.waveParams2.y;
-    float w3 = sin((worldPos0.x + worldPos0.z) * modelUbo.waveParams2.w + push.timeData.x * modelUbo.waveParams1.w) * modelUbo.waveParams2.z;
+    // patch coordinates
+    int px = patchID % gridSize;
+    int py = int(patchID / gridSize);
 
-    // 3) Combine and scale vertically
-    float baseWave = (w1 + w2 + w3) * 0.5;
-    vec3 displaced = worldPos0 + vec3(0.0, baseWave * modelUbo.tessParams.w, 0.0);
+    // offset within patch -> (0,0), (1,0), (0,1), (1,1)
+    int ox = (cornerID == 1 || cornerID == 3) ? 1 : 0;
+    int oy = (cornerID == 2 || cornerID == 3) ? 1 : 0;
 
-    // 4) Compute derivatives for analytic normal
-    float amp = modelUbo.tessParams.w * 0.5;
-    float dYdx = ( cos(worldPos0.x * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.y) * modelUbo.waveParams1.x * modelUbo.waveParams2.x
-                 + cos((worldPos0.x + worldPos0.z) * modelUbo.waveParams2.w + push.timeData.x * modelUbo.waveParams1.w) * modelUbo.waveParams2.w * modelUbo.waveParams2.z )
-                 * amp;
-    float dYdz = ( cos(worldPos0.z * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.z) * modelUbo.waveParams1.x * modelUbo.waveParams2.y
-                 + cos((worldPos0.x + worldPos0.z) * modelUbo.waveParams2.w + push.timeData.x * modelUbo.waveParams1.w) * modelUbo.waveParams2.w * modelUbo.waveParams2.z )
-                 * amp;
-    vec3 nW = normalize(vec3(-dYdx, 1.0, -dYdz));
+    float step = 2.0 / gridSize;
+    float localX = -1.0 + float(px) * step + float(ox) * step;
+    float localZ = -1.0 + float(py) * step + float(oy) * step;
 
-    // 5) Pass to fragment shader
-    posWorld  = displaced;
-    normWorld = nW;
-    fragUV    = uv * 1.0 + modelUbo.textureParams.zw * push.timeData.x;
+    // [-1, 1] -> [0, 1]
+    vec2 normalizedXZ = (vec2(localX, localZ) + vec2(1.0)) * 0.5;
 
-    // 6) Final clip-space position
-    vec4 viewPos = globalUbo.view * vec4(displaced, 1.0);
-    gl_Position  = globalUbo.projection * viewPos;
+    uv = normalizedXZ * modelUbo.textureParams.xy + modelUbo.textureParams.zw * push.timeData.x;
+
+    gl_Position = push.modelMatrix * vec4(localX, 0.0, localZ, 1.0);
 }

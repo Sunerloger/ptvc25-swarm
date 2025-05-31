@@ -62,7 +62,10 @@ namespace vk {
 
 	void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
 		vertexCount = static_cast<uint32_t>(vertices.size());
-		if (vertexCount == 0) { return; }
+		hasVertexBuffer = vertexCount > 0;
+		if (!hasVertexBuffer) {
+			return;
+		}
 		assert(vertexCount >= 3 && "Vertex count must be at least 3");
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertexCount;
 		uint32_t vertexSize = sizeof(vertices[0]);
@@ -120,9 +123,6 @@ namespace vk {
 		if (hasIndexBuffer) {
 			vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 			return;
-		}
-		else if (patchCount > 1) {
-			vkCmdDraw(commandBuffer, pointsPerPatch, patchCount, 0, 0);
 		} else {
 			vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
 		}
@@ -130,7 +130,7 @@ namespace vk {
 
 	void Model::bind(VkCommandBuffer commandBuffer) {
 
-		if (vertexCount > 0) {
+		if (hasVertexBuffer) {
 			VkBuffer buffers[] = { vertexBuffer->getBuffer() };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
@@ -846,14 +846,19 @@ namespace vk {
 		return std::make_unique<Model>(device, builder);
 	}
 
-	std::unique_ptr<Model> Model::createGridModelWithoutGeometry(Device& device, int gridSize) {
+	std::unique_ptr<Model> Model::createGridModelWithoutGeometry(Device& device, int samplesPerSide) {
 		Builder builder{};
 
-		int numPatches = gridSize * gridSize;
+		if (samplesPerSide < 2) {
+			samplesPerSide = 2;
+		}
+
+		int numPatches = (samplesPerSide-1) * (samplesPerSide-1);
 
 		auto model = std::make_unique<Model>(device, builder);
 		model->pointsPerPatch = 4;
 		model->patchCount = numPatches;
+		model->vertexCount = model->pointsPerPatch * model->patchCount;
 
 		return model;
 	}

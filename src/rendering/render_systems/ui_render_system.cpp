@@ -5,8 +5,8 @@
 
 namespace vk {
 
-	UIRenderSystem::UIRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-		: device{device}, renderPass{renderPass}, globalSetLayout{globalSetLayout} {
+	UIRenderSystem::UIRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout)
+		: device{device}, renderer{renderer}, globalSetLayout{globalSetLayout} {
 	}
 
 	UIRenderSystem::~UIRenderSystem() {
@@ -56,7 +56,7 @@ namespace vk {
 		VkPipelineLayout pipelineLayout;
 		getPipelineLayout(materialSetLayout, pipelineLayout);
 
-		config.renderPass = renderPass;
+		config.renderPass = renderer.getSwapChainRenderPass();
 		config.pipelineLayout = pipelineLayout;
 
 		// Check if we already have a pipeline for this configuration
@@ -103,6 +103,9 @@ namespace vk {
 			if (!material)
 				continue;
 
+			// writes current state into gpu buffer (ubo), implemented if material needs it
+			material->updateDescriptorSet(renderer.getFrameIndex());
+
 			// Get pipeline for this material
 			auto& pipelineInfo = getPipeline(*material);
 
@@ -125,7 +128,9 @@ namespace vk {
 			// Use the game object's model matrix and normal matrix
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
-			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
+
+			// TODO put in texture ubo and not dependent on descriptor set
+			push.hasTexture = material->getDescriptorSet(renderer.getFrameIndex()) != VK_NULL_HANDLE ? 1 : 0;
 
 			// Determine shader stages to push constants to
 			VkShaderStageFlags stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -139,7 +144,7 @@ namespace vk {
 				&push);
 
 			// Bind material descriptor set
-			VkDescriptorSet materialDS = material->getDescriptorSet();
+			VkDescriptorSet materialDS = material->getDescriptorSet(renderer.getFrameIndex());
 			if (materialDS != VK_NULL_HANDLE) {
 				vkCmdBindDescriptorSets(
 					frameInfo.commandBuffer,

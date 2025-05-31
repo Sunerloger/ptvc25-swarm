@@ -9,8 +9,8 @@
 
 namespace vk {
 
-	TessellationRenderSystem::TessellationRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-		: device{ device }, renderPass{ renderPass }, globalSetLayout{ globalSetLayout } {
+	TessellationRenderSystem::TessellationRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout)
+		: device{ device }, renderer{ renderer }, globalSetLayout{ globalSetLayout } {
 	}
 
 	TessellationRenderSystem::~TessellationRenderSystem() {
@@ -62,7 +62,7 @@ namespace vk {
 		VkPipelineLayout pipelineLayout;
 		getPipelineLayout(materialSetLayout, pipelineLayout);
 
-		config.renderPass = renderPass;
+		config.renderPass = renderer.getSwapChainRenderPass();
 		config.pipelineLayout = pipelineLayout;
 
 		// Check if we already have a pipeline for this configuration
@@ -96,6 +96,9 @@ namespace vk {
 			auto material = gameObject->getModel()->getMaterial();
 			if (!material) continue;
 
+			// writes current state into gpu buffer (ubo), implemented if material needs it
+			material->updateDescriptorSet(renderer.getFrameIndex());
+
 			auto& pipelineInfo = getPipeline(*material);
 
 			pipelineInfo.pipeline->bind(frameInfo.commandBuffer);
@@ -117,8 +120,9 @@ namespace vk {
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
 
+			// TODO put in texture ubo and not dependent on descriptor set
 			// all objects rendered by this system should use TessellationMaterial
-			int hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
+			int hasTexture = material->getDescriptorSet(renderer.getFrameIndex()) != VK_NULL_HANDLE ? 1 : 0;
 			
 			auto tessMat = std::static_pointer_cast<TessellationMaterial>(material);
 			assert(tessMat && "All tess-objects must use TessellationMaterial");
@@ -144,7 +148,7 @@ namespace vk {
 			);
 
 			// bind material descriptor set
-			VkDescriptorSet materialDS = material->getDescriptorSet();
+			VkDescriptorSet materialDS = material->getDescriptorSet(renderer.getFrameIndex());
 			if (materialDS != VK_NULL_HANDLE) {
 				vkCmdBindDescriptorSets(
 					frameInfo.commandBuffer,
@@ -161,5 +165,4 @@ namespace vk {
 			gameObject->getModel()->draw(frameInfo.commandBuffer);
 		}
 	}
-
 }

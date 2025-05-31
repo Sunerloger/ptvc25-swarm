@@ -20,7 +20,7 @@ namespace vk {
                         const std::string& vertShaderPath, const std::string& fragShaderPath);
         ~StandardMaterial() override;
 
-        VkDescriptorSet getDescriptorSet() const override { return textureDescriptorSet; }
+        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return textureDescriptorSet; }
         VkDescriptorSetLayout getDescriptorSetLayout() const override {
             return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
         }

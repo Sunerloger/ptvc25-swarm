@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <iostream>
 
+#include "../../vk/vk_swap_chain.h"
+
 namespace vk {
 
 	// Initialize static members
@@ -16,7 +18,7 @@ namespace vk {
 	int WaterMaterial::instanceCount = 0;
 
 	WaterMaterial::WaterMaterial(Device& device, const std::string& texturePath)
-		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+		: Material(device) {
 		// Increment instance count
 		instanceCount++;
 
@@ -25,9 +27,7 @@ namespace vk {
 		createTextureImageView();
 		createTextureSampler();
 
-		paramsBuffer.map();
-
-		createDescriptorSet();
+		createDescriptorSets();
 
 		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
 		
@@ -60,7 +60,7 @@ namespace vk {
 
 	WaterMaterial::WaterMaterial(Device& device, const std::string& texturePath,
 		const std::string& vertShaderPath, const std::string& fragShaderPath)
-		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+		: Material(device) {
 		// Increment instance count
 		instanceCount++;
 
@@ -69,9 +69,7 @@ namespace vk {
 		createTextureImageView();
 		createTextureSampler();
 
-		paramsBuffer.map();
-
-		createDescriptorSet();
+		createDescriptorSets();
 
 		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
 
@@ -104,7 +102,7 @@ namespace vk {
 
 	WaterMaterial::WaterMaterial(Device& device, const std::vector<unsigned char>& imageData,
 		int width, int height, int channels)
-		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+		: Material(device) {
 		// Increment instance count
 		instanceCount++;
 
@@ -115,9 +113,7 @@ namespace vk {
 		createTextureImageView();
 		createTextureSampler();
 
-		paramsBuffer.map();
-
-		createDescriptorSet();
+		createDescriptorSets();
 
 		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
 
@@ -151,7 +147,7 @@ namespace vk {
 	WaterMaterial::WaterMaterial(Device& device, const std::vector<unsigned char>& imageData,
 		int width, int height, int channels,
 		const std::string& vertShaderPath, const std::string& fragShaderPath)
-		: Material(device), paramsBuffer(Buffer(device, sizeof(WaterData), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+		: Material(device) {
 		// Increment instance count
 		instanceCount++;
 
@@ -162,9 +158,7 @@ namespace vk {
 		createTextureImageView();
 		createTextureSampler();
 
-		paramsBuffer.map();
-
-		createDescriptorSet();
+		createDescriptorSets();
 
 		Pipeline::defaultTessellationPipelineConfigInfo(pipelineConfig, 4);
 
@@ -232,10 +226,11 @@ namespace vk {
 			// Store the layout in a static member to prevent it from being destroyed
 			descriptorSetLayout = layoutBuilder.build();
 
+			// depends on frames in flight so that in use buffers are not written to (concurrent cpu write and gpu processing)
 			descriptorPool = DescriptorPool::Builder(device)
-				.setMaxSets(100)
-				.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
-				.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100)
+				.setMaxSets(200 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+				.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+				.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
 				.build();
 		}
 	}
@@ -458,24 +453,29 @@ namespace vk {
 		}
 	}
 
-	void WaterMaterial::createDescriptorSet() {
+	void WaterMaterial::createDescriptorSets() {
 
-		descriptorPool->allocateDescriptor(descriptorSetLayout->getDescriptorSetLayout(), textureDescriptorSet);
+		for (int i = 0; i < paramsBuffers.size(); i++) {
+			paramsBuffers[i] = std::make_unique<Buffer>(device,
+				sizeof(WaterData),
+				1,
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			paramsBuffers[i]->map();
+		}
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = textureImageView;
 		imageInfo.sampler = textureSampler;
 
-		VkDescriptorBufferInfo bufInfo{};
-		bufInfo.buffer = paramsBuffer.getBuffer();
-		bufInfo.offset = 0;
-		bufInfo.range = sizeof(WaterData);
-
-		DescriptorWriter writer{*descriptorSetLayout, *descriptorPool};
-		writer.writeImage(0, &imageInfo)
-			.writeBuffer(1, &bufInfo)
-			.build(textureDescriptorSet);
+		for (int i = 0; i < textureDescriptorSets.size(); i++) {
+			auto bufferInfo = paramsBuffers[i]->descriptorInfo();
+			DescriptorWriter(*descriptorSetLayout, *descriptorPool)
+				.writeImage(0, &imageInfo)
+				.writeBuffer(1, &bufferInfo)
+				.build(textureDescriptorSets[i]);
+		}
 	}
 
 	void WaterMaterial::setWaterData(CreateWaterData createWaterData) {
@@ -485,7 +485,12 @@ namespace vk {
 		waterData.textureParams = glm::vec4(createWaterData.textureRepetition, createWaterData.uvOffset);
 		waterData.materialProperties = glm::vec4(createWaterData.ka, createWaterData.kd, createWaterData.ks, createWaterData.shininess);
 		waterData.color = glm::vec4(createWaterData.defaultColor, createWaterData.transparency);
-		waterData.flags.x = textureDescriptorSet != VK_NULL_HANDLE ? 1 : 0;
+		waterData.flags.x = textureImage != VK_NULL_HANDLE ? 1 : 0;
+	}
+
+	void WaterMaterial::updateDescriptorSet(int frameIndex) {
+		paramsBuffers[frameIndex]->writeToBuffer(&waterData);
+		paramsBuffers[frameIndex]->flush();
 	}
 
 	void WaterMaterial::cleanupResources() {

@@ -14,7 +14,7 @@ namespace vk {
 
         ~CubemapMaterial() override;
 
-        VkDescriptorSet getDescriptorSet() const override { return cubemapDescriptorSet; }
+        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return cubemapDescriptorSet; }
         VkDescriptorSetLayout getDescriptorSetLayout() const override {
             return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
         }

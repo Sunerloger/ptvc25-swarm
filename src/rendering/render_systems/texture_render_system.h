@@ -3,6 +3,7 @@
 #include "../../vk/vk_pipeline.h"
 #include "../../vk/vk_frame_info.h"
 #include "../../vk/vk_device.h"
+#include "../../vk/vk_renderer.h"
 #include "../../rendering/materials/Material.h"
 
 #include <memory>
@@ -20,7 +21,7 @@ namespace vk {
 	class TextureRenderSystem {
     
     public:
-		TextureRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
+		TextureRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
 		~TextureRenderSystem();
 
 		void renderGameObjects(FrameInfo& frameInfo);
@@ -35,7 +36,7 @@ namespace vk {
         void getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
 
         Device& device;
-        VkRenderPass renderPass;
+        Renderer& renderer;
         VkDescriptorSetLayout globalSetLayout;
 
         std::unordered_map<PipelineConfigInfo, PipelineInfo> pipelineCache;

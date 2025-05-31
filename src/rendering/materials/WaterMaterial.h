@@ -3,6 +3,7 @@
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
 #include "../../vk/vk_buffer.h"
+#include "../../vk/vk_swap_chain.h"
 
 #include <glm/glm.hpp>
 
@@ -86,7 +87,7 @@ namespace vk {
 	};
 
 	class WaterMaterial : public Material {
-	   public:
+	public:
 		WaterMaterial(Device& device, const std::string& texturePath);
 		WaterMaterial(Device& device, const std::string& texturePath,
 			const std::string& vertShaderPath, const std::string& fragShaderPath);
@@ -99,14 +100,15 @@ namespace vk {
 			const std::string& vertShaderPath, const std::string& fragShaderPath);
 		~WaterMaterial() override;
 
-		VkDescriptorSet getDescriptorSet() const override {
-			return textureDescriptorSet;
+		VkDescriptorSet getDescriptorSet(int frameIndex) const override {
+			return textureDescriptorSets[frameIndex];
 		}
 		VkDescriptorSetLayout getDescriptorSetLayout() const override {
 			return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
 		}
 
 		void setWaterData(CreateWaterData createWaterData = CreateWaterData{});
+		void updateDescriptorSet(int frameIndex) override;
 
 		static std::unique_ptr<DescriptorPool> descriptorPool;
 		static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
@@ -114,23 +116,25 @@ namespace vk {
 
 		static void cleanupResources();
 
-	   private:
+	private:
 		void createTextureImage(const std::string& texturePath);
 		void createTextureFromImageData(const std::vector<unsigned char>& imageData,
 			int width, int height, int channels);
 		void createTextureImageView();
 		void createTextureSampler();
-		void createDescriptorSet();
+		void createDescriptorSets();
 
 		static void createDescriptorSetLayoutIfNeeded(Device& device);
 
+		// image not rewritten during runtime, so only one version
 		VkImage textureImage = VK_NULL_HANDLE;
 		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
 		VkImageView textureImageView = VK_NULL_HANDLE;
 		VkSampler textureSampler = VK_NULL_HANDLE;
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 
-		Buffer paramsBuffer; // UBO
+		std::vector<VkDescriptorSet> textureDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
+
+		std::vector<std::unique_ptr<Buffer>> paramsBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
 
 		WaterData waterData;
 	};

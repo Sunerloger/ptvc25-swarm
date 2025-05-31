@@ -3,6 +3,7 @@
 #include "../../vk/vk_pipeline.h"
 #include "../../vk/vk_frame_info.h"
 #include "../../vk/vk_device.h"
+#include "../../vk/vk_renderer.h"
 #include "../../rendering/materials/Material.h"
 
 #include <memory>
@@ -21,7 +22,7 @@ namespace vk {
     class TessellationRenderSystem {
     
     public:
-        TessellationRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
+        TessellationRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
         ~TessellationRenderSystem();
 
         void renderGameObjects(FrameInfo& frameInfo);
@@ -36,7 +37,7 @@ namespace vk {
         void getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
 
         Device& device;
-        VkRenderPass renderPass;
+        Renderer& renderer;
         VkDescriptorSetLayout globalSetLayout;
 
         std::unordered_map<PipelineConfigInfo, PipelineInfo> pipelineCache;

@@ -19,7 +19,7 @@ namespace vk {
         
         ~TessellationMaterial() override;
 
-        VkDescriptorSet getDescriptorSet() const override { return descriptorSet; }
+        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return descriptorSet; }
         VkDescriptorSetLayout getDescriptorSetLayout() const override {
             return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
         }

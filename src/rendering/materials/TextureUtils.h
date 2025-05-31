@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -20,3 +20,5 @@ struct LoadedTexture {
 };
 
 LoadedTexture loadTexture(Device& device, const std::vector<unsigned char>& pixels, int width, int height, int channels, const TextureOptions& opts);
+
+*/

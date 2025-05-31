@@ -51,14 +51,14 @@ namespace vk {
 		void setMaterial(std::shared_ptr<Material> material) { this->material = material; }
 		std::shared_ptr<Material> getMaterial() const { return material; }
 
-		VkDescriptorSet getMaterialDescriptorSet() const {
-			return material ? material->getDescriptorSet() : VK_NULL_HANDLE;
+		VkDescriptorSet getMaterialDescriptorSet(int frameIndex) const {
+			return material ? material->getDescriptorSet(frameIndex) : VK_NULL_HANDLE;
 		}
 
 		static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename, bool isUI = false);
 		static std::unique_ptr<Model> createCubeModel(Device& device);
 		static std::unique_ptr<Model> createGridModel(Device& device, int gridSize);
-		static std::unique_ptr<Model> createGridModelWithoutGeometry(Device& device, int gridSize);
+		static std::unique_ptr<Model> createGridModelWithoutGeometry(Device& device, int samplesPerSide);
 		
 		// Generate a heightmap texture and return both the model with the heightmap and the height data
 		static std::pair<std::unique_ptr<Model>, std::vector<float>> createTerrainModel(
@@ -79,8 +79,8 @@ namespace vk {
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);
 
-		uint32_t patchCount = 1;
-		uint32_t pointsPerPatch = 1;
+		uint32_t patchCount = 0;
+		uint32_t pointsPerPatch = 0;
 
 	   private:
 		void createVertexBuffers(const std::vector<Vertex>& vertices);
@@ -92,8 +92,9 @@ namespace vk {
 		Device& device;
 		std::unique_ptr<Buffer> vertexBuffer;
 		std::unique_ptr<Buffer> indexBuffer;
-		uint32_t vertexCount;
-		uint32_t indexCount;
+		uint32_t vertexCount = 0;
+		uint32_t indexCount = 0;
+		bool hasVertexBuffer = false;
 		bool hasIndexBuffer = false;
 
 		std::shared_ptr<Material> material;

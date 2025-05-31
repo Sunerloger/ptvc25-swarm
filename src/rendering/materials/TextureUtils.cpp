@@ -1,4 +1,4 @@
-#include "TextureUtils.h"
+/* #include "TextureUtils.h"
 
 #include "../vk/vk_device.h"
 
@@ -13,31 +13,31 @@ LoadedTexture loadTexture(Device& device, const std::vector<unsigned char>& pixe
 
     VkImage image;
     VkDeviceMemory mem;
-    device.createImageWithInfo(imageInfo, /*device-local*/ VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, mem);
+    device.createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, mem);
 
     // transition 0->TRANSFER_DST, copy, then either:
     if (opts.generateMipmaps) {
         device.transitionImageLayout(image, imageInfo.format,
             VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        device.copyBufferToImage(/*…*/);
+        device.copyBufferToImage(/...);
         device.generateMipmaps(image, imageInfo.format, width, height, mipLevels);
     }
     else {
         device.transitionImageLayout(image, imageInfo.format,
             VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        device.copyBufferToImage(/*…*/);
+        device.copyBufferToImage(/...);
         device.transitionImageLayout(image, imageInfo.format,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     // 2) make the view
-    VkImageViewCreateInfo viewInfo{/*…*/ };
+    VkImageViewCreateInfo viewInfo{/... };
     viewInfo.subresourceRange.baseMipLevel = 0;
     viewInfo.subresourceRange.levelCount = mipLevels;
     VkImageView view = device.createImageView(image, imageInfo.format, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 
     // 3) make the sampler
-    VkSamplerCreateInfo sampInfo{/*…*/ };
+    VkSamplerCreateInfo sampInfo{/... };
     sampInfo.magFilter = VK_FILTER_LINEAR;
     sampInfo.minFilter = VkFilter(opts.trilinearFiltering
         ? VK_FILTER_LINEAR
@@ -54,3 +54,4 @@ LoadedTexture loadTexture(Device& device, const std::vector<unsigned char>& pixe
 
     return { image, mem, view, sampler, mipLevels };
 }
+*/

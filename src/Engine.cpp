@@ -3,9 +3,7 @@
 namespace vk {
 
 	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
-		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager) {
-		
-		renderer = std::make_unique<Renderer>(window, device);
+		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager), renderer(window, device) {
 
 		globalPool = DescriptorPool::Builder(device)
 						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -46,21 +44,29 @@ namespace vk {
 		// TODO create an additional uniform buffer for lighting information stored in sceneManager (updated every frame)
 
 		// Create render systems
-		TextureRenderSystem textureRenderSystem{device,
-			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout()};
+		TextureRenderSystem textureRenderSystem{
+			device,
+			renderer,
+			globalSetLayout->getDescriptorSetLayout()
+		};
 
-		TessellationRenderSystem tessellationRenderSystem{device,
-			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout()};
+		TessellationRenderSystem tessellationRenderSystem{
+			device,
+			renderer,
+			globalSetLayout->getDescriptorSetLayout()
+		};
 
-		WaterRenderSystem waterRenderSystem{device,
-			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout()};
+		WaterRenderSystem waterRenderSystem{
+			device,
+			renderer,
+			globalSetLayout->getDescriptorSetLayout()
+		};
 
-		UIRenderSystem uiRenderSystem{device,
-			renderer->getSwapChainRenderPass(),
-			globalSetLayout->getDescriptorSetLayout()};
+		UIRenderSystem uiRenderSystem{
+			device,
+			renderer,
+			globalSetLayout->getDescriptorSetLayout()
+		};
 
 		startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = startTime;
@@ -78,7 +84,7 @@ namespace vk {
 			inputManager.processPolling(deltaTime);
 
 			if (window.framebufferResized) {
-				renderer->recreateSwapChain();
+				renderer.recreateSwapChain();
 				window.framebufferResized = false;
 			}
 
@@ -118,12 +124,12 @@ namespace vk {
 			}
 
 			// Camera
-			float aspect = renderer->getAspectRatio();
+			float aspect = renderer.getAspectRatio();
 			sceneManager.getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
 
 			// menu / death screen is just rendered on top of game while physics / logic is disabled
-			if (auto commandBuffer = renderer->beginFrame()) {
-				int frameIndex = renderer->getFrameIndex();
+			if (auto commandBuffer = renderer.beginFrame()) {
+				int frameIndex = renderer.getFrameIndex();
 				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex]};
 
 				GlobalUbo ubo{};
@@ -135,7 +141,7 @@ namespace vk {
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 
-				renderer->beginSwapChainRenderPass(commandBuffer);
+				renderer.beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
 				tessellationRenderSystem.renderGameObjects(frameInfo);
 				waterRenderSystem.renderGameObjects(frameInfo);
@@ -160,8 +166,8 @@ namespace vk {
 					&clearRect);
 
 				uiRenderSystem.renderGameObjects(frameInfo);
-				renderer->endSwapChainRenderPass(commandBuffer);
-				renderer->endFrame();
+				renderer.endSwapChainRenderPass(commandBuffer);
+				renderer.endFrame();
 			}
 		}
 	}

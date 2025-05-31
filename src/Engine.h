@@ -54,7 +54,7 @@ namespace vk {
 		vk::Window& window;
 		vk::Device& device;
 		
-		std::unique_ptr<Renderer> renderer;
+		Renderer renderer;
 
 		std::unique_ptr<DescriptorPool> globalPool{};
 

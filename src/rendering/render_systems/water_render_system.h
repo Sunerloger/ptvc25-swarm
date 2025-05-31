@@ -3,6 +3,7 @@
 #include "../../vk/vk_pipeline.h"
 #include "../../vk/vk_frame_info.h"
 #include "../../vk/vk_device.h"
+#include "../../vk/vk_renderer.h"
 #include "../../rendering/materials/Material.h"
 
 #include <memory>
@@ -13,17 +14,19 @@ namespace vk {
 
 	struct WaterPushConstantData {
 		// TODO put this in a ubo binding of a descriptor set kept by the rendering system
-		// x = time, yz = uvOffset, w = unused
+		// x = time, yzw = unused
 		glm::vec4 timeData = glm::vec4{0.0f};
 
 		// TODO put this in a ubo binding of a descriptor set kept by the model
 		glm::mat4 modelMatrix{ 1.0f };
 		glm::mat4 normalMatrix{ 1.0f };
+		// x = patchCount, yzw = unused
+		glm::vec4 gridInfo = glm::vec4{ 1.0f };
 	};
 
 	class WaterRenderSystem {
 	   public:
-		WaterRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
+		WaterRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
 		~WaterRenderSystem();
 
 		void renderGameObjects(FrameInfo& frameInfo);
@@ -38,7 +41,7 @@ namespace vk {
 		void getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
 
 		Device& device;
-		VkRenderPass renderPass;
+		Renderer& renderer;
 		VkDescriptorSetLayout globalSetLayout;
 
 		std::unordered_map<PipelineConfigInfo, PipelineInfo> pipelineCache;

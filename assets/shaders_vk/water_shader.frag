@@ -1,8 +1,8 @@
 #version 450
 
-layout(location = 0) in vec2  fragUV;
-layout(location = 1) in vec3 posWorld;
-layout(location = 2) in vec3 normWorld;
+layout(location = 0) in vec2 fragUV;
+layout(location = 1) in vec3 fragPosWorld;
+layout(location = 2) in vec3 fragNormWorld;
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
@@ -15,11 +15,13 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
 } ubo;
 
 layout(push_constant) uniform Push {
-    mat4 modelMatrix;
-    mat4 normalMatrix;
-
     // x = time, yzw = unused
     vec4 timeData;
+
+    mat4 modelMatrix;
+    mat4 normalMatrix;
+    // x = patchCount, yzw = unused
+    vec4 gridInfo;
 } push;
 
 layout(set = 1, binding = 1) uniform Ubo {
@@ -39,6 +41,9 @@ layout(set = 1, binding = 1) uniform Ubo {
     // zw = uvOffset, scroll UV coordinates per time unit to animate water surface
     vec4 textureParams;
 
+    // x = gridSize, yzw = unused
+    vec4 gridInfo;
+
     // x = ka, y = kd, z = ks, w = shininess
     vec4 materialProperties;
 
@@ -51,9 +56,6 @@ layout(set = 1, binding = 1) uniform Ubo {
 
 layout(location = 0) out vec4 outColor;
 
-// ------------------------------------------------------------
-// phong helper from TU Wien
-// ------------------------------------------------------------
 vec3 phong( vec3 n, vec3 l, vec3 v,
             vec3 ambientC, float ambientF,
             vec3 diffuseC, float diffuseF,
@@ -78,10 +80,10 @@ vec3 phong( vec3 n, vec3 l, vec3 v,
 
 void main() {
     // 1) reconstruct view‐space normal & view‐space position
-    vec3 Nw = normalize(normWorld);
+    vec3 Nw = normalize(fragNormWorld);
     vec3 N  = normalize( (push.normalMatrix * vec4(Nw,0.0)).xyz );
 
-    vec3 viewPos = (ubo.view * vec4(posWorld,1.0)).xyz;
+    vec3 viewPos = (ubo.view * vec4(fragPosWorld,1.0)).xyz;
     vec3 V = normalize(-viewPos); // toward camera at origin
 
     // 2) directional‐light direction (sunDirection in view‐space)

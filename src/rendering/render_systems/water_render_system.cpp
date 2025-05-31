@@ -3,8 +3,8 @@
 
 namespace vk {
 
-	WaterRenderSystem::WaterRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-		: device{device}, renderPass{renderPass}, globalSetLayout{globalSetLayout} {
+	WaterRenderSystem::WaterRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout)
+		: device{device}, renderer{renderer}, globalSetLayout{globalSetLayout} {
 	}
 
 	WaterRenderSystem::~WaterRenderSystem() {
@@ -22,7 +22,7 @@ namespace vk {
 		}
 
 		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(WaterPushConstantData);
 
@@ -54,7 +54,7 @@ namespace vk {
 		VkPipelineLayout pipelineLayout;
 		getPipelineLayout(materialSetLayout, pipelineLayout);
 
-		config.renderPass = renderPass;
+		config.renderPass = renderer.getSwapChainRenderPass();
 		config.pipelineLayout = pipelineLayout;
 
 		// Check if we already have a pipeline for this configuration
@@ -88,6 +88,9 @@ namespace vk {
 			if (!material)
 				continue;
 
+			// writes current state into gpu buffer (ubo), implemented if material needs it
+			material->updateDescriptorSet(renderer.getFrameIndex());
+
 			// Get pipeline for this material
 			auto& pipelineInfo = getPipeline(*material);
 
@@ -111,6 +114,7 @@ namespace vk {
 			// The skybox GameObject class overrides these methods to return identity matrices
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
+			push.gridInfo.x = gameObject->getModel()->patchCount;
 			// Pass elapsed time for wave animation
 			push.timeData.x = elapsedTime;
 
@@ -131,7 +135,7 @@ namespace vk {
 				&push);
 
 			// Bind material descriptor set
-			VkDescriptorSet materialDS = material->getDescriptorSet();
+			VkDescriptorSet materialDS = material->getDescriptorSet(renderer.getFrameIndex());
 			if (materialDS != VK_NULL_HANDLE) {
 				vkCmdBindDescriptorSets(
 					frameInfo.commandBuffer,
