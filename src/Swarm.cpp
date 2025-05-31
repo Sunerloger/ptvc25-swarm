@@ -341,7 +341,7 @@ void Swarm::init() {
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};
 		waterCreationSettings.position = glm::vec3{ 0.0f, -30.0f, 0.0f };
-		waterCreationSettings.waterScale = 2000.0f;
+		waterCreationSettings.waterScale = samplesPerSide - 1;
 		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
 	}
 
