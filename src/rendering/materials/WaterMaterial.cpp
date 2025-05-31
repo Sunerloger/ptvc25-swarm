@@ -478,10 +478,13 @@ namespace vk {
 			.build(textureDescriptorSet);
 	}
 
-	void WaterMaterial::setWaterData(glm::vec2 textureRepetition, float maxLevel, float minDistance, float maxDistance, float heightScale, glm::vec2 uvOffset) {
-		waterData.tessParams = glm::vec4(maxLevel, minDistance, maxDistance, heightScale);
-		waterData.textureParams = glm::vec4(textureRepetition, uvOffset);
-
+	void WaterMaterial::setWaterData(CreateWaterData createWaterData) {
+		waterData.tessParams = glm::vec4(createWaterData.maxTessLevel, createWaterData.minTessDistance, createWaterData.maxTessDistance, createWaterData.heightScale);
+		waterData.waveParams1 = glm::vec4(createWaterData.waveFrequency, createWaterData.timeScaleWaveComponent1, createWaterData.timeScaleWaveComponent2, createWaterData.timeScaleWaveComponent3);
+		waterData.waveParams2 = glm::vec4(createWaterData.amplitudeWaveComponent1, createWaterData.amplitudeWaveComponent2, createWaterData.amplitudeWaveComponent3, createWaterData.diagonalWaveFrequency);
+		waterData.textureParams = glm::vec4(createWaterData.textureRepetition, createWaterData.uvOffset);
+		waterData.materialProperties = glm::vec4(createWaterData.ka, createWaterData.kd, createWaterData.ks, createWaterData.shininess);
+		waterData.color = glm::vec4(createWaterData.defaultColor, createWaterData.transparency);
 		waterData.flags.x = textureDescriptorSet != VK_NULL_HANDLE ? 1 : 0;
 	}
 
