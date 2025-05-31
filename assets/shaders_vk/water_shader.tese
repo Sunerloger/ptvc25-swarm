@@ -6,8 +6,13 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
+    
     vec4 sunDirection;
+    // rgb + a unused
     vec4 sunColor;
+    
+    // camera position in world space
+    vec4 cameraPosition;
 } globalUbo;
 
 layout(set = 1, binding = 1) uniform Ubo {
@@ -87,7 +92,7 @@ void main() {
     float dYdz = ( cos(basePos.z * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.z) * modelUbo.waveParams1.x * modelUbo.waveParams2.y
                  + cos((basePos.x + basePos.z) * modelUbo.waveParams2.w + push.timeData.x * modelUbo.waveParams1.w) * modelUbo.waveParams2.w * modelUbo.waveParams2.z )
                  * amp;
-    vec3 nW = normalize(vec3(-dYdx, 1.0, -dYdz));
+    vec3 nW = normalize(vec3(dYdx, 1.0, dYdz));
 
     fragPosWorld  = displaced;
     fragNormWorld = nW;

@@ -236,7 +236,7 @@ void Swarm::init() {
 
 		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
-		sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f));
+		sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f)));
 	}
 
 	// Terrain
@@ -266,7 +266,6 @@ void Swarm::init() {
 		// create terrain with the generated heightmap data
 		auto terrain = std::make_unique<physics::Terrain>(
 			physicsSimulation.getPhysicsSystem(),
-			glm::vec3{0.569, 0.29, 0},
 			std::move(result.first),
 			glm::vec3{0.0, -2.0, 0.0},	// position slightly below origin to prevent falling through
 			glm::vec3{100.0f, maxTerrainHeight, 100.0f},
@@ -330,17 +329,23 @@ void Swarm::init() {
 
 	// Water
 	{
-		int samplesPerSide = 1000;
+		int samplesPerSide = 2000;
 		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModelWithoutGeometry(device, samplesPerSide));
 
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
 		CreateWaterData waterData{};
+		waterData.minTessDistance = 50.0f;
+		waterData.maxTessDistance = 500.0f;
+		waterData.ka = 0.2f;
+		waterData.kd = 0.1f;
+		waterData.ks = 0.4f;
+		waterData.shininess = 10.0f;
 		waterData.textureRepetition = glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f);
 		waterMaterial->setWaterData(waterData);
 		waterModel->setMaterial(waterMaterial);
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};
-		waterCreationSettings.position = glm::vec3{ 0.0f, -30.0f, 0.0f };
+		waterCreationSettings.position = glm::vec3{ 0.0f, -20.0f, 0.0f };
 		waterCreationSettings.waterScale = samplesPerSide - 1;
 		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
 	}

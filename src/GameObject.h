@@ -46,8 +46,6 @@ namespace vk {
 		 */
 		bool markForDeletion() const;
 
-		glm::vec3 color{};
-
 	   protected:
 		GameObject() : id(nextID++) {}
 

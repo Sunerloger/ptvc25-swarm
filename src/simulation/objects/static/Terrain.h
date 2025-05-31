@@ -22,10 +22,10 @@ namespace physics {
 	class Terrain : public ManagedPhysicsEntity {
 	   public:
 		// Constructor for simple box terrain
-		Terrain(PhysicsSystem& physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale = {1.0f, 1.0f, 1.0f});
+		Terrain(PhysicsSystem& physics_system, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale = {1.0f, 1.0f, 1.0f});
 		
 		// Constructor with externally provided heightmap data
-		Terrain(PhysicsSystem& physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model,
+		Terrain(PhysicsSystem& physics_system, std::shared_ptr<vk::Model> model,
 		        glm::vec3 position, glm::vec3 scale, std::vector<float>&& heightfieldData);
 		
 		virtual ~Terrain();

@@ -4,8 +4,13 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
+    
     vec4 sunDirection;
+    // rgb + a unused
     vec4 sunColor;
+    
+    // camera position in world space
+    vec4 cameraPosition;
 } globalUbo;
 
 layout(set = 1, binding = 1) uniform Ubo {

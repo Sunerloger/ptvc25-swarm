@@ -27,8 +27,14 @@ layout(push_constant) uniform Push {
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
-    mat4 inverseView;
-    float aspectRatio;
+    mat4 uiOrthographicProjection;
+    
+    vec4 sunDirection;
+    // rgb + intensity in .w
+    vec4 sunColor;
+    
+    // camera position in world space
+    vec4 cameraPosition;
 } ubo;
 
 // helper: map distance -> [0,1]

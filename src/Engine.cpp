@@ -137,7 +137,8 @@ namespace vk {
 				ubo.view = sceneManager.getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
 				ubo.sunDirection = glm::vec4(sceneManager.getSun()->getDirection(), 1.0f);
-				ubo.sunColor = glm::vec4(sceneManager.getSun()->color, 1.0f);
+				ubo.sunColor = glm::vec4(sceneManager.getSun()->getColor(), 1.0f);
+				ubo.cameraPosition = glm::vec4(sceneManager.getPlayer()->getCameraPosition(), 1.0f);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
 

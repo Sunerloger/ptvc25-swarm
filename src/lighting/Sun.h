@@ -7,7 +7,7 @@ namespace lighting {
 
 	public:
 
-		Sun(glm::vec3 position, glm::vec3 direction, glm::vec3 color, float intensity);
+		Sun(glm::vec3 position, glm::vec3 direction, glm::vec3 color);
 		virtual ~Sun() = default;
 
 		glm::mat4 computeModelMatrix() const override;
@@ -17,10 +17,12 @@ namespace lighting {
 
 		glm::vec3 getDirection() const;
 
+		glm::vec3 getColor() const { return color; }
+
 	private:
 
-		glm::vec3 position{0};
-		glm::vec3 direction{0.0f, -1.0f, 0.0f};
-		float intensity;
+		glm::vec3 position{ 0.0f };
+		glm::vec3 direction{ 0.0f, -1.0f, 0.0f };
+		glm::vec3 color{ 1.0f };
 	};
 }

@@ -2,9 +2,7 @@
 
 namespace lighting {
 
-	Sun::Sun(glm::vec3 position, glm::vec3 direction, glm::vec3 color, float intensity) : position(position), direction(direction), intensity(intensity) {
-		this->color = color;
-	}
+	Sun::Sun(glm::vec3 position, glm::vec3 direction, glm::vec3 color) : position(position), direction(direction), color(color) {}
 
 	glm::mat4 Sun::computeModelMatrix() const {
 		return glm::mat4(1.0f);

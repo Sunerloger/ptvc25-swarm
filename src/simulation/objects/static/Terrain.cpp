@@ -4,10 +4,9 @@
 
 namespace physics {
 
-	Terrain::Terrain(PhysicsSystem& physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale)
+	Terrain::Terrain(PhysicsSystem& physics_system, std::shared_ptr<vk::Model> model, glm::vec3 position, glm::vec3 scale)
 		: ManagedPhysicsEntity(physics_system), model(model), useHeightfield(false) {
 		std::cout << "Creating box-based terrain (flat collision)" << std::endl;
-		this->color = color;
 		this->scale = scale;
 
 		// model is 2x2, but box takes in halfEdgeLength
@@ -30,11 +29,10 @@ namespace physics {
 		this->bodyID = physics_system.GetBodyInterface().CreateBody(body_settings)->GetID();
 	}
 	
-	Terrain::Terrain(PhysicsSystem& physics_system, glm::vec3 color, std::shared_ptr<vk::Model> model,
+	Terrain::Terrain(PhysicsSystem& physics_system, std::shared_ptr<vk::Model> model,
 	                 glm::vec3 position, glm::vec3 scale, std::vector<float>&& heightfieldData)
 		: ManagedPhysicsEntity(physics_system), model(model), useHeightfield(true), heightfieldSamples(std::move(heightfieldData)) {
 		std::cout << "Creating heightfield-based terrain with provided height data (3D collision)" << std::endl;
-		this->color = color;
 		this->scale = scale;
 		
 		// create a temporary array with the correct size

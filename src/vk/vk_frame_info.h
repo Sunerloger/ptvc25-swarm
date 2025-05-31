@@ -13,7 +13,8 @@ namespace vk {
 		glm::mat4 uiOrthographicProjection{1.0f};
 		glm::vec4 sunDirection{0.0f, -1.0f, 0.0f, 1.0f};
 		glm::vec4 sunColor{1.0f, 1.0f, 1.0f, 0.0f};
-		std::vector<lighting::PointLight> pointLights;
+		// camera position in world space
+		glm::vec4 cameraPosition = glm::vec4{ 0.0f };
 	};
 
 	struct FrameInfo {

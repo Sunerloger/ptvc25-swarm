@@ -10,9 +10,14 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
+    
     vec4 sunDirection;
-    vec4 sunColor;      // rgb + intensity in .w
-} ubo;
+    // rgb + a unused
+    vec4 sunColor;
+    
+    // camera position in world space
+    vec4 cameraPosition;
+} globalUbo;
 
 layout(push_constant) uniform Push {
     // x = time, yzw = unused
@@ -41,9 +46,6 @@ layout(set = 1, binding = 1) uniform Ubo {
     // zw = uvOffset, scroll UV coordinates per time unit to animate water surface
     vec4 textureParams;
 
-    // x = gridSize, yzw = unused
-    vec4 gridInfo;
-
     // x = ka, y = kd, z = ks, w = shininess
     vec4 materialProperties;
 
@@ -57,7 +59,6 @@ layout(set = 1, binding = 1) uniform Ubo {
 layout(location = 0) out vec4 outColor;
 
 vec3 phong( vec3 n, vec3 l, vec3 v,
-            vec3 ambientC, float ambientF,
             vec3 diffuseC, float diffuseF,
             vec3 specularC, float specularF,
             float alpha, bool attenuate, vec3 attenuation)
@@ -68,37 +69,31 @@ vec3 phong( vec3 n, vec3 l, vec3 v,
     if (attenuate) {
         att = 1.0 / (attenuation.x + d*attenuation.y + d*d*attenuation.z);
     }
-    float NdotL = max(dot(n, l), 0.0);
-    // only lit side contributes
-    if (NdotL <= 0.0) return vec3(0.0);
+
     vec3 r = reflect(-l, n);
-    float RdotV = max(dot(r, v), 0.0);
-    return ( ambientF * ambientC + diffuseF * diffuseC * NdotL
-           + specularF * specularC * pow(RdotV, alpha) )
-           * att;
+    
+    return (diffuseF * diffuseC * max(0, dot(n, l)) + specularF * specularC * pow(max(0, dot(r, v)), alpha)) * att; 
+}
+
+vec3 clampedReflect(vec3 I, vec3 N)
+{
+	return I - 2.0 * min(dot(N, I), 0.0) * N;
 }
 
 void main() {
-    // 1) reconstruct view‐space normal & view‐space position
-    vec3 Nw = normalize(fragNormWorld);
-    vec3 N  = normalize( (push.normalMatrix * vec4(Nw,0.0)).xyz );
+    vec3 N  = normalize( fragNormWorld );
+    vec3 V = normalize(fragPosWorld - globalUbo.cameraPosition.xyz);
 
-    vec3 viewPos = (ubo.view * vec4(fragPosWorld,1.0)).xyz;
-    vec3 V = normalize(-viewPos); // toward camera at origin
-
-    // 2) directional‐light direction (sunDirection in view‐space)
-    vec3 sunDirVS = normalize((ubo.view * vec4(ubo.sunDirection.xyz, 0.0)).xyz);
-    vec3 L = -sunDirVS;
-
-    const vec3 baseColor = (modelUbo.flags.x > 0.5)
-        ? texture(texSampler, fragUV + modelUbo.textureParams.zw * push.timeData.x).rgb
+    const vec3 diffuseColor = (modelUbo.flags.x > 0.5)
+        ? texture(texSampler, fragUV).rgb
         : modelUbo.color.xyz;
 
-    vec3 light = phong(
-        N, L, V,
-        baseColor, modelUbo.materialProperties.x,
-        baseColor, modelUbo.materialProperties.y,
-        ubo.sunColor.rgb * ubo.sunColor.w, modelUbo.materialProperties.z,
+    vec3 light = diffuseColor * modelUbo.materialProperties.x;
+
+    light += phong(
+        N, -globalUbo.sunDirection.xyz, -V,
+        diffuseColor * globalUbo.sunColor.rgb, modelUbo.materialProperties.y,
+        globalUbo.sunColor.rgb, modelUbo.materialProperties.z,
         modelUbo.materialProperties.w,
         false, vec3(1.0)
     );
