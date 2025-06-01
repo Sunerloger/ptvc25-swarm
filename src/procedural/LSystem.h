@@ -122,6 +122,12 @@ namespace procedural {
 
 		void generateLeaf(const glm::vec3& position, const glm::vec3& direction,
 			const glm::vec3& color, LSystemGeometry& geometry) const;
+
+		void generateTriangularLeaflet(const glm::vec3& position, const glm::vec3& direction,
+			float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const;
+
+		void generateOvalLeaf(const glm::vec3& position, const glm::vec3& direction,
+			float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const;
 	};
 
 }  // namespace procedural

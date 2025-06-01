@@ -123,9 +123,9 @@ namespace procedural {
 				break;
 			}
 
-			case 'G': {  // Generate small leaflet cylinder
+			case 'G': {	 // Generate small leaflet cylinder
 				glm::vec3 leafletEnd = state.position + state.heading * (state.stepLength * 0.6f);
-				float leafletRadius = state.radius * 0.3f; // Thinner than main branch
+				float leafletRadius = state.radius * 0.3f;	// Thinner than main branch
 				generateCylinder(state.position, leafletEnd, leafletRadius, leafletRadius * 0.5f, params.leafColor, geometry, 4);
 				break;
 			}
@@ -262,73 +262,196 @@ namespace procedural {
 
 	void LSystem::generateLeaf(const glm::vec3& position, const glm::vec3& direction,
 		const glm::vec3& color, LSystemGeometry& geometry) const {
-		// Instead of 2D triangular leaves, create small 3D cylindrical leaflets
-		// This makes ferns visible from all angles and look more realistic
-		
-		float leafletLength = 0.15f;
-		float leafletRadius = 0.008f;  // Very thin but visible
-		int numLeaflets = 4;  // Number of small leaflets per leaf node
-		
-		// Create multiple small cylindrical leaflets at different angles
-		for (int i = 0; i < numLeaflets; i++) {
-			float angle = (i * 360.0f / numLeaflets) + (rand() % 60 - 30); // Random variation
+		// Create realistic tree leaves with oval/elliptical shapes
+
+		float leafLength = 0.12f;
+		float leafWidth = 0.08f;  // Width for oval leaves
+		int numLeaves = 3;		  // Fewer, larger leaves for trees
+
+		// Create a small cluster of leaves at different angles
+		for (int i = 0; i < numLeaves; i++) {
+			float angle = (i * 120.0f) + (rand() % 40 - 20);  // 120-degree spacing with variation
 			float angleRad = glm::radians(angle);
-			
-			// Calculate leaflet direction with some random variation
+
+			// Calculate leaf direction with some random variation
 			glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
 			if (glm::length(right) < 0.1f) {
 				right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
 			}
 			glm::vec3 up = glm::normalize(glm::cross(right, direction));
-			
-			// Rotate the leaflet direction around the main direction
-			glm::vec3 leafletDir = glm::normalize(
-				right * std::cos(angleRad) + up * std::sin(angleRad) + direction * 0.3f
-			);
-			
-			// Create end position for the leaflet
-			glm::vec3 leafletEnd = position + leafletDir * leafletLength;
-			
-			// Generate a small cylinder for this leaflet
-			generateCylinder(position, leafletEnd, leafletRadius, leafletRadius * 0.5f, color, geometry, 4);
+
+			// Rotate the leaf direction around the main direction
+			glm::vec3 leafDir = glm::normalize(
+				right * std::cos(angleRad) + up * std::sin(angleRad) + direction * 0.1f);
+
+			// Create oval leaf shape
+			generateOvalLeaf(position, leafDir, leafLength, leafWidth, color, geometry);
 		}
-		
-		// Add a central small cylinder pointing forward (main leaflet)
-		glm::vec3 mainLeafletEnd = position + direction * (leafletLength * 1.2f);
-		generateCylinder(position, mainLeafletEnd, leafletRadius * 1.5f, leafletRadius * 0.3f, color, geometry, 4);
+
+		// Add a main central leaf
+		generateOvalLeaf(position, direction, leafLength * 1.2f, leafWidth * 1.1f, color, geometry);
+	}
+
+	void LSystem::generateTriangularLeaflet(const glm::vec3& position, const glm::vec3& direction,
+		float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const {
+		// Create a triangular leaflet for realistic fern fronds
+
+		// Calculate orthogonal vectors for the leaflet plane
+		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
+		if (glm::length(right) < 0.1f) {
+			right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
+		}
+		glm::vec3 up = glm::normalize(glm::cross(right, direction));
+
+		// Calculate triangle vertices
+		glm::vec3 tip = position + direction * length;			  // Tip of the leaflet
+		glm::vec3 baseLeft = position + right * (-width * 0.5f);  // Left base corner
+		glm::vec3 baseRight = position + right * (width * 0.5f);  // Right base corner
+
+		// Calculate normal for the triangle (facing towards the up direction mostly)
+		glm::vec3 normal = glm::normalize(glm::cross(baseRight - baseLeft, tip - baseLeft));
+
+		// Make sure normal points in a reasonable direction (not facing down)
+		if (glm::dot(normal, glm::vec3(0, 1, 0)) < 0) {
+			normal = -normal;
+		}
+
+		uint32_t startIndex = geometry.vertices.size();
+
+		// Add vertices for the triangle
+		geometry.vertices.push_back({tip, color, normal, glm::vec2(0.5f, 1.0f)});		 // Tip
+		geometry.vertices.push_back({baseLeft, color, normal, glm::vec2(0.0f, 0.0f)});	 // Base left
+		geometry.vertices.push_back({baseRight, color, normal, glm::vec2(1.0f, 0.0f)});	 // Base right
+
+		// Add triangle indices (counter-clockwise for front face)
+		geometry.indices.push_back(startIndex);		 // tip
+		geometry.indices.push_back(startIndex + 1);	 // base left
+		geometry.indices.push_back(startIndex + 2);	 // base right
+
+		// Add the back face for double-sided rendering
+		geometry.vertices.push_back({tip, color, -normal, glm::vec2(0.5f, 1.0f)});		  // Tip (back)
+		geometry.vertices.push_back({baseLeft, color, -normal, glm::vec2(0.0f, 0.0f)});	  // Base left (back)
+		geometry.vertices.push_back({baseRight, color, -normal, glm::vec2(1.0f, 0.0f)});  // Base right (back)
+
+		// Add back face indices (clockwise for back face)
+		geometry.indices.push_back(startIndex + 3);	 // tip (back)
+		geometry.indices.push_back(startIndex + 5);	 // base right (back)
+		geometry.indices.push_back(startIndex + 4);	 // base left (back)
+	}
+
+	void LSystem::generateOvalLeaf(const glm::vec3& position, const glm::vec3& direction,
+		float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const {
+		// Create an oval-shaped leaf for trees using multiple triangles
+
+		// Calculate orthogonal vectors for the leaf plane
+		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
+		if (glm::length(right) < 0.1f) {
+			right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
+		}
+		glm::vec3 up = glm::normalize(glm::cross(right, direction));
+
+		// Create oval shape using multiple segments
+		int segments = 6;
+		std::vector<glm::vec3> points;
+
+		// Generate oval points
+		for (int i = 0; i <= segments; i++) {
+			float t = float(i) / float(segments);
+			float angle = t * 2.0f * M_PI;
+
+			// Oval shape (ellipse)
+			float x = std::cos(angle) * width * 0.5f;
+			float y = std::sin(angle) * length * 0.5f;
+
+			glm::vec3 point = position + right * x + direction * y;
+			points.push_back(point);
+		}
+
+		// Calculate normal for the leaf
+		glm::vec3 normal = glm::normalize(glm::cross(right, direction));
+		if (glm::dot(normal, glm::vec3(0, 1, 0)) < 0) {
+			normal = -normal;
+		}
+
+		uint32_t centerIndex = geometry.vertices.size();
+
+		// Add center vertex
+		geometry.vertices.push_back({position, color, normal, glm::vec2(0.5f, 0.5f)});
+
+		// Add perimeter vertices
+		for (const auto& point : points) {
+			float u = 0.5f + (point.x - position.x) / width;
+			float v = 0.5f + glm::dot(point - position, direction) / length;
+			geometry.vertices.push_back({point, color, normal, glm::vec2(u, v)});
+		}
+
+		// Create triangles from center to perimeter
+		for (int i = 0; i < segments; i++) {
+			uint32_t curr = centerIndex + 1 + i;
+			uint32_t next = centerIndex + 1 + ((i + 1) % (segments + 1));
+
+			// Front face
+			geometry.indices.push_back(centerIndex);
+			geometry.indices.push_back(curr);
+			geometry.indices.push_back(next);
+		}
+
+		// Add back face vertices for double-sided rendering
+		uint32_t backCenterIndex = geometry.vertices.size();
+		geometry.vertices.push_back({position, color, -normal, glm::vec2(0.5f, 0.5f)});
+
+		for (const auto& point : points) {
+			float u = 0.5f + (point.x - position.x) / width;
+			float v = 0.5f + glm::dot(point - position, direction) / length;
+			geometry.vertices.push_back({point, color, -normal, glm::vec2(u, v)});
+		}
+
+		// Create back face triangles (reversed winding)
+		for (int i = 0; i < segments; i++) {
+			uint32_t curr = backCenterIndex + 1 + i;
+			uint32_t next = backCenterIndex + 1 + ((i + 1) % (segments + 1));
+
+			// Back face (reversed winding)
+			geometry.indices.push_back(backCenterIndex);
+			geometry.indices.push_back(next);
+			geometry.indices.push_back(curr);
+		}
 	}
 
 	// Predefined plant types
 
 	LSystem LSystem::createFern(unsigned int seed) {
-		LSystem fern;
-		fern.rng.seed(seed);
+		LSystem tree;
+		tree.rng.seed(seed);
 
-		// Improved fern with a strong main stem and side fronds
-		// Start with main stem growth, then branch out
-		fern.setAxiom("FFFFFF");  // Start with an even stronger main stem
+		// Tree structure with strong main trunk and realistic branching
+		tree.setAxiom("FFFFFFFFFF");  // Long main trunk
 
-		// Main stem continues growing while producing side fronds
-		fern.addRule('F', "FF[+FG][-FG]", 0.4f);      // Main growth with side branches
-		fern.addRule('F', "FFF[++FL][--FL]", 0.3f);   // Stronger main stem with complex fronds
-		fern.addRule('F', "FF[+G][-G]", 0.2f);        // Simple side leaflets
-		fern.addRule('F', "FFF", 0.1f);               // Pure main stem growth for strength
-		
-		// Leaflet generation - creates realistic frond structures
-		fern.addRule('L', "FG[+G][-G]", 0.7f);        // Complex frond with sub-leaflets
-		fern.addRule('L', "FGG", 0.3f);               // Simple frond with leaflets
+		// Tree branching rules - main trunk grows upward with side branches
+		tree.addRule('F', "FF[&+FL]F[&-FL]", 0.3f);	  // Main growth with angled side branches and leaves
+		tree.addRule('F', "FFF[++FG][--FG]", 0.25f);  // Stronger trunk with small branches
+		tree.addRule('F', "FF[&+FFL][&-FFL]", 0.2f);  // Medium branches with leaves at ends
+		tree.addRule('F', "FFFF", 0.25f);			  // Pure trunk growth for strong main stem
+
+		// Secondary branching - creates sub-branches with leaves
+		tree.addRule('G', "F[+L][-L]", 0.6f);	// Small branches end in leaves
+		tree.addRule('G', "FF[+G][-G]", 0.3f);	// Some branches continue growing
+		tree.addRule('G', "FL", 0.1f);			// Simple leaf ending
+
+		// Leaf generation - creates realistic foliage
+		tree.addRule('L', "L", 1.0f);  // Leaves stay as leaves
 
 		TurtleParameters params;
-		params.stepLength = 0.5f;						 // Large steps for impressive size
-		params.angleIncrement = 22.0f;					 // Slightly narrower for more upright growth
-		params.radiusDecay = 0.88f;						 // Gradual taper to maintain thick main stem
-		params.lengthDecay = 0.92f;						 // Slow length decrease for larger structure
-		params.initialRadius = 0.1f;					 // Thick main stem for strong central trunk
-		params.initialColor = glm::vec3(0.35f, 0.25f, 0.1f); // Brown stem color for main trunk
-		params.leafColor = glm::vec3(0.15f, 0.8f, 0.2f);     // Bright green for fronds
-		fern.setTurtleParameters(params);
+		params.stepLength = 0.4f;							 // Larger steps for tree scale
+		params.angleIncrement = 25.0f;						 // Good branching angles
+		params.radiusDecay = 0.85f;							 // Gradual taper for realistic trunk
+		params.lengthDecay = 0.88f;							 // Slow length decrease for tall trees
+		params.initialRadius = 0.08f;						 // Tree trunk thickness
+		params.initialColor = glm::vec3(0.4f, 0.25f, 0.1f);	 // Brown bark color
+		params.leafColor = glm::vec3(0.2f, 0.7f, 0.2f);		 // Green leaves
+		tree.setTurtleParameters(params);
 
-		return fern;
+		return tree;
 	}
 
 }  // namespace procedural

@@ -66,6 +66,13 @@ namespace procedural {
 		static std::shared_ptr<vk::Model> createModelFromGeometry(
 			vk::Device& device,
 			const LSystemGeometry& geometry);
+
+		// Add main trunk to ensure ground connection
+		static void addMainTrunk(LSystemGeometry& geometry, const TurtleParameters& params);
+
+		// Generate cylinder for trunk
+		static void generateTrunkCylinder(const glm::vec3& start, const glm::vec3& end,
+			float radiusStart, float radiusEnd, const glm::vec3& color, LSystemGeometry& geometry);
 	};
 
 }  // namespace procedural
