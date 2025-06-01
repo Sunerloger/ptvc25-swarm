@@ -19,27 +19,24 @@ layout(set = 1, binding = 1) uniform Ubo {
     // x = maxTessLevel, max tessellation subdivisions
     // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
     // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
-    // w = heightScale, multiplication factor for waves
+    // w = unused
     vec4 tessParams;
 
-    // x = waveFrequency, y = timeScale1, z = timeScale2, w = timeScale3
-    vec4 waveParams1;
-
-    // x = waveAmplitude1, y = waveAmplitude2, z = waveAmplitude3, w = diagonal wave frequency
-    vec4 waveParams2;
-
     // xy = textureRepetition, how often the texture repeats across the whole tessellation object
-    // zw = uvOffset, scroll UV coordinates per time unit to animate water surface
+    // zw = unused
     vec4 textureParams;
 
-    // x = ka, y = kd, z = ks, w = shininess
+    // x = ka, y = kd, z = ks, w = alpha
     vec4 materialProperties;
 
     // xyz = default color, w = transparency
     vec4 color;
 
-    // x = hasTexture, yzw = unused
+    // x = hasTexture, y = wave count, zw = unused
     vec4 flags;
+
+    // xy = direction, z = steepness in [0,1], w = wavelength
+    vec4 waves[];
 } modelUbo;
 
 layout(push_constant) uniform Push {
@@ -58,6 +55,23 @@ layout(location = 0) out vec2 fragUV;
 layout(location = 1) out vec3 fragPosWorld;
 layout(location = 2) out vec3 fragNormWorld;
 
+// https://catlikecoding.com/unity/tutorials/flow/waves/
+vec3 gerstner(vec3 position, float time, vec2 direction, float steepness, float wavelength){
+	float displaced_x = position.x + (steepness/wavelength) * direction.x * cos(wavelength * dot(direction, position.xz) + speed * time);
+	float displaced_y = position.y + amplitude * sin(wavelength * dot(direction, position.xz) + speed * time);
+	float displaced_z = position.z + (steepness/wavelength) * direction.y * cos(wavelength * dot(direction, position.xz) + speed * time);
+	return vec3(displaced_x, displaced_y, displaced_z);
+}
+
+vec3 gerstnerNormal(vec3 position, float time, vec2 direction, float steepness, float wavelength) {
+    float cosComponent = cos(wavelength * dot(direction, position.xz + speed * time));
+	float sinComponent = sin(wavelength * dot(direction, position.xz + speed * time));
+	float x_normal = -direction.x * wavelength * amplitude * cosComponent;
+	float y_normal = 1.0 - (steepness/wavelength) * wavelength * amplitude * sinComponent;
+	float z_normal = -direction.y * wavelength * amplitude * cosComponent;
+	return vec3(x_normal, y_normal, z_normal);
+}
+
 void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
@@ -75,24 +89,13 @@ void main() {
     vec2 uv1 = mix(uvTesc[2], uvTesc[3], u);
     fragUV = mix(uv0, uv1, v);
 
-    // three superposed wave components
-    float w1 = sin(basePos.x * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.y) * modelUbo.waveParams2.x;
-    float w2 = sin(basePos.z * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.z) * modelUbo.waveParams2.y;
-    float w3 = sin((basePos.x + basePos.z) * modelUbo.waveParams2.w + push.timeData.x * modelUbo.waveParams1.w) * modelUbo.waveParams2.z;
+    float t = push.timeData.x;
+    vec2 direction = modelUbo.waveParams1.xy;
+    float steepness = modelUbo.waveParams1.z;
+    float wavelength = modelUbo.waveParams1.w;
 
-    // combine and scale vertically
-    float baseWave = (w1 + w2 + w3) * 0.5;
-    vec3 displaced = basePos + vec3(0.0, baseWave * modelUbo.tessParams.w, 0.0);
-
-    // compute derivatives for analytic normal
-    float amp = modelUbo.tessParams.w * 0.5;
-    float dYdx = ( cos(basePos.x * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.y) * modelUbo.waveParams1.x * modelUbo.waveParams2.x
-                 + cos((basePos.x + basePos.z) * modelUbo.waveParams2.w + push.timeData.x * modelUbo.waveParams1.w) * modelUbo.waveParams2.w * modelUbo.waveParams2.z )
-                 * amp;
-    float dYdz = ( cos(basePos.z * modelUbo.waveParams1.x + push.timeData.x * modelUbo.waveParams1.z) * modelUbo.waveParams1.x * modelUbo.waveParams2.y
-                 + cos((basePos.x + basePos.z) * modelUbo.waveParams2.w + push.timeData.x * modelUbo.waveParams1.w) * modelUbo.waveParams2.w * modelUbo.waveParams2.z )
-                 * amp;
-    vec3 nW = normalize(vec3(dYdx, 1.0, dYdz));
+    vec3 displaced = gerstner(basePos, t, direction, steepness, wavelength);
+    vec3 nW = normalize(gerstnerNormal(basePos, t, direction, steepness, wavelength));
 
     fragPosWorld  = displaced;
     fragNormWorld = nW;

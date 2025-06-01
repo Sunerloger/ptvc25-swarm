@@ -479,13 +479,25 @@ namespace vk {
 	}
 
 	void WaterMaterial::setWaterData(CreateWaterData createWaterData) {
-		waterData.tessParams = glm::vec4(createWaterData.maxTessLevel, createWaterData.minTessDistance, createWaterData.maxTessDistance, createWaterData.heightScale);
-		waterData.waveParams1 = glm::vec4(createWaterData.waveFrequency, createWaterData.timeScaleWaveComponent1, createWaterData.timeScaleWaveComponent2, createWaterData.timeScaleWaveComponent3);
-		waterData.waveParams2 = glm::vec4(createWaterData.amplitudeWaveComponent1, createWaterData.amplitudeWaveComponent2, createWaterData.amplitudeWaveComponent3, createWaterData.diagonalWaveFrequency);
-		waterData.textureParams = glm::vec4(createWaterData.textureRepetition, createWaterData.uvOffset);
-		waterData.materialProperties = glm::vec4(createWaterData.ka, createWaterData.kd, createWaterData.ks, createWaterData.shininess);
+		waterData.tessParams = glm::vec4(createWaterData.maxTessLevel, createWaterData.minTessDistance, createWaterData.maxTessDistance, 0.0f);
+		waterData.textureParams = glm::vec4(createWaterData.textureRepetition, 0.0f, 0.0f);
+		waterData.materialProperties = glm::vec4(createWaterData.ka, createWaterData.kd, createWaterData.ks, createWaterData.alpha);
 		waterData.color = glm::vec4(createWaterData.defaultColor, createWaterData.transparency);
 		waterData.flags.x = textureImage != VK_NULL_HANDLE ? 1 : 0;
+	}
+
+	void WaterMaterial::setWaves(std::vector<glm::vec4> params) {
+		int count = params.size();
+		if (count > MAX_NUM_WAVES) {
+			printf("INFO: WaterMaterial only supports %d waves. Other waves are ignored.\n", MAX_NUM_WAVES);
+			count = MAX_NUM_WAVES;
+		}
+
+		waterData.flags.y = count;
+
+		for (int i = 0; i < count; i++) {
+			waterData.waves[i] = params[i];
+		}
 	}
 
 	void WaterMaterial::updateDescriptorSet(int frameIndex) {

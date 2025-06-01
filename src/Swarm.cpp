@@ -333,15 +333,19 @@ void Swarm::init() {
 		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModelWithoutGeometry(device, samplesPerSide));
 
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
+
 		CreateWaterData waterData{};
 		waterData.minTessDistance = 50.0f;
 		waterData.maxTessDistance = 500.0f;
-		waterData.ka = 0.2f;
-		waterData.kd = 0.1f;
-		waterData.ks = 0.4f;
-		waterData.shininess = 10.0f;
 		waterData.textureRepetition = glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f);
 		waterMaterial->setWaterData(waterData);
+
+		std::vector<glm::vec4> waves;
+		waves.push_back(glm::vec4{ 1.0f, 1.0f, 0.25f, 60.0f });
+		waves.push_back(glm::vec4{ 1.0f, 0.6f, 0.25f, 31.0f });
+		waves.push_back(glm::vec4{ 1.0f, 1.3f, 0.25f, 18.0f });
+		waterMaterial->setWaves(waves);
+		
 		waterModel->setMaterial(waterMaterial);
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};

@@ -17,27 +17,24 @@ layout(set = 1, binding = 1) uniform Ubo {
     // x = maxTessLevel, max tessellation subdivisions
     // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
     // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
-    // w = heightScale, multiplication factor for waves
+    // w = unused
     vec4 tessParams;
 
-    // x = waveFrequency, y = timeScale1, z = timeScale2, w = timeScale3
-    vec4 waveParams1;
-
-    // x = waveAmplitude1, y = waveAmplitude2, z = waveAmplitude3, w = diagonal wave frequency
-    vec4 waveParams2;
-
     // xy = textureRepetition, how often the texture repeats across the whole tessellation object
-    // zw = uvOffset, scroll UV coordinates per time unit to animate water surface
+    // zw = unused
     vec4 textureParams;
 
-    // x = ka, y = kd, z = ks, w = shininess
+    // x = ka, y = kd, z = ks, w = alpha
     vec4 materialProperties;
 
     // xyz = default color, w = transparency
     vec4 color;
 
-    // x = hasTexture, yzw = unused
+    // x = hasTexture, y = wave count, zw = unused
     vec4 flags;
+
+    // xy = direction, z = steepness in [0,1], w = wavelength
+    vec4 waves[];
 } modelUbo;
 
 layout(push_constant) uniform Push {
@@ -84,9 +81,9 @@ void main() {
         float maxL = modelUbo.tessParams.x;
         
         gl_TessLevelOuter[0] = mix(maxL, 1.0, min(f0, f1));
-        gl_TessLevelOuter[1] = mix(maxL, 1.0, min(f1, f2));
-        gl_TessLevelOuter[2] = mix(maxL, 1.0, min(f2, f3));
-        gl_TessLevelOuter[3] = mix(maxL, 1.0, min(f3, f0));
+        gl_TessLevelOuter[1] = mix(maxL, 1.0, min(f1, f3));
+        gl_TessLevelOuter[2] = mix(maxL, 1.0, min(f3, f2));
+        gl_TessLevelOuter[3] = mix(maxL, 1.0, min(f2, f0));
         
         gl_TessLevelInner[0] = max(gl_TessLevelOuter[0], gl_TessLevelOuter[2]);
         gl_TessLevelInner[1] = max(gl_TessLevelOuter[1], gl_TessLevelOuter[3]);
