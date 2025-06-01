@@ -4,7 +4,6 @@ namespace vk {
 
 	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
 		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager) {
-		
 		renderer = std::make_unique<Renderer>(window, device);
 
 		globalPool = DescriptorPool::Builder(device)
@@ -95,17 +94,16 @@ namespace vk {
 
 				while (physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime) {
 					game.prePhysicsUpdate();
-					
+
 					physicsSimulation.preSimulation();
 					physicsSimulation.simulate();
 					physicsSimulation.postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
-					
+
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
 
 					game.postPhysicsUpdate();
 				}
-			}
-			else {
+			} else {
 				game.gamePauseUpdate(deltaTime);
 			}
 
@@ -154,9 +152,6 @@ namespace vk {
 				renderer->endSwapChainRenderPass(commandBuffer);
 				renderer->endFrame();
 			}
-
-			// TODO use fences / semaphores instead (next line forces sync of cpu and gpu and heavily impacts performance):
-			vkDeviceWaitIdle(device.device());
 		}
 	}
 }
