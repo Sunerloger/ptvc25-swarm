@@ -35,15 +35,15 @@ namespace vk {
 		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-       pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        // Enable alpha blending for transparency
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		// Enable alpha blending for transparency
+		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 	}
 
 	WaterMaterial::WaterMaterial(Device& device, const std::string& texturePath,
@@ -67,15 +67,15 @@ namespace vk {
 		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        // Enable alpha blending for transparency
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		// Enable alpha blending for transparency
+		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 	}
 
 	WaterMaterial::WaterMaterial(Device& device, const std::vector<unsigned char>& imageData,
@@ -101,15 +101,15 @@ namespace vk {
 		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        // Enable alpha blending for transparency
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		// Enable alpha blending for transparency
+		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 	}
 
 	WaterMaterial::WaterMaterial(Device& device, const std::vector<unsigned char>& imageData,
@@ -136,29 +136,21 @@ namespace vk {
 		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		pipelineConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        // Enable alpha blending for transparency
-        pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
-        pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+		// Enable alpha blending for transparency
+		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
+		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		pipelineConfig.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		pipelineConfig.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		pipelineConfig.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		pipelineConfig.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 		// pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 	}
 
 	WaterMaterial::~WaterMaterial() {
-		// Decrement instance count and clean up static resources first if this is the last instance
-		// This ensures descriptor sets are invalidated before destroying samplers
-		instanceCount--;
-		if (instanceCount == 0) {
-			std::cout << "Cleaning up WaterMaterial static resources" << std::endl;
-			cleanupResources(device);
-		}
-		
-		// Clean up Vulkan resources after descriptor pool cleanup
+		// Clean up Vulkan resources
 		if (textureSampler != VK_NULL_HANDLE) {
 			vkDestroySampler(device.device(), textureSampler, nullptr);
 		}
@@ -173,6 +165,13 @@ namespace vk {
 
 		if (textureImageMemory != VK_NULL_HANDLE) {
 			vkFreeMemory(device.device(), textureImageMemory, nullptr);
+		}
+
+		// Decrement instance count and clean up static resources if this is the last instance
+		instanceCount--;
+		if (instanceCount == 0) {
+			std::cout << "Cleaning up WaterMaterial static resources" << std::endl;
+			cleanupResources(device);
 		}
 	}
 
