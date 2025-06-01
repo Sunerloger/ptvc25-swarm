@@ -145,22 +145,36 @@ namespace procedural {
 	}
 
 	void VegetationObject::addMainTrunk(LSystemGeometry& geometry, const TurtleParameters& params) {
-		// Find the lowest Y position in the existing geometry to determine trunk height
+		// Ensure the tree is properly grounded by creating a trunk from Y=0 upward
+		// The L-System generation should start from ground level
+		
+		// Find if there are any vertices below ground level
 		float minY = 0.0f;
+		bool hasVerticesAboveGround = false;
+		
 		for (const auto& vertex : geometry.vertices) {
 			minY = std::min(minY, vertex.position.y);
+			if (vertex.position.y > 0.01f) {
+				hasVerticesAboveGround = true;
+			}
 		}
 
-		// Create main trunk from ground (Y=0) down to the lowest point
-		if (minY < -0.01f) {  // Only add trunk if tree starts below ground level
-			// Create trunk cylinder from ground to lowest point
-			glm::vec3 trunkStart(0.0f, 0.0f, 0.0f);	 // Ground level
-			glm::vec3 trunkEnd(0.0f, minY, 0.0f);	 // Lowest point of tree
-
-			// Generate trunk cylinder with thick radius
-			float trunkRadius = params.initialRadius * 1.2f;  // Slightly thicker than initial tree radius
-			generateTrunkCylinder(trunkStart, trunkEnd, trunkRadius, trunkRadius * 0.9f, params.initialColor, geometry);
+		// If tree has vertices below ground or doesn't start properly at ground,
+		// shift everything up so the base is at Y=0
+		if (minY < -0.01f) {
+			float offset = -minY;  // Shift everything up
+			for (auto& vertex : geometry.vertices) {
+				vertex.position.y += offset;
+			}
 		}
+		
+		// Always add a small root/trunk segment at ground level for visual connection
+		// This ensures the tree appears properly planted
+		glm::vec3 trunkStart(0.0f, 0.0f, 0.0f);       // Ground level
+		glm::vec3 trunkEnd(0.0f, 0.15f, 0.0f);        // Short trunk segment upward
+		
+		float trunkRadius = params.initialRadius * 1.1f;  // Slightly thicker base
+		generateTrunkCylinder(trunkStart, trunkEnd, trunkRadius, params.initialRadius, params.initialColor, geometry);
 	}
 
 	void VegetationObject::generateTrunkCylinder(const glm::vec3& start, const glm::vec3& end,

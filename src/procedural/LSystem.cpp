@@ -123,10 +123,15 @@ namespace procedural {
 				break;
 			}
 
-			case 'G': {	 // Generate small leaflet cylinder
-				glm::vec3 leafletEnd = state.position + state.heading * (state.stepLength * 0.6f);
-				float leafletRadius = state.radius * 0.3f;	// Thinner than main branch
-				generateCylinder(state.position, leafletEnd, leafletRadius, leafletRadius * 0.5f, params.leafColor, geometry, 4);
+			case 'G': {	 // Simple branch segment (same as F but for consistency)
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				float endRadius = state.radius * params.radiusDecay;
+				generateCylinder(state.position, newPosition,
+					state.radius, endRadius,
+					params.initialColor, geometry);
+				state.radius = endRadius;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;
 				break;
 			}
 
@@ -184,8 +189,14 @@ namespace procedural {
 				}
 				break;
 
-			case 'L':  // Generate leaf
-				generateLeaf(state.position, state.heading, params.leafColor, geometry);
+			case 'L':  // Simple branch end (same as F for cylinder-only trees)
+				{
+					glm::vec3 newPosition = state.position + state.heading * (state.stepLength * 0.5f);
+					float endRadius = state.radius * params.radiusDecay * 0.5f;  // Thinner end
+					generateCylinder(state.position, newPosition,
+						state.radius, endRadius,
+						params.initialColor, geometry);
+				}
 				break;
 
 			case '|':  // Turn around
@@ -424,31 +435,22 @@ namespace procedural {
 		LSystem tree;
 		tree.rng.seed(seed);
 
-		// Tree structure with strong main trunk and realistic branching
-		tree.setAxiom("FFFFFFFFFF");  // Long main trunk
+		// Simple tree with main trunk - start with vertical trunk segment
+		tree.setAxiom("FFFFFFFFF");  // Main trunk
 
-		// Tree branching rules - main trunk grows upward with side branches
-		tree.addRule('F', "FF[&+FL]F[&-FL]", 0.3f);	  // Main growth with angled side branches and leaves
-		tree.addRule('F', "FFF[++FG][--FG]", 0.25f);  // Stronger trunk with small branches
-		tree.addRule('F', "FF[&+FFL][&-FFL]", 0.2f);  // Medium branches with leaves at ends
-		tree.addRule('F', "FFFF", 0.25f);			  // Pure trunk growth for strong main stem
-
-		// Secondary branching - creates sub-branches with leaves
-		tree.addRule('G', "F[+L][-L]", 0.6f);	// Small branches end in leaves
-		tree.addRule('G', "FF[+G][-G]", 0.3f);	// Some branches continue growing
-		tree.addRule('G', "FL", 0.1f);			// Simple leaf ending
-
-		// Leaf generation - creates realistic foliage
-		tree.addRule('L', "L", 1.0f);  // Leaves stay as leaves
+		// Simplified branching rules - only cylinders, high branching probability
+		tree.addRule('F', "F[+F][-F]", 0.7f);  // High probability left/right split
+		tree.addRule('F', "FF[+F]", 0.15f);    // Branch left only
+		tree.addRule('F', "FF[-F]", 0.15f);    // Branch right only
 
 		TurtleParameters params;
-		params.stepLength = 0.4f;							 // Larger steps for tree scale
-		params.angleIncrement = 25.0f;						 // Good branching angles
-		params.radiusDecay = 0.85f;							 // Gradual taper for realistic trunk
-		params.lengthDecay = 0.88f;							 // Slow length decrease for tall trees
-		params.initialRadius = 0.08f;						 // Tree trunk thickness
+		params.stepLength = 0.5f;							 // Medium steps for good proportion
+		params.angleIncrement = 30.0f;						 // Clear branching angles
+		params.radiusDecay = 0.8f;							 // More pronounced taper
+		params.lengthDecay = 0.85f;							 // Good length reduction
+		params.initialRadius = 0.12f;						 // Thicker trunk
 		params.initialColor = glm::vec3(0.4f, 0.25f, 0.1f);	 // Brown bark color
-		params.leafColor = glm::vec3(0.2f, 0.7f, 0.2f);		 // Green leaves
+		params.leafColor = glm::vec3(0.2f, 0.7f, 0.2f);		 // Green leaves (unused now)
 		tree.setTurtleParameters(params);
 
 		return tree;
