@@ -8,11 +8,11 @@ namespace procedural {
 
 	LSystem::LSystem() : rng(std::random_device{}()) {
 		// Default turtle parameters
-		turtleParams.stepLength = 1.0f;
-		turtleParams.angleIncrement = 25.0f;
-		turtleParams.radiusDecay = 0.9f;
-		turtleParams.lengthDecay = 0.8f;
-		turtleParams.initialRadius = 0.1f;
+		turtleParams.stepLength = 1.5f;
+		turtleParams.angleIncrement = 30.0f;
+		turtleParams.radiusDecay = 0.85f;
+		turtleParams.lengthDecay = 0.99f;
+		turtleParams.initialRadius = 0.5f;
 		turtleParams.initialColor = glm::vec3(0.4f, 0.2f, 0.1f);
 		turtleParams.leafColor = glm::vec3(0.2f, 0.8f, 0.3f);
 	}
@@ -104,39 +104,57 @@ namespace procedural {
 		LSystemGeometry& geometry,
 		std::stack<TurtleState>& stateStack,
 		const TurtleParameters& params) const {
+		// Define the maximum depth over which the color transition occurs
+		const float maxDepthForColorTransition = 10.0f;
+
 		switch (symbol) {
 			case 'T': {	 // Trunk segment: Move forward and draw
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
+
+				// Calculate color based on depth
+				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
+				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
+
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					params.initialColor, geometry);
+					segmentColor, geometry);  // Use interpolated segmentColor
 				state.radius = endRadius;
 				state.position = newPosition;
 				state.stepLength *= params.lengthDecay;
-				break;	// Added break
+				break;
 			}
 			case 'F': {	 // Branch segment: Move forward and draw
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
+
+				// Calculate color based on depth
+				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
+				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
+
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					params.initialColor, geometry);
+					segmentColor, geometry);  // Use interpolated segmentColor
 				state.radius = endRadius;
 				state.position = newPosition;
 				state.stepLength *= params.lengthDecay;
-				break;	// Added break
+				break;
 			}
 			case 'G': {	 // Generic segment: Move forward and draw
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
+
+				// Calculate color based on depth
+				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
+				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
+
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					params.initialColor, geometry);
+					segmentColor, geometry);  // Use interpolated segmentColor
 				state.radius = endRadius;
 				state.position = newPosition;
 				state.stepLength *= params.lengthDecay;
-				break;	// Added break
+				break;
 			}
 			case 'f': {	 // Move forward without drawing
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
@@ -203,9 +221,14 @@ namespace procedural {
 			{
 				glm::vec3 newPosition = state.position + state.heading * (state.stepLength * 0.5f);
 				float endRadius = state.radius * params.radiusDecay * 0.5f;	 // Thinner end
+
+				// Calculate color based on depth for leaf/branch end
+				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
+				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
+
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					params.initialColor, geometry);
+					segmentColor, geometry);  // Use interpolated segmentColor
 			} break;
 
 			case '|':  // Turn around
@@ -462,11 +485,11 @@ namespace procedural {
 		tree.addRule('F', "FF[-F]", 0.15f);	   // Branch right only
 
 		TurtleParameters params;
-		params.stepLength = 0.5f;							 // Medium steps for good proportion
+		params.stepLength = 1.5f;							 // Medium steps for good proportion
 		params.angleIncrement = 30.0f;						 // Clear branching angles
-		params.radiusDecay = 0.8f;							 // More pronounced taper
-		params.lengthDecay = 0.85f;							 // Good length reduction
-		params.initialRadius = 0.12f;						 // Thicker trunk
+		params.radiusDecay = 0.85f;							 // More pronounced taper
+		params.lengthDecay = 0.99f;							 // Good length reduction
+		params.initialRadius = 0.5f;						 // Thicker trunk
 		params.initialColor = glm::vec3(0.4f, 0.25f, 0.1f);	 // Brown bark color
 		params.leafColor = glm::vec3(0.2f, 0.7f, 0.2f);		 // Green leaves (unused now)
 		tree.setTurtleParameters(params);
