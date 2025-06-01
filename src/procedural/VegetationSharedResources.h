@@ -20,7 +20,7 @@ namespace procedural {
 			treeMaterial->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 		}
 
-		std::shared_ptr<vk::Material> getMaterial(VegetationType type) const {
+		std::shared_ptr<vk::Material> getMaterial() const {
 			return treeMaterial;
 		}
 

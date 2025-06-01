@@ -11,10 +11,6 @@
 
 namespace procedural {
 
-	enum class VegetationType {
-		Tree
-	};
-
 	// L-System grammar rule
 	struct LSystemRule {
 		char symbol;
@@ -65,7 +61,6 @@ namespace procedural {
 
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
-		VegetationType type = VegetationType::Tree;
 	};
 
 	class LSystem {

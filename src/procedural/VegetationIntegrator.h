@@ -83,7 +83,6 @@ namespace procedural {
 
 		// Check if a position is suitable for a specific vegetation type
 		bool isSuitableForVegetation(
-			VegetationType type,
 			const glm::vec2& worldPos,
 			float height,
 			float slope,

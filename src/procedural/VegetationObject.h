@@ -15,18 +15,9 @@ namespace procedural {
 			vk::Device& device,
 			const LSystemGeometry& geometry,
 			const glm::vec3& position = glm::vec3(0.0f),
-			const glm::vec3& scale = glm::vec3(1.0f),
-			const glm::vec3& rotation = glm::vec3(0.0f));
+			const glm::vec3& scale = glm::vec3(1.0f));
 
 		virtual ~VegetationObject() = default;
-
-		// Get the vegetation type (for identification)
-		VegetationType getVegetationType() const {
-			return vegetationType;
-		}
-
-		// Update vegetation (for dynamic growth or animation)
-		void update(float deltaTime);
 
 		// GameObject interface
 		glm::mat4 computeModelMatrix() const override;
@@ -52,26 +43,14 @@ namespace procedural {
 			const TurtleParameters& turtleParams);
 
 	   private:
-		VegetationType vegetationType;
-		float growthTime = 0.0f;
-		float maxGrowth = 1.0f;
-
 		std::shared_ptr<vk::Model> model;
 		glm::vec3 position{0.0f};
 		glm::vec3 scale{1.0f};
-		glm::vec3 rotation{0.0f};
 
 		// Create a model from L-System geometry
 		static std::shared_ptr<vk::Model> createModelFromGeometry(
 			vk::Device& device,
 			const LSystemGeometry& geometry);
-
-		// Add main trunk to ensure ground connection
-		static void addMainTrunk(LSystemGeometry& geometry, const TurtleParameters& params);
-
-		// Generate cylinder for trunk
-		static void generateTrunkCylinder(const glm::vec3& start, const glm::vec3& end,
-			float radiusStart, float radiusEnd, const glm::vec3& color, LSystemGeometry& geometry);
 	};
 
 }  // namespace procedural

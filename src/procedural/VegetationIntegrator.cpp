@@ -41,7 +41,7 @@ namespace procedural {
 			float height = sampleHeightAt(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 			float slope = calculateSlope(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 
-			if (isSuitableForVegetation(VegetationType::Tree, pos2D, height, slope, settings)) {
+			if (isSuitableForVegetation(pos2D, height, slope, settings)) {
 				// Ensure tree is properly grounded - place it slightly below terrain surface
 				glm::vec3 position(pos2D.x, height - 0.1f, pos2D.y);
 				float scale = getRandomScale(settings.treeScaleRange, rng);
@@ -52,7 +52,7 @@ namespace procedural {
 				auto tree = VegetationObject::createTree(device, position, glm::vec3(scale), treeSeed);
 
 				// Apply shared material
-				tree->getModel()->setMaterial(resources->getMaterial(VegetationType::Tree));
+				tree->getModel()->setMaterial(resources->getMaterial());
 
 				vegetation.push_back(std::move(tree));
 			}
@@ -98,7 +98,7 @@ namespace procedural {
 			float height = sampleHeightAt(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 			float slope = calculateSlope(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 
-			if (isSuitableForVegetation(VegetationType::Tree, pos2D, height, slope, settings)) {
+			if (isSuitableForVegetation(pos2D, height, slope, settings)) {
 				// Ensure tree is properly grounded
 				glm::vec3 position(pos2D.x, height - 0.1f, pos2D.y);
 				float scale = getRandomScale(settings.treeScaleRange, rng);
@@ -111,7 +111,7 @@ namespace procedural {
 					treeSeed, lsystemIterations, axiom, turtleParams);
 
 				// Apply shared material
-				tree->getModel()->setMaterial(resources->getMaterial(VegetationType::Tree));
+				tree->getModel()->setMaterial(resources->getMaterial());
 
 				vegetation.push_back(std::move(tree));
 			}
@@ -136,9 +136,7 @@ namespace procedural {
 		VegetationStats stats;
 
 		for (const auto& vegObject : vegetation) {
-			if (vegObject->getVegetationType() == VegetationType::Tree) {
-				stats.treeCount++;
-			}
+			stats.treeCount++;
 		}
 
 		return stats;
@@ -210,7 +208,7 @@ namespace procedural {
 	}
 
 	bool VegetationIntegrator::isSuitableForVegetation(
-		VegetationType type,
+		// VegetationType type, // Removed type parameter
 		const glm::vec2& worldPos,
 		float height,
 		float slope,
