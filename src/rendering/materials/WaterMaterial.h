@@ -9,6 +9,8 @@
 
 namespace vk {
 
+	static constexpr size_t MAX_NUM_WATER_WAVES = 32;
+
 	struct WaterData {
 		// x = maxTessLevel, max tessellation subdivisions
 		// y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
@@ -30,7 +32,7 @@ namespace vk {
 		glm::vec4 flags = glm::vec4{1.0f};
 
 		// xy = direction, z = steepness in [0,1], w = wavelength
-		glm::vec4 waves[WaterMaterial::MAX_NUM_WAVES];
+		glm::vec4 waves[MAX_NUM_WATER_WAVES];
 	};
 
 	struct CreateWaterData {
@@ -95,8 +97,6 @@ namespace vk {
 		static int instanceCount;
 
 		static void cleanupResources();
-
-		static constexpr size_t MAX_NUM_WAVES = 32;
 
 	private:
 		void createTextureImage(const std::string& texturePath);

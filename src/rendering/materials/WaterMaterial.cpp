@@ -488,9 +488,9 @@ namespace vk {
 
 	void WaterMaterial::setWaves(std::vector<glm::vec4> params) {
 		int count = params.size();
-		if (count > MAX_NUM_WAVES) {
-			printf("INFO: WaterMaterial only supports %d waves. Other waves are ignored.\n", MAX_NUM_WAVES);
-			count = MAX_NUM_WAVES;
+		if (count > MAX_NUM_WATER_WAVES) {
+			printf("INFO: WaterMaterial only supports %d waves. Other waves are ignored.\n", MAX_NUM_WATER_WAVES);
+			count = MAX_NUM_WATER_WAVES;
 		}
 
 		waterData.flags.y = count;
