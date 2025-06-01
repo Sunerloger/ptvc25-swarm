@@ -147,11 +147,11 @@ namespace procedural {
 	void VegetationObject::addMainTrunk(LSystemGeometry& geometry, const TurtleParameters& params) {
 		// Ensure the tree is properly grounded by creating a trunk from Y=0 upward
 		// The L-System generation should start from ground level
-		
+
 		// Find if there are any vertices below ground level
 		float minY = 0.0f;
 		bool hasVerticesAboveGround = false;
-		
+
 		for (const auto& vertex : geometry.vertices) {
 			minY = std::min(minY, vertex.position.y);
 			if (vertex.position.y > 0.01f) {
@@ -167,12 +167,12 @@ namespace procedural {
 				vertex.position.y += offset;
 			}
 		}
-		
+
 		// Always add a small root/trunk segment at ground level for visual connection
 		// This ensures the tree appears properly planted
-		glm::vec3 trunkStart(0.0f, 0.0f, 0.0f);       // Ground level
-		glm::vec3 trunkEnd(0.0f, 0.15f, 0.0f);        // Short trunk segment upward
-		
+		glm::vec3 trunkStart(0.0f, 0.0f, 0.0f);	 // Ground level
+		glm::vec3 trunkEnd(0.0f, 0.15f, 0.0f);	 // Short trunk segment upward
+
 		float trunkRadius = params.initialRadius * 1.1f;  // Slightly thicker base
 		generateTrunkCylinder(trunkStart, trunkEnd, trunkRadius, params.initialRadius, params.initialColor, geometry);
 	}
@@ -181,50 +181,60 @@ namespace procedural {
 		float radiusStart, float radiusEnd, const glm::vec3& color, LSystemGeometry& geometry) {
 		int segments = 8;
 
-		glm::vec3 direction = glm::normalize(end - start);
-		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
-		if (glm::length(right) < 0.1f) {
-			right = glm::normalize(glm::cross(direction, glm::vec3(0, 0, 1)));
-		}
-		glm::vec3 up = glm::normalize(glm::cross(right, direction));
+		float minRadius = 0.01f;
+		float actualRadiusStart = std::max(radiusStart, minRadius);
+		float actualRadiusEnd = std::max(radiusEnd, minRadius);
 
-		uint32_t startVertexIndex = geometry.vertices.size();
+		if (glm::distance(start, end) < 0.01f) {
+			return;	 // Too short to be visible
+		}
+
+		glm::vec3 direction = glm::normalize(end - start);
+		glm::vec3 cylRight = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
+		if (glm::length(cylRight) < 0.1f) {										   // if direction is (close to) Y-axis
+			cylRight = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));  // use X-axis for cross product
+		}
+		glm::vec3 cylUp = glm::normalize(glm::cross(cylRight, direction));
+
+		uint32_t baseVertexIndex = static_cast<uint32_t>(geometry.vertices.size());
 
 		// Generate vertices for cylinder
 		for (int i = 0; i <= segments; ++i) {
-			float angle = 2.0f * M_PI * i / segments;
+			float angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(segments);
 			float cosAngle = std::cos(angle);
 			float sinAngle = std::sin(angle);
 
-			// Start circle
-			glm::vec3 offsetStart = (right * cosAngle + up * sinAngle) * radiusStart;
-			glm::vec3 posStart = start + offsetStart;
-			glm::vec3 normalStart = glm::normalize(offsetStart);
+			// Start circle vertex
+			glm::vec3 offsetStart = (cylRight * cosAngle + cylUp * sinAngle) * actualRadiusStart;
+			geometry.vertices.push_back({start + offsetStart,
+				color,	// Use the passed color directly
+				glm::normalize(offsetStart),
+				glm::vec2(static_cast<float>(i) / segments, 0.0f)});
 
-			// End circle
-			glm::vec3 offsetEnd = (right * cosAngle + up * sinAngle) * radiusEnd;
-			glm::vec3 posEnd = end + offsetEnd;
-			glm::vec3 normalEnd = glm::normalize(offsetEnd);
-
-			// Add vertices
-			geometry.vertices.push_back({posStart, color, normalStart, glm::vec2(float(i) / segments, 0.0f)});
-			geometry.vertices.push_back({posEnd, color, normalEnd, glm::vec2(float(i) / segments, 1.0f)});
+			// End circle vertex
+			glm::vec3 offsetEnd = (cylRight * cosAngle + cylUp * sinAngle) * actualRadiusEnd;
+			geometry.vertices.push_back({end + offsetEnd,
+				color,	// Use the passed color directly
+				glm::normalize(offsetEnd),
+				glm::vec2(static_cast<float>(i) / segments, 1.0f)});
 		}
 
 		// Generate indices for cylinder sides
 		for (int i = 0; i < segments; ++i) {
-			uint32_t curr = startVertexIndex + i * 2;
-			uint32_t next = startVertexIndex + ((i + 1) % (segments + 1)) * 2;
+			uint32_t bottomLeft = baseVertexIndex + i * 2;
+			uint32_t bottomRight = baseVertexIndex + (i + 1) * 2;
+			uint32_t topLeft = bottomLeft + 1;
+			uint32_t topRight = bottomRight + 1;
 
-			// First triangle
-			geometry.indices.push_back(curr);
-			geometry.indices.push_back(curr + 1);
-			geometry.indices.push_back(next);
+			// Triangle 1
+			geometry.indices.push_back(bottomLeft);
+			geometry.indices.push_back(topLeft);
+			geometry.indices.push_back(bottomRight);
 
-			// Second triangle
-			geometry.indices.push_back(next);
-			geometry.indices.push_back(curr + 1);
-			geometry.indices.push_back(next + 1);
+			// Triangle 2
+			geometry.indices.push_back(bottomRight);
+			geometry.indices.push_back(topLeft);
+			geometry.indices.push_back(topRight);
 		}
 	}
 

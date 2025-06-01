@@ -105,25 +105,7 @@ namespace procedural {
 		std::stack<TurtleState>& stateStack,
 		const TurtleParameters& params) const {
 		switch (symbol) {
-			case 'F':	 // Move forward and draw
-			case 'f': {	 // Move forward without drawing
-				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
-
-				if (symbol == 'F') {
-					// Generate cylinder for branch
-					float endRadius = state.radius * params.radiusDecay;
-					generateCylinder(state.position, newPosition,
-						state.radius, endRadius,
-						params.initialColor, geometry);
-					state.radius = endRadius;
-				}
-
-				state.position = newPosition;
-				state.stepLength *= params.lengthDecay;
-				break;
-			}
-
-			case 'G': {	 // Simple branch segment (same as F but for consistency)
+			case 'T': {	 // Trunk segment: Move forward and draw
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
 				generateCylinder(state.position, newPosition,
@@ -132,6 +114,34 @@ namespace procedural {
 				state.radius = endRadius;
 				state.position = newPosition;
 				state.stepLength *= params.lengthDecay;
+				break;	// Added break
+			}
+			case 'F': {	 // Branch segment: Move forward and draw
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				float endRadius = state.radius * params.radiusDecay;
+				generateCylinder(state.position, newPosition,
+					state.radius, endRadius,
+					params.initialColor, geometry);
+				state.radius = endRadius;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;
+				break;	// Added break
+			}
+			case 'G': {	 // Generic segment: Move forward and draw
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				float endRadius = state.radius * params.radiusDecay;
+				generateCylinder(state.position, newPosition,
+					state.radius, endRadius,
+					params.initialColor, geometry);
+				state.radius = endRadius;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;
+				break;	// Added break
+			}
+			case 'f': {	 // Move forward without drawing
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;	 // Still apply length decay
 				break;
 			}
 
@@ -190,14 +200,13 @@ namespace procedural {
 				break;
 
 			case 'L':  // Simple branch end (same as F for cylinder-only trees)
-				{
-					glm::vec3 newPosition = state.position + state.heading * (state.stepLength * 0.5f);
-					float endRadius = state.radius * params.radiusDecay * 0.5f;  // Thinner end
-					generateCylinder(state.position, newPosition,
-						state.radius, endRadius,
-						params.initialColor, geometry);
-				}
-				break;
+			{
+				glm::vec3 newPosition = state.position + state.heading * (state.stepLength * 0.5f);
+				float endRadius = state.radius * params.radiusDecay * 0.5f;	 // Thinner end
+				generateCylinder(state.position, newPosition,
+					state.radius, endRadius,
+					params.initialColor, geometry);
+			} break;
 
 			case '|':  // Turn around
 				state.heading = -state.heading;
@@ -225,37 +234,43 @@ namespace procedural {
 		}
 
 		glm::vec3 direction = glm::normalize(end - start);
-		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
-		if (glm::length(right) < 0.1f) {
-			right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
+		glm::vec3 cylinder_axis_right;
+		glm::vec3 cylinder_axis_up;
+
+		// Robustly calculate orthogonal axes for the cylinder caps
+		glm::vec3 temp_calc_right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));	 // Try Y-axis as helper
+		if (glm::dot(temp_calc_right, temp_calc_right) < 1e-12f) {						 // If direction is parallel to Y-axis
+			// Fallback: use X-axis as helper
+			temp_calc_right = glm::cross(direction, glm::vec3(1.0f, 0.0f, 0.0f));
 		}
-		glm::vec3 up = glm::normalize(glm::cross(right, direction));
+		cylinder_axis_right = glm::normalize(temp_calc_right);
+		cylinder_axis_up = glm::normalize(glm::cross(cylinder_axis_right, direction));
 
 		uint32_t startVertexIndex = geometry.vertices.size();
 
 		// Generate vertices
 		for (int i = 0; i <= segments; ++i) {
-			float angle = 2.0f * M_PI * i / segments;
+			float angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(segments);
 			float cosAngle = std::cos(angle);
 			float sinAngle = std::sin(angle);
 
 			// Start circle
-			glm::vec3 offsetStart = (right * cosAngle + up * sinAngle) * actualRadiusStart;
+			glm::vec3 offsetStart = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusStart;
 
 			// Use slightly darker color for stems compared to leaves
 			glm::vec3 stemColor = glm::vec3(color.x * 0.7f, color.y * 0.7f, color.z * 0.7f);
 
 			geometry.vertices.push_back({start + offsetStart,
 				stemColor,
-				glm::normalize(offsetStart),
-				glm::vec2(float(i) / segments, 0.0f)});
+				glm::normalize(offsetStart),  // Normal for cylinder side is just the offset direction from center
+				glm::vec2(static_cast<float>(i) / segments, 0.0f)});
 
 			// End circle
-			glm::vec3 offsetEnd = (right * cosAngle + up * sinAngle) * actualRadiusEnd;
+			glm::vec3 offsetEnd = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusEnd;
 			geometry.vertices.push_back({end + offsetEnd,
 				stemColor,
-				glm::normalize(offsetEnd),
-				glm::vec2(float(i) / segments, 1.0f)});
+				glm::normalize(offsetEnd),	// Normal for cylinder side
+				glm::vec2(static_cast<float>(i) / segments, 1.0f)});
 		}
 
 		// Generate indices
@@ -435,13 +450,16 @@ namespace procedural {
 		LSystem tree;
 		tree.rng.seed(seed);
 
-		// Simple tree with main trunk - start with vertical trunk segment
-		tree.setAxiom("FFFFFFFFF");  // Main trunk
+		// Axiom: Trunk (T) segments followed by branching (F) segments for the crown
+		tree.setAxiom("TTTTTFFFFF");
 
-		// Simplified branching rules - only cylinders, high branching probability
+		// Rule for trunk segments: T just becomes T (does not branch)
+		tree.addRule('T', "T", 1.0f);
+
+		// Rules for branching segments (F) - forms the crown
 		tree.addRule('F', "F[+F][-F]", 0.7f);  // High probability left/right split
-		tree.addRule('F', "FF[+F]", 0.15f);    // Branch left only
-		tree.addRule('F', "FF[-F]", 0.15f);    // Branch right only
+		tree.addRule('F', "FF[+F]", 0.15f);	   // Branch left only
+		tree.addRule('F', "FF[-F]", 0.15f);	   // Branch right only
 
 		TurtleParameters params;
 		params.stepLength = 0.5f;							 // Medium steps for good proportion
