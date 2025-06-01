@@ -7,6 +7,8 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <cmath>	  // Required for std::floor, std::log2, std::max
+#include <algorithm>  // Required for std::max
 
 namespace vk {
 
@@ -201,6 +203,7 @@ namespace vk {
 		}
 
 		VkDeviceSize imageSize = width * height * 4;  // 4 bytes per pixel (RGBA)
+		this->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 
 		// Create staging buffer
 		VkBuffer stagingBuffer;
@@ -231,12 +234,12 @@ namespace vk {
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = this->mipLevels;
 		imageInfo.arrayLayers = 1;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -261,12 +264,7 @@ namespace vk {
 			static_cast<uint32_t>(height),
 			1);
 
-		// Transition to shader read layout
-		device.transitionImageLayout(
-			textureImage,
-			VK_FORMAT_R8G8B8A8_SRGB,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		device.generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, width, height, this->mipLevels);
 
 		// Clean up staging buffer
 		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
@@ -277,6 +275,7 @@ namespace vk {
 		int width, int height, int channels) {
 		// Calculate image size (always use RGBA format)
 		VkDeviceSize imageSize = width * height * 4;
+		this->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 
 		if (imageData.empty()) {
 			throw std::runtime_error("Empty image data provided");
@@ -336,12 +335,12 @@ namespace vk {
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = this->mipLevels;
 		imageInfo.arrayLayers = 1;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.flags = 0;
@@ -366,11 +365,7 @@ namespace vk {
 			static_cast<uint32_t>(height),
 			1);
 
-		device.transitionImageLayout(
-			textureImage,
-			VK_FORMAT_R8G8B8A8_SRGB,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		device.generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, width, height, this->mipLevels);
 
 		// Clean up staging buffer
 		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
@@ -381,7 +376,8 @@ namespace vk {
 		textureImageView = device.createImageView(
 			textureImage,
 			VK_FORMAT_R8G8B8A8_SRGB,
-			VK_IMAGE_ASPECT_COLOR_BIT);
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			this->mipLevels);
 	}
 
 	void WaterMaterial::createTextureSampler() {
@@ -401,7 +397,7 @@ namespace vk {
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo.mipLodBias = 0.0f;
 		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
+		samplerInfo.maxLod = static_cast<float>(this->mipLevels);
 
 		if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create texture sampler!");

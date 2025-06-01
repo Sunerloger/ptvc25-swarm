@@ -2,6 +2,7 @@
 
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
+#include <cstdint>	// Required for uint32_t
 
 namespace vk {
 
@@ -47,5 +48,6 @@ namespace vk {
 		VkImageView textureImageView = VK_NULL_HANDLE;
 		VkSampler textureSampler = VK_NULL_HANDLE;
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+		uint32_t mipLevels = 1;	 // Added
 	};
 }

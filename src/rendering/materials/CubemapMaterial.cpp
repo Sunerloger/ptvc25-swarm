@@ -1,10 +1,11 @@
 #include "CubemapMaterial.h"
 #include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
-// Include stb_image without the implementation
 #include "stb_image.h"
 #include <stdexcept>
 #include <iostream>
+#include <cmath>
+#include <algorithm>
 
 namespace vk {
 
@@ -92,7 +93,7 @@ namespace vk {
 
 	void CubemapMaterial::createCubemapFromFaces(const std::array<std::string, 6>& facePaths) {
 		// Load all 6 faces
-		int width, height, channels;
+		int width = 0, height = 0, channels = 0;
 		stbi_uc* faceData[6];
 
 		for (int i = 0; i < 6; i++) {
@@ -104,6 +105,7 @@ namespace vk {
 		}
 
 		VkDeviceSize imageSize = width * height * 4 * 6;  // 4 bytes per pixel (RGBA) * 6 faces
+		this->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 
 		// Create staging buffer
 		VkBuffer stagingBuffer;
@@ -135,12 +137,12 @@ namespace vk {
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = this->mipLevels;
 		imageInfo.arrayLayers = 6;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -209,44 +211,16 @@ namespace vk {
 
 		device.endSingleTimeCommands(commandBuffer);
 
-		// Transition to shader read layout for all 6 faces
-		// We need to do this manually since the device helper only transitions one layer
-		VkCommandBuffer layoutTransitionCmd = device.beginSingleTimeCommands();
-
-		VkImageMemoryBarrier finalBarrier{};
-		finalBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		finalBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		finalBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		finalBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		finalBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		finalBarrier.image = cubemapImage;
-		finalBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		finalBarrier.subresourceRange.baseMipLevel = 0;
-		finalBarrier.subresourceRange.levelCount = 1;
-		finalBarrier.subresourceRange.baseArrayLayer = 0;
-		finalBarrier.subresourceRange.layerCount = 6;  // All 6 faces
-		finalBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		finalBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(
-			layoutTransitionCmd,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &finalBarrier);
-
-		device.endSingleTimeCommands(layoutTransitionCmd);
-
 		// Clean up staging buffer
 		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
 		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+
+		device.transitionImageLayout(cubemapImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->mipLevels, 6);
 	}
 
 	void CubemapMaterial::createCubemapFromSingleImage(const std::string& imagePath, bool isHorizontalStrip) {
 		// Load the single image containing all 6 faces
-		int width, height, channels;
+		int width = 0, height = 0, channels = 0;
 		std::string resolvedPath = AssetLoader::getInstance().resolvePath(imagePath);
 		stbi_uc* imageData = stbi_load(resolvedPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
@@ -380,12 +354,12 @@ namespace vk {
 		imageInfo.extent.width = faceWidth;
 		imageInfo.extent.height = faceHeight;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = this->mipLevels;
 		imageInfo.arrayLayers = 6;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -454,39 +428,11 @@ namespace vk {
 
 		device.endSingleTimeCommands(commandBuffer);
 
-		// Transition to shader read layout for all 6 faces
-		// We need to do this manually since the device helper only transitions one layer
-		VkCommandBuffer singleImageLayoutCmd = device.beginSingleTimeCommands();
-
-		VkImageMemoryBarrier barrier{};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = cubemapImage;
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 6;  // All 6 faces
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(
-			singleImageLayoutCmd,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier);
-
-		device.endSingleTimeCommands(singleImageLayoutCmd);
-
 		// Clean up staging buffer
 		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
 		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+
+		device.transitionImageLayout(cubemapImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->mipLevels, 6);
 	}
 
 	void CubemapMaterial::createCubemapImageView() {
@@ -497,7 +443,7 @@ namespace vk {
 		viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.levelCount = this->mipLevels;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 6;
 
@@ -514,13 +460,13 @@ namespace vk {
 		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = device.properties.limits.maxSamplerAnisotropy;
+		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.maxAnisotropy = 1.0f;
 		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 		samplerInfo.unnormalizedCoordinates = VK_FALSE;
 		samplerInfo.compareEnable = VK_FALSE;
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 		samplerInfo.mipLodBias = 0.0f;
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;

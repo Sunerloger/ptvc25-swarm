@@ -4,6 +4,8 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <cmath>
+#include <algorithm>
 
 namespace vk {
 
@@ -179,6 +181,7 @@ namespace vk {
 	void TessellationMaterial::createTextureImage(const std::string& texturePath) {
 		// Use AssetLoader to load texture
 		auto textureData = AssetLoader::getInstance().loadTexture(texturePath);
+		this->textureMipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(textureData.width, textureData.height)))) + 1;
 
 		// Create texture from image data
 		createTextureFromImageData(textureData.pixels, textureData.width, textureData.height, textureData.channels);
@@ -187,6 +190,7 @@ namespace vk {
 	void TessellationMaterial::createHeightmapImage(const std::string& heightmapPath) {
 		// Use AssetLoader to load heightmap
 		auto heightmapData = AssetLoader::getInstance().loadTexture(heightmapPath);
+		this->heightmapMipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(heightmapData.width, heightmapData.height)))) + 1;
 
 		// Create heightmap image
 		VkDeviceSize imageSize = heightmapData.width * heightmapData.height * heightmapData.channels;
@@ -214,12 +218,12 @@ namespace vk {
 		imageInfo.extent.width = heightmapData.width;
 		imageInfo.extent.height = heightmapData.height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = this->heightmapMipLevels;
 		imageInfo.arrayLayers = 1;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -230,9 +234,9 @@ namespace vk {
 			heightmapImageMemory);
 
 		// Transition image layout and copy data
-		device.transitionImageLayout(heightmapImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		device.transitionImageLayout(heightmapImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, this->heightmapMipLevels, 1);
 		device.copyBufferToImage(stagingBuffer, heightmapImage, heightmapData.width, heightmapData.height, 1);
-		device.transitionImageLayout(heightmapImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		device.generateMipmaps(heightmapImage, VK_FORMAT_R8G8B8A8_UNORM, heightmapData.width, heightmapData.height, this->heightmapMipLevels);
 
 		// Clean up staging buffer
 		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
@@ -244,6 +248,7 @@ namespace vk {
 
 	void TessellationMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData, int width, int height, int channels) {
 		VkDeviceSize imageSize = width * height * channels;
+		this->textureMipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 
 		// Create staging buffer
 		VkBuffer stagingBuffer;
@@ -268,12 +273,12 @@ namespace vk {
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = this->textureMipLevels;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -284,9 +289,9 @@ namespace vk {
 			textureImageMemory);
 
 		// Transition image layout and copy data
-		device.transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		device.transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, this->textureMipLevels, 1);
 		device.copyBufferToImage(stagingBuffer, textureImage, width, height, 1);
-		device.transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		device.generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, width, height, this->textureMipLevels);
 
 		// Clean up staging buffer
 		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
@@ -294,12 +299,13 @@ namespace vk {
 	}
 
 	void TessellationMaterial::createTextureImageView() {
-		textureImageView = device.createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+		// For color texture
+		textureImageView = device.createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, this->textureMipLevels);
 	}
 
 	void TessellationMaterial::createHeightmapImageView() {
 		if (m_hasHeightmapTexture) {
-			heightmapImageView = device.createImageView(heightmapImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+			heightmapImageView = device.createImageView(heightmapImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, this->heightmapMipLevels);
 		}
 	}
 
@@ -320,7 +326,7 @@ namespace vk {
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo.mipLodBias = 0.0f;
 		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
+		samplerInfo.maxLod = static_cast<float>(this->textureMipLevels);
 
 		if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create texture sampler!");
