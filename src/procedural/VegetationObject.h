@@ -34,25 +34,7 @@ namespace procedural {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
 
-		// Static factory methods for different vegetation types
-		static std::unique_ptr<VegetationObject> createTree(
-			vk::Device& device,
-			const glm::vec3& position,
-			const glm::vec3& scale = glm::vec3(1.0f),
-			int seed = 0);
-
-		static std::unique_ptr<VegetationObject> createBush(
-			vk::Device& device,
-			const glm::vec3& position,
-			const glm::vec3& scale = glm::vec3(1.0f),
-			int seed = 0);
-
-		static std::unique_ptr<VegetationObject> createGrass(
-			vk::Device& device,
-			const glm::vec3& position,
-			const glm::vec3& scale = glm::vec3(1.0f),
-			int seed = 0);
-
+		// Static factory method for fern vegetation
 		static std::unique_ptr<VegetationObject> createFern(
 			vk::Device& device,
 			const glm::vec3& position,

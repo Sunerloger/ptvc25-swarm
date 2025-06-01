@@ -12,9 +12,6 @@
 namespace procedural {
 
 	enum class VegetationType {
-		Tree,
-		Bush,
-		Grass,
 		Fern
 	};
 
@@ -70,7 +67,7 @@ namespace procedural {
 
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
-		VegetationType type = VegetationType::Tree;
+		VegetationType type = VegetationType::Fern;
 	};
 
 	// L-System class for procedural plant generation
@@ -93,9 +90,6 @@ namespace procedural {
 			unsigned int seed = 0) const;
 
 		// Predefined plant types
-		static LSystem createSimpleTree(unsigned int seed = 0);
-		static LSystem createBush(unsigned int seed = 0);
-		static LSystem createGrass(unsigned int seed = 0);
 		static LSystem createFern(unsigned int seed = 0);
 
 		// Get/set parameters
@@ -128,74 +122,6 @@ namespace procedural {
 
 		void generateLeaf(const glm::vec3& position, const glm::vec3& direction,
 			const glm::vec3& color, LSystemGeometry& geometry) const;
-	};
-
-	// Vegetation manager for placing L-system generated plants on terrain
-	class VegetationManager {
-	   public:
-		VegetationManager();
-		~VegetationManager() = default;
-
-		struct VegetationSpawn {
-			glm::vec3 position;
-			LSystem lsystem;
-			TurtleParameters params;
-			int iterations;
-			unsigned int seed;
-		};
-
-		// Generate vegetation placement on terrain
-		std::vector<VegetationSpawn> generateVegetationPlacements(
-			const std::vector<float>& heightmap,
-			int gridSize,
-			const glm::vec3& terrainScale,
-			const glm::vec3& terrainPosition,
-			int vegetationCount,
-			unsigned int seed = 0);
-
-		// Generate geometry for all vegetation
-		std::vector<LSystemGeometry> generateAllVegetationGeometry(
-			const std::vector<VegetationSpawn>& spawns);
-
-		// Configure vegetation density and types
-		void setTreeDensity(float density) {
-			treeDensity = density;
-		}
-		void setBushDensity(float density) {
-			bushDensity = density;
-		}
-		void setGrassDensity(float density) {
-			grassDensity = density;
-		}
-
-		float getTreeDensity() const {
-			return treeDensity;
-		}
-		float getBushDensity() const {
-			return bushDensity;
-		}
-		float getGrassDensity() const {
-			return grassDensity;
-		}
-
-	   private:
-		float treeDensity = 0.3f;
-		float bushDensity = 0.4f;
-		float grassDensity = 0.3f;
-		std::mt19937 rng;
-
-		// Check if position is suitable for vegetation (slope, height, etc.)
-		bool isSuitableForVegetation(const glm::vec3& position,
-			const std::vector<float>& heightmap,
-			int gridSize,
-			const glm::vec3& terrainScale);
-
-		// Get terrain height at specific world position
-		float getHeightAtPosition(const glm::vec3& worldPos,
-			const std::vector<float>& heightmap,
-			int gridSize,
-			const glm::vec3& terrainScale,
-			const glm::vec3& terrainPosition);
 	};
 
 }  // namespace procedural

@@ -25,42 +25,6 @@ namespace procedural {
 		scale = scale * currentGrowth;
 	}
 
-	std::unique_ptr<VegetationObject> VegetationObject::createTree(
-		vk::Device& device,
-		const glm::vec3& position,
-		const glm::vec3& scale,
-		int seed) {
-		LSystem lsystem = LSystem::createSimpleTree(seed);
-		std::string lsystemString = lsystem.generate(3);  // 3 iterations for trees
-		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, lsystem.getTurtleParameters(), glm::vec3(0.0f), seed);
-		geometry.type = VegetationType::Tree;
-		return std::make_unique<VegetationObject>(device, geometry, position, scale);
-	}
-
-	std::unique_ptr<VegetationObject> VegetationObject::createBush(
-		vk::Device& device,
-		const glm::vec3& position,
-		const glm::vec3& scale,
-		int seed) {
-		LSystem lsystem = LSystem::createBush(seed);
-		std::string lsystemString = lsystem.generate(2);  // 2 iterations for bushes
-		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, lsystem.getTurtleParameters(), glm::vec3(0.0f), seed);
-		geometry.type = VegetationType::Bush;
-		return std::make_unique<VegetationObject>(device, geometry, position, scale);
-	}
-
-	std::unique_ptr<VegetationObject> VegetationObject::createGrass(
-		vk::Device& device,
-		const glm::vec3& position,
-		const glm::vec3& scale,
-		int seed) {
-		LSystem lsystem = LSystem::createGrass(seed);
-		std::string lsystemString = lsystem.generate(1);  // 1 iteration for grass
-		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, lsystem.getTurtleParameters(), glm::vec3(0.0f), seed);
-		geometry.type = VegetationType::Grass;
-		return std::make_unique<VegetationObject>(device, geometry, position, scale);
-	}
-
 	std::unique_ptr<VegetationObject> VegetationObject::createFern(
 		vk::Device& device,
 		const glm::vec3& position,
@@ -126,46 +90,9 @@ namespace procedural {
 		// Create the model
 		auto model = std::make_shared<vk::Model>(device, builder);
 
-		// Create a simple vegetation material based on vegetation type
-		std::shared_ptr<vk::Material> material;
-
-		switch (geometry.type) {
-			case VegetationType::Tree:
-				// Create a green material for trees with a simple 1x1 green texture
-				{
-					std::vector<unsigned char> greenPixel = {34, 139, 34, 255};	 // Forest green
-					material = std::make_shared<vk::StandardMaterial>(device, greenPixel, 1, 1, 4);
-				}
-				break;
-			case VegetationType::Bush:
-				// Create a darker green material for bushes
-				{
-					std::vector<unsigned char> darkGreenPixel = {0, 100, 0, 255};  // Dark green
-					material = std::make_shared<vk::StandardMaterial>(device, darkGreenPixel, 1, 1, 4);
-				}
-				break;
-			case VegetationType::Grass:
-				// Create a bright green material for grass
-				{
-					std::vector<unsigned char> brightGreenPixel = {124, 252, 0, 255};  // Lawn green
-					material = std::make_shared<vk::StandardMaterial>(device, brightGreenPixel, 1, 1, 4);
-				}
-				break;
-			case VegetationType::Fern:
-				// Create a medium green material for ferns
-				{
-					std::vector<unsigned char> fernGreenPixel = {46, 125, 50, 255};	 // Fern green
-					material = std::make_shared<vk::StandardMaterial>(device, fernGreenPixel, 1, 1, 4);
-				}
-				break;
-			default:
-				// Fallback to a default green
-				{
-					std::vector<unsigned char> defaultGreenPixel = {0, 128, 0, 255};  // Default green
-					material = std::make_shared<vk::StandardMaterial>(device, defaultGreenPixel, 1, 1, 4);
-				}
-				break;
-		}
+	// Create fern material - simplified since we only have ferns now
+	std::vector<unsigned char> fernGreenPixel = {46, 125, 50, 255};  // Fern green
+	auto material = std::make_shared<vk::StandardMaterial>(device, fernGreenPixel, 1, 1, 4);
 
 		model->setMaterial(material);
 		return model;

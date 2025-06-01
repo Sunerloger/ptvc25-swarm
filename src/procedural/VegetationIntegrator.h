@@ -35,7 +35,7 @@ namespace procedural {
 		VegetationIntegrator(vk::Device& device);
 		~VegetationIntegrator() = default;
 
-		// Generate and place vegetation on terrain using the VegetationManager
+		// Generate and place vegetation on terrain
 		void generateVegetationOnTerrain(
 			const VegetationSettings& settings,
 			const std::vector<float>& heightfieldData,
