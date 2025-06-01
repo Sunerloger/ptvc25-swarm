@@ -138,7 +138,14 @@ namespace vk {
     }
 
     TessellationMaterial::~TessellationMaterial() {
-        // Clean up resources
+        // Decrement instance count and clean up static resources first if this is the last instance
+        // This ensures descriptor sets are invalidated before destroying samplers
+        instanceCount--;
+        if (instanceCount == 0) {
+            cleanupResources(device);
+        }
+        
+        // Clean up resources after descriptor pool cleanup
         vkDestroySampler(device.device(), textureSampler, nullptr);
         vkDestroyImageView(device.device(), textureImageView, nullptr);
         vkDestroyImage(device.device(), textureImage, nullptr);
@@ -148,14 +155,6 @@ namespace vk {
             vkDestroyImageView(device.device(), heightmapImageView, nullptr);
             vkDestroyImage(device.device(), heightmapImage, nullptr);
             vkFreeMemory(device.device(), heightmapImageMemory, nullptr);
-        }
-        
-        // Decrement instance count
-        instanceCount--;
-        
-        // Clean up static resources if this is the last instance
-        if (instanceCount == 0) {
-            cleanupResources(device);
         }
     }
 

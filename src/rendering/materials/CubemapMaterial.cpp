@@ -45,7 +45,15 @@ namespace vk {
     }
 
     CubemapMaterial::~CubemapMaterial() {
-        // Clean up Vulkan resources
+        // Decrement instance count and clean up static resources first if this is the last instance
+        // This ensures descriptor sets are invalidated before destroying samplers
+        instanceCount--;
+        if (instanceCount == 0) {
+            std::cout << "Cleaning up CubemapMaterial static resources" << std::endl;
+            cleanupResources(device);
+        }
+        
+        // Clean up Vulkan resources after descriptor pool cleanup
         if (cubemapSampler != VK_NULL_HANDLE) {
             vkDestroySampler(device.device(), cubemapSampler, nullptr);
         }
@@ -60,13 +68,6 @@ namespace vk {
         
         if (cubemapImageMemory != VK_NULL_HANDLE) {
             vkFreeMemory(device.device(), cubemapImageMemory, nullptr);
-        }
-        
-        // Decrement instance count and clean up static resources if this is the last instance
-        instanceCount--;
-        if (instanceCount == 0) {
-            std::cout << "Cleaning up CubemapMaterial static resources" << std::endl;
-            cleanupResources(device);
         }
     }
 

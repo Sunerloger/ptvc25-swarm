@@ -54,15 +54,40 @@ namespace procedural {
 		// Create the vegetation object
 		auto fernObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
 
-		// Create a proper material for the fern with backface culling disabled
-		std::vector<unsigned char> fernGreen = {34, 139, 34, 255};	// Forest green
-		auto material = std::make_shared<vk::StandardMaterial>(device, fernGreen, 1, 1, 4);
+		// Note: Material will be applied by the calling code using VegetationSharedResources
+		// This avoids creating individual materials for each fern, reducing descriptor pool usage
 
-		// Disable backface culling by configuring the material
-		material->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+		return fernObject;
+	}
 
-		// Assign the material to the model
-		fernObject->getModel()->setMaterial(material);
+	std::unique_ptr<VegetationObject> VegetationObject::createFern(
+		vk::Device& device,
+		const glm::vec3& position,
+		const glm::vec3& scale,
+		int seed,
+		int iterations,
+		const std::string& axiom,
+		const TurtleParameters& turtleParams) {
+		
+		LSystem lsystem = LSystem::createFern(seed);
+		
+		// Override axiom if provided
+		if (!axiom.empty()) {
+			lsystem.setAxiom(axiom);
+		}
+		
+		// Generate L-system string with custom iterations
+		std::string lsystemString = lsystem.generate(iterations);
+
+		// Generate geometry with custom parameters
+		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, turtleParams, glm::vec3(0.0f, 0.0f, 0.0f), seed);
+		geometry.type = VegetationType::Fern;
+
+		// Create the vegetation object
+		auto fernObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
+
+		// Note: Material will be applied by the calling code using VegetationSharedResources
+		// This avoids creating individual materials for each fern, reducing descriptor pool usage
 
 		return fernObject;
 	}
@@ -90,11 +115,9 @@ namespace procedural {
 		// Create the model
 		auto model = std::make_shared<vk::Model>(device, builder);
 
-	// Create fern material - simplified since we only have ferns now
-	std::vector<unsigned char> fernGreenPixel = {46, 125, 50, 255};  // Fern green
-	auto material = std::make_shared<vk::StandardMaterial>(device, fernGreenPixel, 1, 1, 4);
+		// Note: Material will be applied by the calling code using VegetationSharedResources
+		// This avoids creating individual materials for each vegetation object
 
-		model->setMaterial(material);
 		return model;
 	}
 

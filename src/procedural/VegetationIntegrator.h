@@ -43,6 +43,17 @@ namespace procedural {
 			const glm::vec3& terrainScale,
 			const glm::vec3& terrainPosition);
 
+		// Generate vegetation with custom L-System parameters
+		void generateVegetationWithCustomParams(
+			const VegetationSettings& settings,
+			const std::vector<float>& heightfieldData,
+			int gridSize,
+			const glm::vec3& terrainScale,
+			const glm::vec3& terrainPosition,
+			int lsystemIterations,
+			const std::string& axiom,
+			const TurtleParameters& turtleParams);
+
 		// Add individual vegetation objects to the scene
 		void addVegetationToScene(SceneManager& sceneManager);
 

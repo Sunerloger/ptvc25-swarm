@@ -150,7 +150,15 @@ namespace vk {
 	}
 
 	WaterMaterial::~WaterMaterial() {
-		// Clean up Vulkan resources
+		// Decrement instance count and clean up static resources first if this is the last instance
+		// This ensures descriptor sets are invalidated before destroying samplers
+		instanceCount--;
+		if (instanceCount == 0) {
+			std::cout << "Cleaning up WaterMaterial static resources" << std::endl;
+			cleanupResources(device);
+		}
+		
+		// Clean up Vulkan resources after descriptor pool cleanup
 		if (textureSampler != VK_NULL_HANDLE) {
 			vkDestroySampler(device.device(), textureSampler, nullptr);
 		}
@@ -165,13 +173,6 @@ namespace vk {
 
 		if (textureImageMemory != VK_NULL_HANDLE) {
 			vkFreeMemory(device.device(), textureImageMemory, nullptr);
-		}
-
-		// Decrement instance count and clean up static resources if this is the last instance
-		instanceCount--;
-		if (instanceCount == 0) {
-			std::cout << "Cleaning up WaterMaterial static resources" << std::endl;
-			cleanupResources(device);
 		}
 	}
 

@@ -88,7 +88,15 @@ namespace vk {
     }
 
     StandardMaterial::~StandardMaterial() {
-        // Clean up Vulkan resources
+        // Decrement instance count and clean up static resources first if this is the last instance
+        // This ensures descriptor sets are invalidated before destroying samplers
+        instanceCount--;
+        if (instanceCount == 0) {
+            std::cout << "Cleaning up StandardMaterial static resources" << std::endl;
+            cleanupResources(device);
+        }
+        
+        // Clean up Vulkan resources after descriptor pool cleanup
         if (textureSampler != VK_NULL_HANDLE) {
             vkDestroySampler(device.device(), textureSampler, nullptr);
         }
@@ -104,13 +112,6 @@ namespace vk {
         if (textureImageMemory != VK_NULL_HANDLE) {
             vkFreeMemory(device.device(), textureImageMemory, nullptr);
         }
-        
-        // Decrement instance count and clean up static resources if this is the last instance
-        instanceCount--;
-        if (instanceCount == 0) {
-            std::cout << "Cleaning up StandardMaterial static resources" << std::endl;
-            cleanupResources(device);
-        }
     }
 
     void StandardMaterial::createDescriptorSetLayoutIfNeeded(Device& device) {
@@ -122,8 +123,8 @@ namespace vk {
             descriptorSetLayout = layoutBuilder.build();
             
             descriptorPool = DescriptorPool::Builder(device)
-                .setMaxSets(100)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
+                .setMaxSets(2000)  // Significantly increased to handle rapid vegetation regenerations
+                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2000)  // Increased to match setMaxSets
                 .build();
         }
     }

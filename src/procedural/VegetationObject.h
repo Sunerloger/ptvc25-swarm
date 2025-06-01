@@ -41,6 +41,16 @@ namespace procedural {
 			const glm::vec3& scale = glm::vec3(1.0f),
 			int seed = 0);
 
+		// Static factory method for fern vegetation with custom parameters
+		static std::unique_ptr<VegetationObject> createFern(
+			vk::Device& device,
+			const glm::vec3& position,
+			const glm::vec3& scale,
+			int seed,
+			int iterations,
+			const std::string& axiom,
+			const TurtleParameters& turtleParams);
+
 	   private:
 		VegetationType vegetationType;
 		float growthTime = 0.0f;

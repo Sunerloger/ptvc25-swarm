@@ -62,6 +62,67 @@ namespace procedural {
 		std::cout << "Generated " << vegetation.size() << " vegetation objects" << std::endl;
 	}
 
+	void VegetationIntegrator::generateVegetationWithCustomParams(
+		const VegetationSettings& settings,
+		const std::vector<float>& heightfieldData,
+		int gridSize,
+		const glm::vec3& terrainScale,
+		const glm::vec3& terrainPosition,
+		int lsystemIterations,
+		const std::string& axiom,
+		const TurtleParameters& turtleParams) {
+		
+		// Clear existing vegetation
+		clearVegetation();
+
+		std::mt19937 rng(settings.placementSeed);
+		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+		// Calculate terrain area
+		float terrainWidth = settings.terrainMax.x - settings.terrainMin.x;
+		float terrainDepth = settings.terrainMax.y - settings.terrainMin.y;
+		float terrainArea = terrainWidth * terrainDepth;
+
+		// Calculate number of ferns to place
+		int numFerns = static_cast<int>(terrainArea * settings.fernDensity);
+
+		std::cout << "Generating vegetation with custom parameters: " << numFerns << " ferns" << std::endl;
+		std::cout << "  Iterations: " << lsystemIterations << ", Axiom: " << axiom << std::endl;
+
+		// Create shared resources to reuse materials
+		auto resources = std::make_shared<VegetationSharedResources>(device);
+
+		// Generate ferns with custom parameters
+		for (int i = 0; i < numFerns; ++i) {
+			glm::vec2 pos2D(
+				settings.terrainMin.x + dist(rng) * terrainWidth,
+				settings.terrainMin.y + dist(rng) * terrainDepth);
+
+			float height = sampleHeightAt(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
+			float slope = calculateSlope(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
+
+			if (isSuitableForVegetation(VegetationType::Fern, pos2D, height, slope, settings)) {
+				// Ensure fern is properly grounded
+				glm::vec3 position(pos2D.x, height - 0.1f, pos2D.y);
+				float scale = getRandomScale(settings.fernScaleRange, rng);
+
+				// Generate unique seed for each fern for variety
+				int fernSeed = rng();
+
+				// Create fern with custom parameters
+				auto fern = VegetationObject::createFern(device, position, glm::vec3(scale), 
+					fernSeed, lsystemIterations, axiom, turtleParams);
+
+				// Apply shared material
+				fern->getModel()->setMaterial(resources->getMaterial(VegetationType::Fern));
+
+				vegetation.push_back(std::move(fern));
+			}
+		}
+
+		std::cout << "Generated " << vegetation.size() << " vegetation objects with custom parameters" << std::endl;
+	}
+
 	void VegetationIntegrator::addVegetationToScene(SceneManager& sceneManager) {
 		for (auto& vegObject : vegetation) {
 			// Cast to base class and move the unique_ptr

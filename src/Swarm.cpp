@@ -250,14 +250,18 @@ void Swarm::init() {
 			noiseScale,
 			maxTerrainHeight);
 
-		// Store heightfield data for vegetation
-		std::vector<float> heightfieldData;
+		// Store heightfield data for vegetation and parameter tuning
 		if (result.second.size() >= samplesPerSide * samplesPerSide) {
 			heightfieldData = result.second;  // Copy the heightfield data
 		} else {
 			// Create flat heightfield if result doesn't have enough data
 			heightfieldData.resize(samplesPerSide * samplesPerSide, 0.0f);
 		}
+		
+		// Store terrain parameters for regeneration
+		terrainSamplesPerSide = samplesPerSide;
+		terrainScale = glm::vec3{100.0f, maxTerrainHeight, 100.0f};
+		terrainPosition = glm::vec3{0.0, -2.0, 0.0};
 
 		// create terrain with procedural heightmap using perlin noise
 		// create terrain with the generated heightmap data
@@ -314,6 +318,22 @@ void Swarm::init() {
 			} catch (const std::exception& e) {
 				printf("Error generating vegetation: %s\n", e.what());
 			}
+		}
+		
+		// Initialize fern parameter tuning system
+		{
+			fernTuner = std::make_unique<procedural::FernParameterTuner>();
+			
+			// Get INI file path from AssetLoader
+			std::string iniPath = vk::AssetLoader::getInstance().getPath("settings") + "/fern_tuning.ini";
+			fernTuner->initialize(iniPath);
+			
+			// Set regeneration callback
+			fernTuner->setRegenerationCallback([this](const procedural::FernParameterTuner::FernTuningParameters& params) {
+				onFernParametersChanged(params);
+			});
+			
+			std::cout << "FernParameterTuner: Initialized with INI file: " << iniPath << std::endl;
 		}
 	}
 
@@ -544,6 +564,11 @@ void Swarm::init() {
 
 void Swarm::gameActiveUpdate(float deltaTime) {
 	SceneManager& sceneManager = SceneManager::getInstance();
+	
+	// Update fern parameter tuning system
+	if (fernTuner) {
+		fernTuner->update(deltaTime);
+	}
 
 	// TODO refactor into timer class
 	elapsedTime += deltaTime;
@@ -599,4 +624,48 @@ void Swarm::prePhysicsUpdate() {
 
 void Swarm::postPhysicsUpdate() {}
 
-void Swarm::gamePauseUpdate(float deltaTime) {}
+void Swarm::gamePauseUpdate(float deltaTime) {
+	// Update fern parameter tuning system even when paused
+	// This allows real-time parameter visualization when escape menu is open
+	if (fernTuner) {
+		fernTuner->update(deltaTime);
+	}
+}
+
+void Swarm::onFernParametersChanged(const procedural::FernParameterTuner::FernTuningParameters& params) {
+	SceneManager& sceneManager = SceneManager::getInstance();
+	
+	std::cout << "FernParameterTuner: Regenerating ferns with new parameters..." << std::endl;
+	
+	// Ensure all GPU operations are complete before destroying Vulkan resources
+	vkDeviceWaitIdle(device.device());
+	
+	// Remove existing vegetation from scene
+	sceneManager.clearVegetationObjects();
+	
+	// Create new vegetation integrator for regeneration
+	procedural::VegetationIntegrator vegetationIntegrator(device);
+	
+	try {
+		// Generate vegetation with custom L-System parameters
+		vegetationIntegrator.generateVegetationWithCustomParams(
+			params.vegetationSettings,
+			heightfieldData,
+			terrainSamplesPerSide,
+			terrainScale,
+			terrainPosition,
+			params.iterations,
+			params.axiom,
+			params.turtleParams);
+		
+		// Add regenerated vegetation to scene
+		vegetationIntegrator.addVegetationToScene(sceneManager);
+		
+		// Report statistics
+		auto stats = vegetationIntegrator.getVegetationStats();
+		std::cout << "FernParameterTuner: Regenerated " << stats.fernCount << " ferns" << std::endl;
+		
+	} catch (const std::exception& e) {
+		std::cerr << "FernParameterTuner: Error regenerating vegetation: " << e.what() << std::endl;
+	}
+}
