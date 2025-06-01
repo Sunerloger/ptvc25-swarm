@@ -12,7 +12,7 @@
 namespace procedural {
 
 	enum class VegetationType {
-		Fern
+		Tree
 	};
 
 	// L-System grammar rule
@@ -36,7 +36,6 @@ namespace procedural {
 		glm::vec3 leafColor = glm::vec3(0.2f, 0.8f, 0.3f);	   // Green for leaves
 	};
 
-	// Turtle state for interpreting L-system
 	struct TurtleState {
 		glm::vec3 position;
 		glm::vec3 heading;	// Forward direction
@@ -56,7 +55,6 @@ namespace procedural {
 			  depth(0) {}
 	};
 
-	// Generated geometry from L-system
 	struct LSystemGeometry {
 		struct Vertex {
 			glm::vec3 position;
@@ -67,10 +65,9 @@ namespace procedural {
 
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
-		VegetationType type = VegetationType::Fern;
+		VegetationType type = VegetationType::Tree;
 	};
 
-	// L-System class for procedural plant generation
 	class LSystem {
 	   public:
 		LSystem();
@@ -89,10 +86,8 @@ namespace procedural {
 			const glm::vec3& startPosition = glm::vec3(0.0f),
 			unsigned int seed = 0) const;
 
-		// Predefined plant types
-		static LSystem createFern(unsigned int seed = 0);
+		static LSystem createTree(unsigned int seed = 0);  // Renamed from createFern
 
-		// Get/set parameters
 		void setTurtleParameters(const TurtleParameters& params) {
 			turtleParams = params;
 		}
@@ -106,10 +101,8 @@ namespace procedural {
 		TurtleParameters turtleParams;
 		mutable std::mt19937 rng;
 
-		// Apply rules to a single character
 		std::string applyRules(char symbol) const;
 
-		// Turtle graphics interpretation helpers
 		void processSymbol(char symbol, TurtleState& state,
 			LSystemGeometry& geometry,
 			std::stack<TurtleState>& stateStack,
@@ -119,15 +112,6 @@ namespace procedural {
 			float radiusStart, float radiusEnd,
 			const glm::vec3& color, LSystemGeometry& geometry,
 			int segments = 8) const;
-
-		void generateLeaf(const glm::vec3& position, const glm::vec3& direction,
-			const glm::vec3& color, LSystemGeometry& geometry) const;
-
-		void generateTriangularLeaflet(const glm::vec3& position, const glm::vec3& direction,
-			float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const;
-
-		void generateOvalLeaf(const glm::vec3& position, const glm::vec3& direction,
-			float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const;
 	};
 
 }  // namespace procedural

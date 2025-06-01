@@ -7,14 +7,13 @@
 namespace procedural {
 
 	LSystem::LSystem() : rng(std::random_device{}()) {
-		// Default turtle parameters
-		turtleParams.stepLength = 1.5f;
-		turtleParams.angleIncrement = 30.0f;
-		turtleParams.radiusDecay = 0.85f;
-		turtleParams.lengthDecay = 0.99f;
-		turtleParams.initialRadius = 0.5f;
-		turtleParams.initialColor = glm::vec3(0.4f, 0.2f, 0.1f);
-		turtleParams.leafColor = glm::vec3(0.2f, 0.8f, 0.3f);
+		turtleParams.stepLength = 1.5f;							   // Default, will be changed by createTree
+		turtleParams.angleIncrement = 30.0f;					   // Default, will be changed by createTree
+		turtleParams.radiusDecay = 0.85f;						   // Default, will be changed by createTree
+		turtleParams.lengthDecay = 0.99f;						   // Default, will be changed by createTree
+		turtleParams.initialRadius = 0.5f;						   // Default, will be changed by createTree
+		turtleParams.initialColor = glm::vec3(0.5f, 0.3f, 0.15f);  // Default brown
+		turtleParams.leafColor = glm::vec3(0.1f, 0.5f, 0.1f);	   // Default green
 	}
 
 	void LSystem::addRule(char symbol, const std::string& replacement, float probability) {
@@ -42,7 +41,6 @@ namespace procedural {
 	std::string LSystem::applyRules(char symbol) const {
 		auto it = rules.find(symbol);
 		if (it == rules.end()) {
-			// No rule for this symbol, return as-is
 			return std::string(1, symbol);
 		}
 
@@ -51,12 +49,10 @@ namespace procedural {
 			return std::string(1, symbol);
 		}
 
-		// For stochastic L-systems, choose rule based on probability
 		if (symbolRules.size() == 1) {
 			return symbolRules[0].replacement;
 		}
 
-		// Multiple rules - use probability
 		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 		float random = dist(rng);
 		float cumulative = 0.0f;
@@ -68,7 +64,6 @@ namespace procedural {
 			}
 		}
 
-		// Fallback to last rule
 		return symbolRules.back().replacement;
 	}
 
@@ -79,7 +74,6 @@ namespace procedural {
 		LSystemGeometry geometry;
 		std::stack<TurtleState> stateStack;
 
-		// Initialize turtle state
 		TurtleState state;
 		state.position = startPosition;
 		state.heading = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -89,10 +83,8 @@ namespace procedural {
 		state.stepLength = params.stepLength;
 		state.depth = 0;
 
-		// Set seed for consistent generation
 		rng.seed(seed);
 
-		// Process each symbol in the L-system string
 		for (char symbol : lSystemString) {
 			processSymbol(symbol, state, geometry, stateStack, params);
 		}
@@ -104,7 +96,6 @@ namespace procedural {
 		LSystemGeometry& geometry,
 		std::stack<TurtleState>& stateStack,
 		const TurtleParameters& params) const {
-		// Define the maximum depth over which the color transition occurs
 		const float maxDepthForColorTransition = 10.0f;
 
 		switch (symbol) {
@@ -112,13 +103,12 @@ namespace procedural {
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
 
-				// Calculate color based on depth
 				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
 				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
 
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					segmentColor, geometry);  // Use interpolated segmentColor
+					segmentColor, geometry);
 				state.radius = endRadius;
 				state.position = newPosition;
 				state.stepLength *= params.lengthDecay;
@@ -128,13 +118,12 @@ namespace procedural {
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
 
-				// Calculate color based on depth
 				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
 				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
 
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					segmentColor, geometry);  // Use interpolated segmentColor
+					segmentColor, geometry);
 				state.radius = endRadius;
 				state.position = newPosition;
 				state.stepLength *= params.lengthDecay;
@@ -144,13 +133,12 @@ namespace procedural {
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
 
-				// Calculate color based on depth
 				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
 				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
 
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					segmentColor, geometry);  // Use interpolated segmentColor
+					segmentColor, geometry);
 				state.radius = endRadius;
 				state.position = newPosition;
 				state.stepLength *= params.lengthDecay;
@@ -159,7 +147,7 @@ namespace procedural {
 			case 'f': {	 // Move forward without drawing
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				state.position = newPosition;
-				state.stepLength *= params.lengthDecay;	 // Still apply length decay
+				state.stepLength *= params.lengthDecay;
 				break;
 			}
 
@@ -222,13 +210,12 @@ namespace procedural {
 				glm::vec3 newPosition = state.position + state.heading * (state.stepLength * 0.5f);
 				float endRadius = state.radius * params.radiusDecay * 0.5f;	 // Thinner end
 
-				// Calculate color based on depth for leaf/branch end
 				float transitionFactor = glm::clamp(static_cast<float>(state.depth) / maxDepthForColorTransition, 0.0f, 1.0f);
 				glm::vec3 segmentColor = glm::mix(params.initialColor, params.leafColor, transitionFactor);
 
 				generateCylinder(state.position, newPosition,
 					state.radius, endRadius,
-					segmentColor, geometry);  // Use interpolated segmentColor
+					segmentColor, geometry);
 			} break;
 
 			case '|':  // Turn around
@@ -237,7 +224,6 @@ namespace procedural {
 				break;
 
 			default:
-				// Ignore unknown symbols
 				break;
 		}
 	}
@@ -246,12 +232,10 @@ namespace procedural {
 		float radiusStart, float radiusEnd,
 		const glm::vec3& color, LSystemGeometry& geometry,
 		int segments) const {
-		// For fern stems, we need a minimum thickness to be visible
 		float minRadius = 0.01f;
 		float actualRadiusStart = std::max(radiusStart, minRadius);
 		float actualRadiusEnd = std::max(radiusEnd, minRadius);
 
-		// Skip rendering extremely tiny branches
 		if (glm::distance(start, end) < 0.01f) {
 			return;	 // Too short to be visible
 		}
@@ -260,10 +244,8 @@ namespace procedural {
 		glm::vec3 cylinder_axis_right;
 		glm::vec3 cylinder_axis_up;
 
-		// Robustly calculate orthogonal axes for the cylinder caps
 		glm::vec3 temp_calc_right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));	 // Try Y-axis as helper
 		if (glm::dot(temp_calc_right, temp_calc_right) < 1e-12f) {						 // If direction is parallel to Y-axis
-			// Fallback: use X-axis as helper
 			temp_calc_right = glm::cross(direction, glm::vec3(1.0f, 0.0f, 0.0f));
 		}
 		cylinder_axis_right = glm::normalize(temp_calc_right);
@@ -309,167 +291,7 @@ namespace procedural {
 		}
 	}
 
-	void LSystem::generateLeaf(const glm::vec3& position, const glm::vec3& direction,
-		const glm::vec3& color, LSystemGeometry& geometry) const {
-		// Create realistic tree leaves with oval/elliptical shapes
-
-		float leafLength = 0.12f;
-		float leafWidth = 0.08f;  // Width for oval leaves
-		int numLeaves = 3;		  // Fewer, larger leaves for trees
-
-		// Create a small cluster of leaves at different angles
-		for (int i = 0; i < numLeaves; i++) {
-			float angle = (i * 120.0f) + (rand() % 40 - 20);  // 120-degree spacing with variation
-			float angleRad = glm::radians(angle);
-
-			// Calculate leaf direction with some random variation
-			glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
-			if (glm::length(right) < 0.1f) {
-				right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
-			}
-			glm::vec3 up = glm::normalize(glm::cross(right, direction));
-
-			// Rotate the leaf direction around the main direction
-			glm::vec3 leafDir = glm::normalize(
-				right * std::cos(angleRad) + up * std::sin(angleRad) + direction * 0.1f);
-
-			// Create oval leaf shape
-			generateOvalLeaf(position, leafDir, leafLength, leafWidth, color, geometry);
-		}
-
-		// Add a main central leaf
-		generateOvalLeaf(position, direction, leafLength * 1.2f, leafWidth * 1.1f, color, geometry);
-	}
-
-	void LSystem::generateTriangularLeaflet(const glm::vec3& position, const glm::vec3& direction,
-		float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const {
-		// Create a triangular leaflet for realistic fern fronds
-
-		// Calculate orthogonal vectors for the leaflet plane
-		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
-		if (glm::length(right) < 0.1f) {
-			right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
-		}
-		glm::vec3 up = glm::normalize(glm::cross(right, direction));
-
-		// Calculate triangle vertices
-		glm::vec3 tip = position + direction * length;			  // Tip of the leaflet
-		glm::vec3 baseLeft = position + right * (-width * 0.5f);  // Left base corner
-		glm::vec3 baseRight = position + right * (width * 0.5f);  // Right base corner
-
-		// Calculate normal for the triangle (facing towards the up direction mostly)
-		glm::vec3 normal = glm::normalize(glm::cross(baseRight - baseLeft, tip - baseLeft));
-
-		// Make sure normal points in a reasonable direction (not facing down)
-		if (glm::dot(normal, glm::vec3(0, 1, 0)) < 0) {
-			normal = -normal;
-		}
-
-		uint32_t startIndex = geometry.vertices.size();
-
-		// Add vertices for the triangle
-		geometry.vertices.push_back({tip, color, normal, glm::vec2(0.5f, 1.0f)});		 // Tip
-		geometry.vertices.push_back({baseLeft, color, normal, glm::vec2(0.0f, 0.0f)});	 // Base left
-		geometry.vertices.push_back({baseRight, color, normal, glm::vec2(1.0f, 0.0f)});	 // Base right
-
-		// Add triangle indices (counter-clockwise for front face)
-		geometry.indices.push_back(startIndex);		 // tip
-		geometry.indices.push_back(startIndex + 1);	 // base left
-		geometry.indices.push_back(startIndex + 2);	 // base right
-
-		// Add the back face for double-sided rendering
-		geometry.vertices.push_back({tip, color, -normal, glm::vec2(0.5f, 1.0f)});		  // Tip (back)
-		geometry.vertices.push_back({baseLeft, color, -normal, glm::vec2(0.0f, 0.0f)});	  // Base left (back)
-		geometry.vertices.push_back({baseRight, color, -normal, glm::vec2(1.0f, 0.0f)});  // Base right (back)
-
-		// Add back face indices (clockwise for back face)
-		geometry.indices.push_back(startIndex + 3);	 // tip (back)
-		geometry.indices.push_back(startIndex + 5);	 // base right (back)
-		geometry.indices.push_back(startIndex + 4);	 // base left (back)
-	}
-
-	void LSystem::generateOvalLeaf(const glm::vec3& position, const glm::vec3& direction,
-		float length, float width, const glm::vec3& color, LSystemGeometry& geometry) const {
-		// Create an oval-shaped leaf for trees using multiple triangles
-
-		// Calculate orthogonal vectors for the leaf plane
-		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0)));
-		if (glm::length(right) < 0.1f) {
-			right = glm::normalize(glm::cross(direction, glm::vec3(1, 0, 0)));
-		}
-		glm::vec3 up = glm::normalize(glm::cross(right, direction));
-
-		// Create oval shape using multiple segments
-		int segments = 6;
-		std::vector<glm::vec3> points;
-
-		// Generate oval points
-		for (int i = 0; i <= segments; i++) {
-			float t = float(i) / float(segments);
-			float angle = t * 2.0f * M_PI;
-
-			// Oval shape (ellipse)
-			float x = std::cos(angle) * width * 0.5f;
-			float y = std::sin(angle) * length * 0.5f;
-
-			glm::vec3 point = position + right * x + direction * y;
-			points.push_back(point);
-		}
-
-		// Calculate normal for the leaf
-		glm::vec3 normal = glm::normalize(glm::cross(right, direction));
-		if (glm::dot(normal, glm::vec3(0, 1, 0)) < 0) {
-			normal = -normal;
-		}
-
-		uint32_t centerIndex = geometry.vertices.size();
-
-		// Add center vertex
-		geometry.vertices.push_back({position, color, normal, glm::vec2(0.5f, 0.5f)});
-
-		// Add perimeter vertices
-		for (const auto& point : points) {
-			float u = 0.5f + (point.x - position.x) / width;
-			float v = 0.5f + glm::dot(point - position, direction) / length;
-			geometry.vertices.push_back({point, color, normal, glm::vec2(u, v)});
-		}
-
-		// Create triangles from center to perimeter
-		for (int i = 0; i < segments; i++) {
-			uint32_t curr = centerIndex + 1 + i;
-			uint32_t next = centerIndex + 1 + ((i + 1) % (segments + 1));
-
-			// Front face
-			geometry.indices.push_back(centerIndex);
-			geometry.indices.push_back(curr);
-			geometry.indices.push_back(next);
-		}
-
-		// Add back face vertices for double-sided rendering
-		uint32_t backCenterIndex = geometry.vertices.size();
-		geometry.vertices.push_back({position, color, -normal, glm::vec2(0.5f, 0.5f)});
-
-		for (const auto& point : points) {
-			float u = 0.5f + (point.x - position.x) / width;
-			float v = 0.5f + glm::dot(point - position, direction) / length;
-			geometry.vertices.push_back({point, color, -normal, glm::vec2(u, v)});
-		}
-
-		// Create back face triangles (reversed winding)
-		for (int i = 0; i < segments; i++) {
-			uint32_t curr = backCenterIndex + 1 + i;
-			uint32_t next = backCenterIndex + 1 + ((i + 1) % (segments + 1));
-
-			// Back face (reversed winding)
-			geometry.indices.push_back(backCenterIndex);
-			geometry.indices.push_back(next);
-			geometry.indices.push_back(curr);
-		}
-	}
-
-	// Predefined plant types
-
-	LSystem LSystem::createFern(unsigned int seed) {
+	LSystem LSystem::createTree(unsigned int seed) {
 		LSystem tree;
 		tree.rng.seed(seed);
 
@@ -485,13 +307,13 @@ namespace procedural {
 		tree.addRule('F', "FF[-F]", 0.15f);	   // Branch right only
 
 		TurtleParameters params;
-		params.stepLength = 1.5f;							 // Medium steps for good proportion
-		params.angleIncrement = 30.0f;						 // Clear branching angles
-		params.radiusDecay = 0.85f;							 // More pronounced taper
-		params.lengthDecay = 0.99f;							 // Good length reduction
-		params.initialRadius = 0.5f;						 // Thicker trunk
-		params.initialColor = glm::vec3(0.4f, 0.25f, 0.1f);	 // Brown bark color
-		params.leafColor = glm::vec3(0.2f, 0.7f, 0.2f);		 // Green leaves (unused now)
+		params.stepLength = 1.0f;
+		params.angleIncrement = 30.0f;
+		params.radiusDecay = 0.85f;
+		params.lengthDecay = 0.99f;
+		params.initialRadius = 0.3f;
+		params.initialColor = glm::vec3(0.3f, 0.2f, 0.1f);
+		params.leafColor = glm::vec3(0.15f, 0.8f, 0.2f);
 		tree.setTurtleParameters(params);
 
 		return tree;

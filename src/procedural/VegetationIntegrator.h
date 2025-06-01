@@ -11,24 +11,18 @@
 
 namespace procedural {
 
-	// Integrates L-System vegetation with the game's terrain and scene management
 	class VegetationIntegrator {
 	   public:
 		struct VegetationSettings {
-			// Density controls (plants per unit area)
-			float fernDensity = 0.05f;	// Ferns per square unit
+			float treeDensity = 0.05f;
 
-			// Slope constraints (in degrees)
-			float maxBushSlope = 35.0f;	 // Maximum slope angle for ferns
+			float maxTreeSlope = 35.0f;
 
-			// Scale variation
-			glm::vec2 fernScaleRange = glm::vec2(0.5f, 1.0f);
+			glm::vec2 treeScaleRange = glm::vec2(0.5f, 1.0f);
 
-			// Terrain bounds
 			glm::vec2 terrainMin = glm::vec2(-100.0f, -100.0f);
 			glm::vec2 terrainMax = glm::vec2(100.0f, 100.0f);
 
-			// Random seed for vegetation placement
 			int placementSeed = 12345;
 		};
 
@@ -62,7 +56,7 @@ namespace procedural {
 
 		// Get generated vegetation count by type
 		struct VegetationStats {
-			int fernCount = 0;
+			int treeCount = 0;
 		};
 
 		VegetationStats getVegetationStats() const;

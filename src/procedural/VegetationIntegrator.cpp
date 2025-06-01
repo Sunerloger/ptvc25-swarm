@@ -25,16 +25,15 @@ namespace procedural {
 		float terrainDepth = settings.terrainMax.y - settings.terrainMin.y;
 		float terrainArea = terrainWidth * terrainDepth;
 
-		// Calculate number of ferns to place - we only need ferns
-		int numFerns = static_cast<int>(terrainArea * settings.fernDensity);
+		int numTrees = static_cast<int>(terrainArea * settings.treeDensity);
 
-		std::cout << "Generating vegetation: " << numFerns << " ferns" << std::endl;
+		std::cout << "Generating vegetation: " << numTrees << " trees" << std::endl;
 
 		// Create shared resources to reuse materials
 		auto resources = std::make_shared<VegetationSharedResources>(device);
 
-		// Generate ferns
-		for (int i = 0; i < numFerns; ++i) {
+		// Generate trees
+		for (int i = 0; i < numTrees; ++i) {
 			glm::vec2 pos2D(
 				settings.terrainMin.x + dist(rng) * terrainWidth,
 				settings.terrainMin.y + dist(rng) * terrainDepth);
@@ -42,20 +41,20 @@ namespace procedural {
 			float height = sampleHeightAt(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 			float slope = calculateSlope(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 
-			if (isSuitableForVegetation(VegetationType::Fern, pos2D, height, slope, settings)) {
-				// Ensure fern is properly grounded - place it slightly below terrain surface
+			if (isSuitableForVegetation(VegetationType::Tree, pos2D, height, slope, settings)) {
+				// Ensure tree is properly grounded - place it slightly below terrain surface
 				glm::vec3 position(pos2D.x, height - 0.1f, pos2D.y);
-				float scale = getRandomScale(settings.fernScaleRange, rng);
+				float scale = getRandomScale(settings.treeScaleRange, rng);
 
-				// Generate unique seed for each fern for variety
-				int fernSeed = rng();
+				// Generate unique seed for each tree for variety
+				int treeSeed = rng();
 
-				auto fern = VegetationObject::createFern(device, position, glm::vec3(scale), fernSeed);
+				auto tree = VegetationObject::createTree(device, position, glm::vec3(scale), treeSeed);
 
 				// Apply shared material
-				fern->getModel()->setMaterial(resources->getMaterial(VegetationType::Fern));
+				tree->getModel()->setMaterial(resources->getMaterial(VegetationType::Tree));
 
-				vegetation.push_back(std::move(fern));
+				vegetation.push_back(std::move(tree));
 			}
 		}
 
@@ -71,8 +70,6 @@ namespace procedural {
 		int lsystemIterations,
 		const std::string& axiom,
 		const TurtleParameters& turtleParams) {
-		
-		// Clear existing vegetation
 		clearVegetation();
 
 		std::mt19937 rng(settings.placementSeed);
@@ -83,17 +80,17 @@ namespace procedural {
 		float terrainDepth = settings.terrainMax.y - settings.terrainMin.y;
 		float terrainArea = terrainWidth * terrainDepth;
 
-		// Calculate number of ferns to place
-		int numFerns = static_cast<int>(terrainArea * settings.fernDensity);
+		// Calculate number of trees to place
+		int numTrees = static_cast<int>(terrainArea * settings.treeDensity);
 
-		std::cout << "Generating vegetation with custom parameters: " << numFerns << " ferns" << std::endl;
+		std::cout << "Generating vegetation with custom parameters: " << numTrees << " trees" << std::endl;
 		std::cout << "  Iterations: " << lsystemIterations << ", Axiom: " << axiom << std::endl;
 
 		// Create shared resources to reuse materials
 		auto resources = std::make_shared<VegetationSharedResources>(device);
 
-		// Generate ferns with custom parameters
-		for (int i = 0; i < numFerns; ++i) {
+		// Generate trees with custom parameters
+		for (int i = 0; i < numTrees; ++i) {
 			glm::vec2 pos2D(
 				settings.terrainMin.x + dist(rng) * terrainWidth,
 				settings.terrainMin.y + dist(rng) * terrainDepth);
@@ -101,22 +98,22 @@ namespace procedural {
 			float height = sampleHeightAt(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 			float slope = calculateSlope(pos2D, heightfieldData, gridSize, terrainScale, terrainPosition);
 
-			if (isSuitableForVegetation(VegetationType::Fern, pos2D, height, slope, settings)) {
-				// Ensure fern is properly grounded
+			if (isSuitableForVegetation(VegetationType::Tree, pos2D, height, slope, settings)) {
+				// Ensure tree is properly grounded
 				glm::vec3 position(pos2D.x, height - 0.1f, pos2D.y);
-				float scale = getRandomScale(settings.fernScaleRange, rng);
+				float scale = getRandomScale(settings.treeScaleRange, rng);
 
-				// Generate unique seed for each fern for variety
-				int fernSeed = rng();
+				// Generate unique seed for each tree for variety
+				int treeSeed = rng();
 
-				// Create fern with custom parameters
-				auto fern = VegetationObject::createFern(device, position, glm::vec3(scale), 
-					fernSeed, lsystemIterations, axiom, turtleParams);
+				// Create tree with custom parameters
+				auto tree = VegetationObject::createTree(device, position, glm::vec3(scale),
+					treeSeed, lsystemIterations, axiom, turtleParams);
 
 				// Apply shared material
-				fern->getModel()->setMaterial(resources->getMaterial(VegetationType::Fern));
+				tree->getModel()->setMaterial(resources->getMaterial(VegetationType::Tree));
 
-				vegetation.push_back(std::move(fern));
+				vegetation.push_back(std::move(tree));
 			}
 		}
 
@@ -125,11 +122,10 @@ namespace procedural {
 
 	void VegetationIntegrator::addVegetationToScene(SceneManager& sceneManager) {
 		for (auto& vegObject : vegetation) {
-			// Cast to base class and move the unique_ptr
 			std::unique_ptr<vk::GameObject> gameObject = std::move(vegObject);
 			sceneManager.addSpectralObject(std::move(gameObject));
 		}
-		vegetation.clear();	 // Clear since we moved all objects
+		vegetation.clear();
 	}
 
 	void VegetationIntegrator::clearVegetation() {
@@ -140,8 +136,8 @@ namespace procedural {
 		VegetationStats stats;
 
 		for (const auto& vegObject : vegetation) {
-			if (vegObject->getVegetationType() == VegetationType::Fern) {
-				stats.fernCount++;
+			if (vegObject->getVegetationType() == VegetationType::Tree) {
+				stats.treeCount++;
 			}
 		}
 
@@ -198,7 +194,7 @@ namespace procedural {
 		int gridSize,
 		const glm::vec3& terrainScale,
 		const glm::vec3& terrainPosition) const {
-		const float epsilon = 0.1f;	 // Small offset for finite difference
+		const float epsilon = 0.1f;
 
 		float heightCenter = sampleHeightAt(worldPos, heightfieldData, gridSize, terrainScale, terrainPosition);
 		float heightRight = sampleHeightAt(worldPos + glm::vec2(epsilon, 0.0f), heightfieldData, gridSize, terrainScale, terrainPosition);
@@ -219,8 +215,7 @@ namespace procedural {
 		float height,
 		float slope,
 		const VegetationSettings& settings) const {
-		// Only need to check for ferns
-		return slope <= settings.maxBushSlope;
+		return slope <= settings.maxTreeSlope;
 	}
 
 	float VegetationIntegrator::getRandomScale(const glm::vec2& scaleRange, std::mt19937& rng) const {

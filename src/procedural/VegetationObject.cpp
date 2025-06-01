@@ -17,7 +17,6 @@ namespace procedural {
 	}
 
 	void VegetationObject::update(float deltaTime) {
-		// Simple growth animation
 		growthTime += deltaTime;
 		float currentGrowth = std::min(growthTime / maxGrowth, 1.0f);
 
@@ -25,46 +24,30 @@ namespace procedural {
 		scale = scale * currentGrowth;
 	}
 
-	std::unique_ptr<VegetationObject> VegetationObject::createFern(
+	std::unique_ptr<VegetationObject> VegetationObject::createTree(
 		vk::Device& device,
 		const glm::vec3& position,
 		const glm::vec3& scale,
 		int seed) {
-		LSystem lsystem = LSystem::createFern(seed);
+		LSystem lsystem = LSystem::createTree(seed);
 
-		// Create larger, more detailed fern with 3-4 iterations for good complexity
 		std::string lsystemString = lsystem.generate(3);
 
 		// Get the default turtle parameters
 		TurtleParameters params = lsystem.getTurtleParameters();
 
-		// Customize the parameters for larger, more realistic ferns
-		params.stepLength = 0.3f;							// Much larger segments for bigger ferns
-		params.angleIncrement = 30.0f;						// Good angle for natural frond spread
-		params.radiusDecay = 0.7f;							// Gradual taper to maintain main stem
-		params.lengthDecay = 0.87f;							// Slow decay for larger overall structure
-		params.initialRadius = 0.12f;						// Much thicker main stem
-		params.initialColor = glm::vec3(0.3f, 0.2f, 0.1f);	// Brown stem color
-		params.leafColor = glm::vec3(0.15f, 0.8f, 0.2f);	// Vibrant green for fronds
-
 		// Generate geometry with customized parameters, starting from origin
 		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, params, glm::vec3(0.0f, 0.0f, 0.0f), seed);
 
-		// Add explicit main trunk from ground to tree base to ensure connection
-		addMainTrunk(geometry, params);
-
-		geometry.type = VegetationType::Fern;
+		geometry.type = VegetationType::Tree;
 
 		// Create the vegetation object
-		auto fernObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
+		auto treeObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
 
-		// Note: Material will be applied by the calling code using VegetationSharedResources
-		// This avoids creating individual materials for each fern, reducing descriptor pool usage
-
-		return fernObject;
+		return treeObject;
 	}
 
-	std::unique_ptr<VegetationObject> VegetationObject::createFern(
+	std::unique_ptr<VegetationObject> VegetationObject::createTree(
 		vk::Device& device,
 		const glm::vec3& position,
 		const glm::vec3& scale,
@@ -72,31 +55,22 @@ namespace procedural {
 		int iterations,
 		const std::string& axiom,
 		const TurtleParameters& turtleParams) {
-		LSystem lsystem = LSystem::createFern(seed);
+		LSystem lsystem = LSystem::createTree(seed);
 
-		// Override axiom if provided
 		if (!axiom.empty()) {
 			lsystem.setAxiom(axiom);
 		}
 
-		// Generate L-system string with custom iterations
 		std::string lsystemString = lsystem.generate(iterations);
 
-		// Generate the tree structure starting from origin
 		LSystemGeometry geometry = lsystem.interpretToGeometry(lsystemString, turtleParams, glm::vec3(0.0f, 0.0f, 0.0f), seed);
 
-		// Add explicit main trunk from ground to tree base to ensure connection
-		addMainTrunk(geometry, turtleParams);
-
-		geometry.type = VegetationType::Fern;
+		geometry.type = VegetationType::Tree;
 
 		// Create the vegetation object
-		auto fernObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
+		auto treeObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
 
-		// Note: Material will be applied by the calling code using VegetationSharedResources
-		// This avoids creating individual materials for each fern, reducing descriptor pool usage
-
-		return fernObject;
+		return treeObject;	// Renamed from fernObject
 	}
 
 	std::shared_ptr<vk::Model> VegetationObject::createModelFromGeometry(
@@ -122,16 +96,12 @@ namespace procedural {
 		// Create the model
 		auto model = std::make_shared<vk::Model>(device, builder);
 
-		// Note: Material will be applied by the calling code using VegetationSharedResources
-		// This avoids creating individual materials for each vegetation object
-
 		return model;
 	}
 
-	// GameObject interface implementations
 	glm::mat4 VegetationObject::computeModelMatrix() const {
 		glm::mat4 T = glm::translate(glm::mat4(1.0f), position);
-		glm::mat4 R = glm::mat4(1.0f);	// Could add rotation here if needed
+		glm::mat4 R = glm::mat4(1.0f);
 		glm::mat4 S = glm::scale(glm::mat4(1.0f), scale);
 		return T * R * S;
 	}
@@ -145,9 +115,6 @@ namespace procedural {
 	}
 
 	void VegetationObject::addMainTrunk(LSystemGeometry& geometry, const TurtleParameters& params) {
-		// Ensure the tree is properly grounded by creating a trunk from Y=0 upward
-		// The L-System generation should start from ground level
-
 		// Find if there are any vertices below ground level
 		float minY = 0.0f;
 		bool hasVerticesAboveGround = false;
@@ -168,10 +135,8 @@ namespace procedural {
 			}
 		}
 
-		// Always add a small root/trunk segment at ground level for visual connection
-		// This ensures the tree appears properly planted
 		glm::vec3 trunkStart(0.0f, 0.0f, 0.0f);	 // Ground level
-		glm::vec3 trunkEnd(0.0f, 0.15f, 0.0f);	 // Short trunk segment upward
+		glm::vec3 trunkEnd(0.0f, 0.05f, 0.0f);	 // Very short trunk segment upward, L-system handles the rest
 
 		float trunkRadius = params.initialRadius * 1.1f;  // Slightly thicker base
 		generateTrunkCylinder(trunkStart, trunkEnd, trunkRadius, params.initialRadius, params.initialColor, geometry);

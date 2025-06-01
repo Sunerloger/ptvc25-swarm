@@ -25,8 +25,6 @@
 #include "rendering/structures/Skybox.h"
 #include "rendering/structures/WaterObject.h"
 
-#include "procedural/FernParameterTuner.h"
-
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
@@ -87,13 +85,8 @@ class Swarm : public GameBase {
 
 	physics::PhysicsPlayer::PlayerCreationSettings originalPlayerSettings;
 
-	// Fern parameter tuning system
-	std::unique_ptr<procedural::FernParameterTuner> fernTuner;
-	std::vector<float> heightfieldData;  // Store heightfield for regeneration
-	int terrainSamplesPerSide = 100;     // Store terrain resolution
-	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};  // Store terrain scale
-	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};   // Store terrain position
-	
-	// Regeneration callback for parameter tuning
-	void onFernParametersChanged(const procedural::FernParameterTuner::FernTuningParameters& params);
+	std::vector<float> heightfieldData;				// Store heightfield for regeneration
+	int terrainSamplesPerSide = 100;				// Store terrain resolution
+	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};	// Store terrain scale
+	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};	// Store terrain position
 };

@@ -34,15 +34,15 @@ namespace procedural {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
 
-		// Static factory method for fern vegetation
-		static std::unique_ptr<VegetationObject> createFern(
+		// Static factory method for tree vegetation
+		static std::unique_ptr<VegetationObject> createTree(
 			vk::Device& device,
 			const glm::vec3& position,
 			const glm::vec3& scale = glm::vec3(1.0f),
 			int seed = 0);
 
-		// Static factory method for fern vegetation with custom parameters
-		static std::unique_ptr<VegetationObject> createFern(
+		// Static factory method for tree vegetation with custom parameters
+		static std::unique_ptr<VegetationObject> createTree(
 			vk::Device& device,
 			const glm::vec3& position,
 			const glm::vec3& scale,
@@ -56,7 +56,6 @@ namespace procedural {
 		float growthTime = 0.0f;
 		float maxGrowth = 1.0f;
 
-		// GameObject implementation
 		std::shared_ptr<vk::Model> model;
 		glm::vec3 position{0.0f};
 		glm::vec3 scale{1.0f};
