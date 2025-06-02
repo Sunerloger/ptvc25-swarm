@@ -14,7 +14,7 @@ namespace procedural {
 		}
 
 		try {
-			createLeafMaterial("textures:missing.png");  // Use missing texture for leaves (should be visible)
+			createLeafMaterial("textures:ground/dirt.png");  // Use dirt texture temporarily for leaves until we get proper leaf texture
 			std::cout << "Loaded leaf texture successfully" << std::endl;
 		} catch (const std::exception& e) {
 			std::cerr << "Failed to load leaf texture, using solid color: " << e.what() << std::endl;
