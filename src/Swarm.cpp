@@ -297,20 +297,20 @@ void Swarm::init() {
 			vegSettings.placementSeed = 12345;
 
 			try {
-				// Generate vegetation on terrain using the heightfield data
-				vegetationIntegrator.generateVegetationOnTerrain(
+				// Generate enhanced vegetation on terrain using the heightfield data
+				vegetationIntegrator.generateEnhancedVegetationOnTerrain(
 					vegSettings,
 					heightfieldData,
 					samplesPerSide,
 					glm::vec3(100.0f, maxTerrainHeight, 100.0f),
 					glm::vec3(0.0, -2.0, 0.0));
 
-				// Add generated vegetation to scene
-				vegetationIntegrator.addVegetationToScene(sceneManager);
+				// Add generated enhanced vegetation to scene
+				vegetationIntegrator.addEnhancedVegetationToScene(sceneManager);
 
 				// Report statistics
 				auto stats = vegetationIntegrator.getVegetationStats();
-				printf("Added L-System vegetation: %d trees\n", stats.treeCount);
+				printf("Added enhanced L-System vegetation: %d trees\n", stats.treeCount);
 
 			} catch (const std::exception& e) {
 				printf("Error generating vegetation: %s\n", e.what());

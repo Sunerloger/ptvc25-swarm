@@ -8,8 +8,13 @@
 #include <random>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "TreeMaterial.h"
 
 namespace procedural {
+
+	// Type aliases for cleaner code
+	using MaterialType = TreeMaterial::MaterialType;
+	using MaterialGeometry = TreeGeometry::MaterialGeometry;
 
 	// L-System grammar rule
 	struct LSystemRule {
@@ -81,6 +86,12 @@ namespace procedural {
 			const glm::vec3& startPosition = glm::vec3(0.0f),
 			unsigned int seed = 0) const;
 
+		// Enhanced method that creates separate geometry for bark and leaves
+		TreeGeometry interpretToTreeGeometry(const std::string& lSystemString,
+			const TurtleParameters& params,
+			const glm::vec3& startPosition = glm::vec3(0.0f),
+			unsigned int seed = 0) const;
+
 		static LSystem createTree(unsigned int seed = 0);  // Renamed from createFern
 
 		void setTurtleParameters(const TurtleParameters& params) {
@@ -103,9 +114,19 @@ namespace procedural {
 			std::stack<TurtleState>& stateStack,
 			const TurtleParameters& params) const;
 
+		void processSymbolForTree(char symbol, TurtleState& state,
+			TreeGeometry& treeGeometry,
+			std::stack<TurtleState>& stateStack,
+			const TurtleParameters& params) const;
+
 		void generateCylinder(const glm::vec3& start, const glm::vec3& end,
 			float radiusStart, float radiusEnd,
 			const glm::vec3& color, LSystemGeometry& geometry,
+			int segments = 8) const;
+
+		void generateCylinderForMaterial(const glm::vec3& start, const glm::vec3& end,
+			float radiusStart, float radiusEnd,
+			MaterialGeometry& geometry, MaterialType materialType,
 			int segments = 8) const;
 	};
 

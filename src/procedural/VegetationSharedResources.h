@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VegetationObject.h"
+#include "TreeMaterial.h"
 #include "../rendering/materials/StandardMaterial.h"
 #include "../vk/vk_device.h"
 
@@ -9,23 +10,23 @@ namespace procedural {
 	// Helper class to manage shared resources for vegetation objects
 	class VegetationSharedResources {
 	   public:
-		VegetationSharedResources(vk::Device& device) {
-			// Initialize shared material for trees only - using darker, richer green
-			std::vector<unsigned char> treePixel = {34, 139, 34, 255};	// Forest green
-
-			// Create a single shared material for all trees
-			treeMaterial = std::make_shared<vk::StandardMaterial>(device, treePixel, 1, 1, 4);
-
-			// Disable backface culling for the tree material to see both sides
-			treeMaterial->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+		VegetationSharedResources(vk::Device& device) : device_(device) {
+			// Create TreeMaterial with separate bark and leaf materials
+			treeMaterial_ = std::make_unique<TreeMaterial>(device);
 		}
 
+		TreeMaterial& getTreeMaterial() const {
+			return *treeMaterial_;
+		}
+
+		// Legacy method for compatibility - returns bark material
 		std::shared_ptr<vk::Material> getMaterial() const {
-			return treeMaterial;
+			return treeMaterial_->getBarkMaterial();
 		}
 
 	   private:
-		std::shared_ptr<vk::Material> treeMaterial;
+		vk::Device& device_;
+		std::unique_ptr<TreeMaterial> treeMaterial_;
 	};
 
 }  // namespace procedural

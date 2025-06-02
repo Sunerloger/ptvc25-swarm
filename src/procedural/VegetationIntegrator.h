@@ -48,8 +48,19 @@ namespace procedural {
 			const std::string& axiom,
 			const TurtleParameters& turtleParams);
 
+		// Generate enhanced vegetation with separate bark/leaf materials
+		void generateEnhancedVegetationOnTerrain(
+			const VegetationSettings& settings,
+			const std::vector<float>& heightfieldData,
+			int gridSize,
+			const glm::vec3& terrainScale,
+			const glm::vec3& terrainPosition);
+
 		// Add individual vegetation objects to the scene
 		void addVegetationToScene(SceneManager& sceneManager);
+
+		// Add enhanced vegetation objects to the scene
+		void addEnhancedVegetationToScene(SceneManager& sceneManager);
 
 		// Clear all generated vegetation
 		void clearVegetation();
@@ -64,6 +75,7 @@ namespace procedural {
 	   private:
 		vk::Device& device;
 		std::vector<std::unique_ptr<VegetationObject>> vegetation;
+		std::vector<std::unique_ptr<VegetationObject>> enhancedVegetation;
 
 		// Height sampling from heightfield data
 		float sampleHeightAt(

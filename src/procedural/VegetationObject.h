@@ -3,6 +3,7 @@
 #include "../GameObject.h"
 #include "../vk/vk_model.h"
 #include "LSystem.h"
+#include "TreeMaterial.h"
 #include <memory>
 #include <glm/glm.hpp>
 
@@ -17,6 +18,14 @@ namespace procedural {
 			const glm::vec3& position = glm::vec3(0.0f),
 			const glm::vec3& scale = glm::vec3(1.0f));
 
+		// Constructor for TreeGeometry with separate materials
+		VegetationObject(
+			vk::Device& device,
+			const TreeGeometry& treeGeometry,
+			const TreeMaterial& treeMaterial,
+			const glm::vec3& position = glm::vec3(0.0f),
+			const glm::vec3& scale = glm::vec3(1.0f));
+
 		virtual ~VegetationObject() = default;
 
 		// GameObject interface
@@ -25,9 +34,23 @@ namespace procedural {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
 
-		// Static factory method for tree vegetation
+		// For multi-material trees
+		std::shared_ptr<vk::Model> getBarkModel() const;
+		std::shared_ptr<vk::Model> getLeafModel() const;
+		bool hasMultipleMaterials() const;
+		glm::vec3 getScale() const;
+
+		// Static factory method for tree vegetation (legacy)
 		static std::unique_ptr<VegetationObject> createTree(
 			vk::Device& device,
+			const glm::vec3& position,
+			const glm::vec3& scale = glm::vec3(1.0f),
+			int seed = 0);
+
+		// Static factory method for enhanced tree with materials
+		static std::unique_ptr<VegetationObject> createEnhancedTree(
+			vk::Device& device,
+			const TreeMaterial& treeMaterial,
 			const glm::vec3& position,
 			const glm::vec3& scale = glm::vec3(1.0f),
 			int seed = 0);
@@ -44,6 +67,9 @@ namespace procedural {
 
 	   private:
 		std::shared_ptr<vk::Model> model;
+		std::shared_ptr<vk::Model> barkModel;
+		std::shared_ptr<vk::Model> leafModel;
+		bool multipleMaterials = false;
 		glm::vec3 position{0.0f};
 		glm::vec3 scale{1.0f};
 
@@ -51,6 +77,11 @@ namespace procedural {
 		static std::shared_ptr<vk::Model> createModelFromGeometry(
 			vk::Device& device,
 			const LSystemGeometry& geometry);
-	};
 
-}  // namespace procedural
+		// Create models from TreeGeometry
+		static std::pair<std::shared_ptr<vk::Model>, std::shared_ptr<vk::Model>>
+		createModelsFromTreeGeometry(
+			vk::Device& device,
+			const TreeGeometry& treeGeometry);
+	};
+};	// namespace procedural

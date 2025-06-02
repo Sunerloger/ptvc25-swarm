@@ -13,6 +13,29 @@ namespace procedural {
 		model = createModelFromGeometry(device, geometry);
 	}
 
+	VegetationObject::VegetationObject(
+		vk::Device& device,
+		const TreeGeometry& treeGeometry,
+		const TreeMaterial& treeMaterial,
+		const glm::vec3& position,
+		const glm::vec3& scale) : multipleMaterials(true), position(position), scale(scale) {
+		// Create separate models for bark and leaf geometry
+		auto models = createModelsFromTreeGeometry(device, treeGeometry);
+		barkModel = models.first;
+		leafModel = models.second;
+
+		// Apply materials to the models
+		if (barkModel) {
+			barkModel->setMaterial(treeMaterial.getBarkMaterial());
+		}
+		if (leafModel) {
+			leafModel->setMaterial(treeMaterial.getLeafMaterial());
+		}
+
+		// Set main model to bark for compatibility
+		model = barkModel;
+	}
+
 	std::unique_ptr<VegetationObject> VegetationObject::createTree(
 		vk::Device& device,
 		const glm::vec3& position,
@@ -58,6 +81,28 @@ namespace procedural {
 		return treeObject;	// Renamed from fernObject
 	}
 
+	std::unique_ptr<VegetationObject> VegetationObject::createEnhancedTree(
+		vk::Device& device,
+		const TreeMaterial& treeMaterial,
+		const glm::vec3& position,
+		const glm::vec3& scale,
+		int seed) {
+		LSystem lsystem = LSystem::createTree(seed);
+
+		std::string lsystemString = lsystem.generate(3);
+
+		// Get the default turtle parameters
+		TurtleParameters params = lsystem.getTurtleParameters();
+
+		// Generate tree geometry with separate bark and leaf materials
+		TreeGeometry treeGeometry = lsystem.interpretToTreeGeometry(lsystemString, params, glm::vec3(0.0f, 0.0f, 0.0f), seed);
+
+		// Create the enhanced vegetation object
+		auto treeObject = std::make_unique<VegetationObject>(device, treeGeometry, treeMaterial, position, scale);
+
+		return treeObject;
+	}
+
 	std::shared_ptr<vk::Model> VegetationObject::createModelFromGeometry(
 		vk::Device& device,
 		const LSystemGeometry& geometry) {
@@ -101,6 +146,75 @@ namespace procedural {
 
 	std::shared_ptr<vk::Model> VegetationObject::getModel() const {
 		return model;
+	}
+
+	std::shared_ptr<vk::Model> VegetationObject::getBarkModel() const {
+		return barkModel;
+	}
+
+	std::shared_ptr<vk::Model> VegetationObject::getLeafModel() const {
+		return leafModel;
+	}
+
+	bool VegetationObject::hasMultipleMaterials() const {
+		return multipleMaterials;
+	}
+
+	glm::vec3 VegetationObject::getScale() const {
+		return scale;
+	}
+
+	std::pair<std::shared_ptr<vk::Model>, std::shared_ptr<vk::Model>>
+	VegetationObject::createModelsFromTreeGeometry(
+		vk::Device& device,
+		const TreeGeometry& treeGeometry) {
+		// Create bark model
+		std::shared_ptr<vk::Model> barkModel;
+		if (!treeGeometry.bark.vertices.empty()) {
+			vk::Model::Builder barkBuilder{};
+
+			// Add bark vertices
+			for (const auto& vertex : treeGeometry.bark.vertices) {
+				vk::Model::Vertex modelVertex{};
+				modelVertex.position = vertex.position;
+				modelVertex.color = vertex.color;
+				modelVertex.normal = vertex.normal;
+				modelVertex.uv = vertex.uv;
+				barkBuilder.vertices.push_back(modelVertex);
+			}
+
+			// Add bark indices
+			for (const auto& index : treeGeometry.bark.indices) {
+				barkBuilder.indices.push_back(index);
+			}
+
+			barkModel = std::make_shared<vk::Model>(device, barkBuilder);
+		}
+
+		// Create leaf model
+		std::shared_ptr<vk::Model> leafModel;
+		if (!treeGeometry.leaves.vertices.empty()) {
+			vk::Model::Builder leafBuilder{};
+
+			// Add leaf vertices
+			for (const auto& vertex : treeGeometry.leaves.vertices) {
+				vk::Model::Vertex modelVertex{};
+				modelVertex.position = vertex.position;
+				modelVertex.color = vertex.color;
+				modelVertex.normal = vertex.normal;
+				modelVertex.uv = vertex.uv;
+				leafBuilder.vertices.push_back(modelVertex);
+			}
+
+			// Add leaf indices
+			for (const auto& index : treeGeometry.leaves.indices) {
+				leafBuilder.indices.push_back(index);
+			}
+
+			leafModel = std::make_shared<vk::Model>(device, leafBuilder);
+		}
+
+		return std::make_pair(barkModel, leafModel);
 	}
 
 }  // namespace procedural

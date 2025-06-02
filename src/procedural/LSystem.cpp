@@ -1,4 +1,5 @@
 #include "LSystem.h"
+#include "TreeMaterial.h"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -265,6 +266,231 @@ namespace procedural {
 			glm::vec3 offsetEnd = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusEnd;
 			geometry.vertices.push_back({end + offsetEnd,
 				color,						// Use color directly
+				glm::normalize(offsetEnd),	// Normal for cylinder side
+				glm::vec2(static_cast<float>(i) / segments, 1.0f)});
+		}
+
+		// Generate indices
+		for (int i = 0; i < segments; ++i) {
+			uint32_t bottomLeft = startVertexIndex + i * 2;
+			uint32_t bottomRight = startVertexIndex + (i + 1) * 2;
+			uint32_t topLeft = bottomLeft + 1;
+			uint32_t topRight = bottomRight + 1;
+
+			// Two triangles per quad
+			geometry.indices.insert(geometry.indices.end(), {bottomLeft, topLeft, bottomRight,
+																bottomRight, topLeft, topRight});
+		}
+	}
+
+	TreeGeometry LSystem::interpretToTreeGeometry(const std::string& lSystemString,
+		const TurtleParameters& params,
+		const glm::vec3& startPosition,
+		unsigned int seed) const {
+		TreeGeometry treeGeometry;
+		std::stack<TurtleState> stateStack;
+
+		TurtleState state;
+		state.position = startPosition;
+		state.heading = glm::vec3(0.0f, 1.0f, 0.0f);
+		state.left = glm::vec3(-1.0f, 0.0f, 0.0f);
+		state.up = glm::vec3(0.0f, 0.0f, 1.0f);
+		state.radius = params.initialRadius;
+		state.stepLength = params.stepLength;
+		state.depth = 0;
+
+		rng.seed(seed);
+
+		for (char symbol : lSystemString) {
+			processSymbolForTree(symbol, state, treeGeometry, stateStack, params);
+		}
+
+		return treeGeometry;
+	}
+
+	void LSystem::processSymbolForTree(char symbol, TurtleState& state,
+		TreeGeometry& treeGeometry,
+		std::stack<TurtleState>& stateStack,
+		const TurtleParameters& params) const {
+		switch (symbol) {
+			case 'T': {	 // Trunk segment: Use bark material
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				float endRadius = state.radius * params.radiusDecay;
+
+				generateCylinderForMaterial(state.position, newPosition,
+					state.radius, endRadius,
+					treeGeometry.bark, MaterialType::BARK);
+
+				state.radius = endRadius;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;
+				break;
+			}
+			case 'F': {	 // Branch segment: Use bark material for thicker branches, leaf for thin ones
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				float endRadius = state.radius * params.radiusDecay;
+
+				// Use bark for thicker branches (radius > 0.05), leaves for thin twigs
+				MaterialType materialType = (state.radius > 0.05f) ? MaterialType::BARK : MaterialType::LEAF;
+				MaterialGeometry& targetGeometry = (materialType == MaterialType::BARK) ? treeGeometry.bark : treeGeometry.leaves;
+
+				generateCylinderForMaterial(state.position, newPosition,
+					state.radius, endRadius,
+					targetGeometry, materialType);
+
+				state.radius = endRadius;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;
+				break;
+			}
+			case 'G': {	 // Generic segment: Use bark material
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				float endRadius = state.radius * params.radiusDecay;
+
+				generateCylinderForMaterial(state.position, newPosition,
+					state.radius, endRadius,
+					treeGeometry.bark, MaterialType::BARK);
+
+				state.radius = endRadius;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;
+				break;
+			}
+			case 'f': {	 // Move forward without drawing
+				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
+				state.position = newPosition;
+				state.stepLength *= params.lengthDecay;
+				break;
+			}
+
+			case '+':  // Turn left (yaw)
+				state.heading = glm::normalize(
+					state.heading * std::cos(glm::radians(params.angleIncrement)) +
+					state.left * std::sin(glm::radians(params.angleIncrement)));
+				state.left = glm::normalize(glm::cross(state.up, state.heading));
+				break;
+
+			case '-':  // Turn right (yaw)
+				state.heading = glm::normalize(
+					state.heading * std::cos(glm::radians(-params.angleIncrement)) +
+					state.left * std::sin(glm::radians(-params.angleIncrement)));
+				state.left = glm::normalize(glm::cross(state.up, state.heading));
+				break;
+
+			case '&':  // Pitch down
+				state.heading = glm::normalize(
+					state.heading * std::cos(glm::radians(params.angleIncrement)) +
+					state.up * std::sin(glm::radians(params.angleIncrement)));
+				state.up = glm::normalize(glm::cross(state.heading, state.left));
+				break;
+
+			case '^':  // Pitch up
+				state.heading = glm::normalize(
+					state.heading * std::cos(glm::radians(-params.angleIncrement)) +
+					state.up * std::sin(glm::radians(-params.angleIncrement)));
+				state.up = glm::normalize(glm::cross(state.heading, state.left));
+				break;
+
+			case '\\':	// Roll left
+				state.left = glm::normalize(
+					state.left * std::cos(glm::radians(params.angleIncrement)) +
+					state.up * std::sin(glm::radians(params.angleIncrement)));
+				state.up = glm::normalize(glm::cross(state.heading, state.left));
+				break;
+
+			case '/':  // Roll right
+				state.left = glm::normalize(
+					state.left * std::cos(glm::radians(-params.angleIncrement)) +
+					state.up * std::sin(glm::radians(-params.angleIncrement)));
+				state.up = glm::normalize(glm::cross(state.heading, state.left));
+				break;
+
+			case '[':  // Push state
+				stateStack.push(state);
+				state.depth++;
+				break;
+
+			case ']':  // Pop state
+				if (!stateStack.empty()) {
+					state = stateStack.top();
+					stateStack.pop();
+				}
+				break;
+
+			case 'L':  // Leaf/branch end - use leaf material
+			{
+				glm::vec3 newPosition = state.position + state.heading * (state.stepLength * 0.5f);
+				float endRadius = state.radius * params.radiusDecay * 0.5f;	 // Thinner end
+
+				generateCylinderForMaterial(state.position, newPosition,
+					state.radius, endRadius,
+					treeGeometry.leaves, MaterialType::LEAF);
+			} break;
+
+			case '|':  // Turn around
+				state.heading = -state.heading;
+				state.left = -state.left;
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	void LSystem::generateCylinderForMaterial(const glm::vec3& start, const glm::vec3& end,
+		float radiusStart, float radiusEnd,
+		MaterialGeometry& geometry, MaterialType materialType,
+		int segments) const {
+		float minRadius = 0.01f;
+		float actualRadiusStart = std::max(radiusStart, minRadius);
+		float actualRadiusEnd = std::max(radiusEnd, minRadius);
+
+		if (glm::distance(start, end) < 0.01f) {
+			return;	 // Too short to be visible
+		}
+
+		glm::vec3 direction = glm::normalize(end - start);
+		glm::vec3 cylinder_axis_right;
+		glm::vec3 cylinder_axis_up;
+
+		glm::vec3 temp_calc_right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));	 // Try Y-axis as helper
+		if (glm::dot(temp_calc_right, temp_calc_right) < 1e-12f) {						 // If direction is parallel to Y-axis
+			temp_calc_right = glm::cross(direction, glm::vec3(1.0f, 0.0f, 0.0f));
+		}
+		cylinder_axis_right = glm::normalize(temp_calc_right);
+		cylinder_axis_up = glm::normalize(glm::cross(cylinder_axis_right, direction));
+
+		uint32_t startVertexIndex = geometry.vertices.size();
+
+		// Set color based on material type
+		glm::vec3 color;
+		switch (materialType) {
+			case MaterialType::BARK:
+				color = glm::vec3(0.4f, 0.2f, 0.1f);  // Brown bark color
+				break;
+			case MaterialType::LEAF:
+				color = glm::vec3(0.2f, 0.6f, 0.2f);  // Green leaf color
+				break;
+		}
+
+		// Generate vertices
+		for (int i = 0; i <= segments; ++i) {
+			float angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(segments);
+			float cosAngle = std::cos(angle);
+			float sinAngle = std::sin(angle);
+
+			// Start circle
+			glm::vec3 offsetStart = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusStart;
+
+			geometry.vertices.push_back({start + offsetStart,
+				color,						  // Use material-specific color
+				glm::normalize(offsetStart),  // Normal for cylinder side is just the offset direction from center
+				glm::vec2(static_cast<float>(i) / segments, 0.0f)});
+
+			// End circle
+			glm::vec3 offsetEnd = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusEnd;
+			geometry.vertices.push_back({end + offsetEnd,
+				color,						// Use material-specific color
 				glm::normalize(offsetEnd),	// Normal for cylinder side
 				glm::vec2(static_cast<float>(i) / segments, 1.0f)});
 		}
