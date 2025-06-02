@@ -341,6 +341,11 @@ void Swarm::init() {
 		waterMaterial->setWaterData(waterData);
 
 		std::vector<glm::vec4> waves;
+		// waves.push_back(glm::vec4{ 1.0f, 0.0f, 0.18f, 12.0f });
+		// waves.push_back(glm::vec4{ 0.92f, 0.38f, 0.15f, 8.0f });
+		// waves.push_back(glm::vec4{ -0.75f, 0.66f, 0.20f, 20.0f });
+		// waves.push_back(glm::vec4{ 0.34f, -0.94f, 0.06f, 16.0f });
+
 		waves.push_back(glm::vec4{ 1.0f, 1.0f, 0.25f, 60.0f });
 		waves.push_back(glm::vec4{ 1.0f, 0.6f, 0.25f, 31.0f });
 		waves.push_back(glm::vec4{ 1.0f, 1.3f, 0.25f, 18.0f });

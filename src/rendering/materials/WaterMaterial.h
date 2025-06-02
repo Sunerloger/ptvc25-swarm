@@ -23,7 +23,7 @@ namespace vk {
 		glm::vec4 textureParams = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
 
 		// x = ka, y = kd, z = ks, w = alpha
-		glm::vec4 materialProperties = glm::vec4{ 0.2f, 0.1f, 0.4f, 10.0f };
+		glm::vec4 materialProperties = glm::vec4{ 0.2f, 0.3f, 0.5f, 30.0f };
 
 		// xyz = default color, w = transparency
 		glm::vec4 color = glm::vec4{ 0.302f, 0.404f, 0.859f, 0.8f };
@@ -52,13 +52,13 @@ namespace vk {
 		float ka = 0.2f;
 
 		// diffuse lighting factor
-		float kd = 0.1f;
+		float kd = 0.3f;
 
 		// specular lighting factor
-		float ks = 0.4f;
+		float ks = 0.5f;
 
 		// shininess of specular lighting component
-		float alpha = 10.0f;
+		float alpha = 30.0f;
 
 		// color that is used when no texture is provided
 		glm::vec3 defaultColor = glm::vec3{ 0.302f, 0.404f, 0.859f };
