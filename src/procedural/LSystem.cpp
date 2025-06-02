@@ -326,17 +326,22 @@ namespace procedural {
 				state.stepLength *= params.lengthDecay;
 				break;
 			}
-			case 'F': {	 // Branch segment: Use bark material for thicker branches, leaf for thin ones
+			case 'F': {	 // Branch segment: Always use bark material for branches
 				glm::vec3 newPosition = state.position + state.heading * state.stepLength;
 				float endRadius = state.radius * params.radiusDecay;
 
-				// Use bark for thicker branches (radius > 0.05), leaves for thin twigs
-				MaterialType materialType = (state.radius > 0.05f) ? MaterialType::BARK : MaterialType::LEAF;
-				MaterialGeometry& targetGeometry = (materialType == MaterialType::BARK) ? treeGeometry.bark : treeGeometry.leaves;
-
+				// All branches use bark material, regardless of thickness
 				generateCylinderForMaterial(state.position, newPosition,
 					state.radius, endRadius,
-					targetGeometry, materialType);
+					treeGeometry.bark, MaterialType::BARK);
+
+				// Add actual leaf geometry at the end of very thin branches
+				if (endRadius < 0.03f) {
+					std::cout << "Thin branch detected (radius " << endRadius << ") - adding leaf geometry" << std::endl;
+					float leafSize = endRadius * 4.0f;
+					generateLeafGeometry(newPosition, state.heading, leafSize,
+						treeGeometry.leaves, 2);
+				}
 
 				state.radius = endRadius;
 				state.position = newPosition;
@@ -417,14 +422,13 @@ namespace procedural {
 				}
 				break;
 
-			case 'L':  // Leaf/branch end - use leaf material
+			case 'L':  // Leaf/branch end - use leaf geometry instead of cylinder
 			{
-				glm::vec3 newPosition = state.position + state.heading * (state.stepLength * 0.5f);
-				float endRadius = state.radius * params.radiusDecay * 0.5f;	 // Thinner end
-
-				generateCylinderForMaterial(state.position, newPosition,
-					state.radius, endRadius,
-					treeGeometry.leaves, MaterialType::LEAF);
+				std::cout << "Processing 'L' symbol - generating leaf geometry" << std::endl;
+				// Generate actual leaf quads at the branch end
+				float leafSize = state.radius * 3.0f;  // Scale leaf size with branch radius
+				generateLeafGeometry(state.position, state.heading, leafSize,
+					treeGeometry.leaves, 2);  // Generate 2 leaves per branch end
 			} break;
 
 			case '|':  // Turn around
@@ -505,6 +509,77 @@ namespace procedural {
 			// Two triangles per quad
 			geometry.indices.insert(geometry.indices.end(), {bottomLeft, topLeft, bottomRight,
 																bottomRight, topLeft, topRight});
+		}
+	}
+
+	void LSystem::generateLeafGeometry(const glm::vec3& position, const glm::vec3& direction,
+		float size, MaterialGeometry& geometry,
+		int leafCount) const {
+		std::cout << "Generating " << leafCount << " leaf quads at position ("
+				  << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
+
+		// Generate multiple leaf quads around the branch end
+		for (int leafIndex = 0; leafIndex < leafCount; ++leafIndex) {
+			// Create rotation around the branch axis for each leaf
+			float rotationAngle = (2.0f * M_PI * leafIndex) / leafCount;
+			float tiltAngle = 0.3f;	 // Slight random tilt for natural look
+
+			// Create a coordinate system for the leaf
+			glm::vec3 leafUp = direction;
+			glm::vec3 leafRight = glm::normalize(glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f)));
+			if (glm::length(leafRight) < 0.1f) {
+				// Handle case where direction is parallel to Y axis
+				leafRight = glm::normalize(glm::cross(direction, glm::vec3(1.0f, 0.0f, 0.0f)));
+			}
+			glm::vec3 leafForward = glm::normalize(glm::cross(leafRight, leafUp));
+
+			// Apply rotation around the branch axis
+			glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), rotationAngle, direction);
+			leafRight = glm::vec3(rotation * glm::vec4(leafRight, 0.0f));
+			leafForward = glm::vec3(rotation * glm::vec4(leafForward, 0.0f));
+
+			// Apply slight tilt for more natural look
+			glm::mat4 tilt = glm::rotate(glm::mat4(1.0f), tiltAngle, leafRight);
+			leafForward = glm::vec3(tilt * glm::vec4(leafForward, 0.0f));
+			leafUp = glm::vec3(tilt * glm::vec4(leafUp, 0.0f));
+
+			// Create leaf quad vertices
+			glm::vec3 leafColor = glm::vec3(0.2f, 0.8f, 0.3f);	// Green
+			glm::vec3 leafNormal = glm::normalize(leafForward);
+
+			uint32_t startIndex = geometry.vertices.size();
+
+			// Leaf quad corners (positioned at branch end)
+			glm::vec3 halfRight = leafRight * size * 0.5f;
+			glm::vec3 halfUp = leafUp * size * 0.8f;  // Make leaves slightly elongated
+
+			// Bottom-left
+			geometry.vertices.push_back({position - halfRight,
+				leafColor,
+				leafNormal,
+				glm::vec2(0.0f, 0.0f)});
+
+			// Bottom-right
+			geometry.vertices.push_back({position + halfRight,
+				leafColor,
+				leafNormal,
+				glm::vec2(1.0f, 0.0f)});
+
+			// Top-right
+			geometry.vertices.push_back({position + halfRight + halfUp,
+				leafColor,
+				leafNormal,
+				glm::vec2(1.0f, 1.0f)});
+
+			// Top-left
+			geometry.vertices.push_back({position - halfRight + halfUp,
+				leafColor,
+				leafNormal,
+				glm::vec2(0.0f, 1.0f)});
+
+			// Create two triangles for the quad
+			geometry.indices.insert(geometry.indices.end(), {startIndex, startIndex + 1, startIndex + 2,
+																startIndex, startIndex + 2, startIndex + 3});
 		}
 	}
 

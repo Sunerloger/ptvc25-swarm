@@ -128,6 +128,11 @@ namespace procedural {
 			float radiusStart, float radiusEnd,
 			MaterialGeometry& geometry, MaterialType materialType,
 			int segments = 8) const;
+
+		// Generate leaf geometry - creates leaf quads at branch ends
+		void generateLeafGeometry(const glm::vec3& position, const glm::vec3& direction,
+			float size, MaterialGeometry& geometry,
+			int leafCount = 3) const;
 	};
 
 }  // namespace procedural
