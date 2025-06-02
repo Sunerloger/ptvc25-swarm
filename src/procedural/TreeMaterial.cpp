@@ -6,7 +6,7 @@ namespace procedural {
 	TreeMaterial::TreeMaterial(vk::Device& device) : device(device) {
 		// Try to load textures, fallback to solid colors if textures don't exist
 		try {
-			createBarkMaterial("textures:ground/dirt.png");  // Use dirt texture for bark
+			createBarkMaterial("textures:ground/dirt.png");	 // Use dirt texture for bark
 			std::cout << "Loaded bark texture successfully" << std::endl;
 		} catch (const std::exception& e) {
 			std::cerr << "Failed to load bark texture, using solid color: " << e.what() << std::endl;
@@ -14,7 +14,7 @@ namespace procedural {
 		}
 
 		try {
-			createLeafMaterial("textures:ground/dirt.png");  // Use dirt texture temporarily for leaves until we get proper leaf texture
+			createLeafMaterial("textures:ground/dirt.png");	 // Use dirt texture temporarily for leaves until we get proper leaf texture
 			std::cout << "Loaded leaf texture successfully" << std::endl;
 		} catch (const std::exception& e) {
 			std::cerr << "Failed to load leaf texture, using solid color: " << e.what() << std::endl;

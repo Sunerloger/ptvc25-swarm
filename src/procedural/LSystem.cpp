@@ -519,16 +519,16 @@ namespace procedural {
 		tree.addRule('T', "T", 1.0f);
 
 		// Enhanced 3D rules for branching segments (F) - forms a more realistic crown
-		tree.addRule('F', "F[+&F][-&F][\\^F][/^F]", 0.4f);  // 3D branching with pitch and roll
-		tree.addRule('F', "F[+F][-F]", 0.25f);              // Traditional left/right split
-		tree.addRule('F', "FF[+&F]", 0.1f);                 // Branch left with pitch down
-		tree.addRule('F', "FF[-&F]", 0.1f);                 // Branch right with pitch down
-		tree.addRule('F', "FF[\\^F]", 0.075f);              // Branch with roll left and pitch up
-		tree.addRule('F', "FF[/^F]", 0.075f);               // Branch with roll right and pitch up
+		tree.addRule('F', "F[+&F][-&F][\\^F][/^F]", 0.4f);	// 3D branching with pitch and roll
+		tree.addRule('F', "F[+F][-F]", 0.25f);				// Traditional left/right split
+		tree.addRule('F', "FF[+&F]", 0.1f);					// Branch left with pitch down
+		tree.addRule('F', "FF[-&F]", 0.1f);					// Branch right with pitch down
+		tree.addRule('F', "FF[\\^F]", 0.075f);				// Branch with roll left and pitch up
+		tree.addRule('F', "FF[/^F]", 0.075f);				// Branch with roll right and pitch up
 
 		TurtleParameters params;
 		params.stepLength = 1.0f;
-		params.angleIncrement = 25.0f;  // Reduced angle for more subtle branching
+		params.angleIncrement = 25.0f;	// Reduced angle for more subtle branching
 		params.radiusDecay = 0.85f;
 		params.lengthDecay = 0.99f;
 		params.initialRadius = 0.3f;
