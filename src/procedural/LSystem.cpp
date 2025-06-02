@@ -340,7 +340,7 @@ namespace procedural {
 					std::cout << "Thin branch detected (radius " << endRadius << ") - adding leaf geometry" << std::endl;
 					float leafSize = endRadius * 4.0f;
 					generateLeafGeometry(newPosition, state.heading, leafSize,
-						treeGeometry.leaves, 2);
+						treeGeometry.leaves, 5);  // Increased leaf count
 				}
 
 				state.radius = endRadius;
@@ -428,7 +428,7 @@ namespace procedural {
 				// Generate actual leaf quads at the branch end
 				float leafSize = state.radius * 3.0f;  // Scale leaf size with branch radius
 				generateLeafGeometry(state.position, state.heading, leafSize,
-					treeGeometry.leaves, 2);  // Generate 2 leaves per branch end
+					treeGeometry.leaves, 5);  // Increased leaf count
 			} break;
 
 			case '|':  // Turn around
@@ -594,12 +594,19 @@ namespace procedural {
 		tree.addRule('T', "T", 1.0f);
 
 		// Enhanced 3D rules for branching segments (F) - forms a more realistic crown
-		tree.addRule('F', "F[+&F][-&F][\\^F][/^F]", 0.4f);	// 3D branching with pitch and roll
-		tree.addRule('F', "F[+F][-F]", 0.25f);				// Traditional left/right split
-		tree.addRule('F', "FF[+&F]", 0.1f);					// Branch left with pitch down
-		tree.addRule('F', "FF[-&F]", 0.1f);					// Branch right with pitch down
-		tree.addRule('F', "FF[\\^F]", 0.075f);				// Branch with roll left and pitch up
-		tree.addRule('F', "FF[/^F]", 0.075f);				// Branch with roll right and pitch up
+		// Added 'L' to generate leaves more frequently along branches
+		tree.addRule('F', "F[+&FL][-&FL][\\^FL][/^FL]L", 0.4f);	 // 3D branching with pitch and roll, and leaves
+		tree.addRule('F', "F[+FL][-FL]L", 0.25f);
+		// Traditional left/right split, with leaves
+		tree.addRule('F', "FF[+&FL]L", 0.1f);
+		// Branch left with pitch down, and leaves
+		tree.addRule('F', "FF[-&FL]L", 0.1f);
+		// Branch right with pitch down, and leaves
+		tree.addRule('F', "FF[\\^FL]L", 0.075f);
+		// Branch with roll left and pitch up, and leaves
+		tree.addRule('F', "FF[/^FL]L", 0.075f);
+		// Branch with roll right and pitch up, and leaves
+		tree.addRule('F', "FL", 0.1f);	// Simple branch with a leaf
 
 		TurtleParameters params;
 		params.stepLength = 1.0f;
