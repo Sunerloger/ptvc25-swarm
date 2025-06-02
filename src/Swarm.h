@@ -84,4 +84,9 @@ class Swarm : public GameBase {
 	bool isDebugActive = false;
 
 	physics::PhysicsPlayer::PlayerCreationSettings originalPlayerSettings;
+
+	std::vector<float> heightfieldData;				// Store heightfield for regeneration
+	int terrainSamplesPerSide = 100;				// Store terrain resolution
+	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};	// Store terrain scale
+	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};	// Store terrain position
 };

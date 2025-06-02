@@ -15,8 +15,10 @@ namespace vk {
 		  centerHorizontal(settings.centerHorizontal),
 		  centerVertical(settings.centerVertical),
 		  isDebugMenuComponent(settings.isDebugMenuComponent) {
+		loadData();
+
 		if ((anchorRight || anchorBottom) && window) {
-			Transform t = loadData();
+			Transform t = cachedTransform;
 			int w, h;
 			glfwGetFramebufferSize(window, &w, &h);
 			if (anchorRight)
@@ -27,6 +29,10 @@ namespace vk {
 	}
 
 	Transform UIComponent::loadData() const {
+		if (cacheValid) {
+			return cachedTransform;
+		}
+
 		auto iniPath = AssetLoader::getInstance().resolvePath("settings:ui_placements.ini");
 		INIReader reader(iniPath);
 
@@ -36,8 +42,11 @@ namespace vk {
 		t.scale = glm::vec3{1.0f};
 
 		std::string sect = "UIComponent_" + name;
-		if (reader.ParseError() < 0 || reader.Get(sect, "pos", "").empty())
+		if (reader.ParseError() < 0 || reader.Get(sect, "pos", "").empty()) {
+			cachedTransform = t;
+			cacheValid = true;
 			return t;
+		}
 
 		{
 			std::stringstream ss(reader.Get(sect, "pos", ""));
@@ -55,6 +64,8 @@ namespace vk {
 			ss >> t.scale.x >> c >> t.scale.y >> c >> t.scale.z;
 		}
 
+		cachedTransform = t;
+		cacheValid = true;
 		return t;
 	}
 
@@ -83,6 +94,13 @@ namespace vk {
 		ofs << "pos=" << t.pos.x << "," << t.pos.y << "," << t.pos.z << "\n";
 		ofs << "rot=" << t.rot.x << "," << t.rot.y << "," << t.rot.z << "," << t.rot.w << "\n";
 		ofs << "scale=" << t.scale.x << "," << t.scale.y << "," << t.scale.z << "\n";
+
+		cachedTransform = t;
+		cacheValid = true;
+	}
+
+	void UIComponent::invalidateCache() {
+		cacheValid = false;
 	}
 
 	glm::mat4 UIComponent::computeModelMatrix() const {

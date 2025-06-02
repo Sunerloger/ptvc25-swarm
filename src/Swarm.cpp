@@ -1,6 +1,8 @@
 #include "Swarm.h"
 
 #include "scene/SceneManager.h"
+#include "procedural/VegetationIntegrator.h"
+#include "procedural/VegetationSharedResources.h"
 
 #include <fmt/format.h>
 #include <random>
@@ -236,9 +238,9 @@ void Swarm::init() {
 
 	// Terrain
 	float maxTerrainHeight = 15.0f;	 // Controls the height of the terrain
+	int samplesPerSide = 100;		 // Resolution of the heightmap - moved out for vegetation use
 	{
-		int samplesPerSide = 100;  // Resolution of the heightmap
-		float noiseScale = 5.0f;   // Controls the "frequency" of the noise
+		float noiseScale = 5.0f;  // Controls the "frequency" of the noise
 
 		// Generate terrain model with heightmap
 		auto result = vk::Model::createTerrainModel(
@@ -247,6 +249,19 @@ void Swarm::init() {
 			"textures:ground/dirt.png",	 // Tile texture path
 			noiseScale,
 			maxTerrainHeight);
+
+		// Store heightfield data for vegetation and parameter tuning
+		if (result.second.size() >= samplesPerSide * samplesPerSide) {
+			heightfieldData = result.second;  // Copy the heightfield data
+		} else {
+			// Create flat heightfield if result doesn't have enough data
+			heightfieldData.resize(samplesPerSide * samplesPerSide, 0.0f);
+		}
+
+		// Store terrain parameters for regeneration
+		terrainSamplesPerSide = samplesPerSide;
+		terrainScale = glm::vec3{100.0f, maxTerrainHeight, 100.0f};
+		terrainPosition = glm::vec3{0.0, -2.0, 0.0};
 
 		// create terrain with procedural heightmap using perlin noise
 		// create terrain with the generated heightmap data
@@ -258,7 +273,51 @@ void Swarm::init() {
 			glm::vec3{100.0f, maxTerrainHeight, 100.0f},
 			std::move(result.second));
 		sceneManager.addTessellationObject(std::move(terrain));
+
+		// Create shared vegetation resources to avoid descriptor pool exhaustion
+		auto sharedResources = std::make_shared<procedural::VegetationSharedResources>(device);
+
+		// Vegetation (L-Systems) - moved inside terrain block to access heightfield data
+		{
+			procedural::VegetationIntegrator vegetationIntegrator(device);
+
+			procedural::VegetationIntegrator::VegetationSettings vegSettings;
+			vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
+			vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
+
+			vegSettings.treeDensity = 0.002f;
+
+			// Slope constraints for realistic placement
+			vegSettings.maxTreeSlope = 30.0f;
+
+			// Scale variation for much larger, more impressive trees
+			vegSettings.treeScaleRange = glm::vec2(1.2f, 2.5f);
+
+			// Use random seed for deterministic vegetation
+			vegSettings.placementSeed = 12345;
+
+			try {
+				// Generate enhanced vegetation on terrain using the heightfield data
+				vegetationIntegrator.generateEnhancedVegetationOnTerrain(
+					vegSettings,
+					heightfieldData,
+					samplesPerSide,
+					glm::vec3(100.0f, maxTerrainHeight, 100.0f),
+					glm::vec3(0.0, -2.0, 0.0));
+
+				// Add generated enhanced vegetation to scene
+				vegetationIntegrator.addEnhancedVegetationToScene(sceneManager);
+
+				// Report statistics
+				auto stats = vegetationIntegrator.getVegetationStats();
+				printf("Added enhanced L-System vegetation: %d trees\n", stats.treeCount);
+
+			} catch (const std::exception& e) {
+				printf("Error generating vegetation: %s\n", e.what());
+			}
+		}
 	}
+
 	// Skybox
 	{
 		std::array<std::string, 6> cubemapFaces = {
@@ -541,4 +600,7 @@ void Swarm::prePhysicsUpdate() {
 
 void Swarm::postPhysicsUpdate() {}
 
-void Swarm::gamePauseUpdate(float deltaTime) {}
+void Swarm::gamePauseUpdate(float deltaTime) {
+	// Update tree parameter tuning system even when paused
+	// This allows real-time parameter visualization when escape menu is open
+}

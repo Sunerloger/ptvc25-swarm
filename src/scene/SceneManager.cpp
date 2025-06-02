@@ -1,4 +1,5 @@
 #include "SceneManager.h"
+#include "../procedural/VegetationObject.h"
 
 SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
@@ -635,4 +636,22 @@ std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTessellationRenderOb
 void SceneManager::clearUIObjects() {
 	this->scene->uiObjects.clear();
 	this->idToClass.clear();
+}
+
+void SceneManager::clearVegetationObjects() {
+	// Collect IDs of vegetation objects (which are stored as spectral objects)
+	std::vector<vk::id_t> vegetationIds;
+	
+	for (const auto& [id, object] : this->scene->spectralObjects) {
+		// Check if this spectral object is a VegetationObject
+		if (dynamic_cast<procedural::VegetationObject*>(object.get())) {
+			vegetationIds.push_back(id);
+		}
+	}
+	
+	// Remove vegetation objects
+	for (vk::id_t id : vegetationIds) {
+		this->scene->spectralObjects.erase(id);
+		this->idToClass.erase(id);
+	}
 }

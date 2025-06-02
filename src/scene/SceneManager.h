@@ -160,6 +160,9 @@ class SceneManager {
 
 	void clearUIObjects();
 
+	// Clear vegetation objects from the scene
+	void clearVegetationObjects();
+
 	void toggleUIVisibility() {
 		isUIVisible = !isUIVisible;
 	}

@@ -72,6 +72,7 @@ namespace vk {
 	   private:
 		Transform loadData() const;
 		void saveData(const Transform& t) const;
+		void invalidateCache();
 
 		std::shared_ptr<Model> model;
 		std::string name;
@@ -81,6 +82,9 @@ namespace vk {
 		float offsetFromBottom = 0.0f;
 		bool centerHorizontal = false;
 		bool centerVertical = false;
+
+		mutable Transform cachedTransform;
+		mutable bool cacheValid = false;
 	};
 
 }  // namespace vk
