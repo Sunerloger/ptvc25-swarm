@@ -250,7 +250,7 @@ namespace procedural {
 
 		// Generate vertices
 		for (int i = 0; i <= segments; ++i) {
-			float angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(segments);
+			float angle = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(segments);
 			float cosAngle = std::cos(angle);
 			float sinAngle = std::sin(angle);
 
@@ -479,7 +479,7 @@ namespace procedural {
 
 		// Generate vertices
 		for (int i = 0; i <= segments; ++i) {
-			float angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(segments);
+			float angle = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(segments);
 			float cosAngle = std::cos(angle);
 			float sinAngle = std::sin(angle);
 
@@ -521,7 +521,7 @@ namespace procedural {
 		// Generate multiple leaf quads around the branch end
 		for (int leafIndex = 0; leafIndex < leafCount; ++leafIndex) {
 			// Create rotation around the branch axis for each leaf
-			float rotationAngle = (2.0f * M_PI * leafIndex) / leafCount;
+			float rotationAngle = (2.0f * glm::pi<float>() * leafIndex) / leafCount;
 			float tiltAngle = 0.3f;	 // Slight random tilt for natural look
 
 			// Create a coordinate system for the leaf

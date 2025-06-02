@@ -287,7 +287,7 @@ namespace procedural {
 
 		// Calculate slope angle in degrees
 		float slopeRadians = std::atan(std::sqrt(dx * dx + dz * dz));
-		return slopeRadians * 180.0f / M_PI;
+		return slopeRadians * 180.0f / glm::pi<float>();
 	}
 
 	bool VegetationIntegrator::isSuitableForVegetation(
