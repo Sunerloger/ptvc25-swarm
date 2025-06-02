@@ -20,8 +20,6 @@ layout(location = 4) out vec2 rawUVTesc[];
 layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
-    vec4 params1;  // x: hasTexture, y and z: textureRepetition, w: maxTessLevel
-    vec4 params2;  // x: minTessDistance, y: maxTessDistance, z: heightScale, w: useHeightmapTexture
 } push;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
@@ -35,11 +33,27 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     
     // camera position in world space
     vec4 cameraPosition;
-} ubo;
+} globalUbo;
+
+layout(set = 1, binding = 2) uniform Ubo {
+    // x = maxTessLevel, max tessellation subdivisions
+    // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
+    // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
+    // w = heightScale
+    vec4 tessParams;
+
+    // xy = textureRepetition, how often the texture repeats across the whole tessellation object
+    // z = hasTexture
+    // w = useHeightmapTexture
+    vec4 textureParams;
+
+    // x: ambient factor, y: diffuse factor, z: specular factor, w: shininess
+    vec4 lightingProperties;
+} modelUbo;
 
 // helper: map distance -> [0,1]
 float mapDist(float d) {
-    return clamp((d - push.params2.x) / (push.params2.y - push.params2.x), 0.0, 1.0);
+    return clamp((d - modelUbo.tessParams.y) / (modelUbo.tessParams.z - modelUbo.tessParams.y), 0.0, 1.0);
 }
 
 void main() {
@@ -54,16 +68,16 @@ void main() {
     if (gl_InvocationID == 0) {
 
         // compute per-vertex distances
-        float d0 = length(ubo.view * vec4(fragPosWorld[0], 1.0));
-        float d1 = length(ubo.view * vec4(fragPosWorld[1], 1.0));
-        float d2 = length(ubo.view * vec4(fragPosWorld[2], 1.0));
-        float d3 = length(ubo.view * vec4(fragPosWorld[3], 1.0));
+        float d0 = length(globalUbo.cameraPosition - vec4(fragPosWorld[0], 1.0));
+        float d1 = length(globalUbo.cameraPosition - vec4(fragPosWorld[1], 1.0));
+        float d2 = length(globalUbo.cameraPosition - vec4(fragPosWorld[2], 1.0));
+        float d3 = length(globalUbo.cameraPosition - vec4(fragPosWorld[3], 1.0));
 
         float f0 = mapDist(d0);
         float f1 = mapDist(d1);
         float f2 = mapDist(d2);
         float f3 = mapDist(d3);
-        float maxL = push.params1.w; // maxTessLevel
+        float maxL = modelUbo.tessParams.x;
         
         gl_TessLevelOuter[0] = mix(maxL, 1.0, min(f0, f1));
         gl_TessLevelOuter[1] = mix(maxL, 1.0, min(f1, f2));

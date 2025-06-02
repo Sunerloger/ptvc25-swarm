@@ -126,16 +126,6 @@ namespace vk {
 			
 			auto tessMat = std::static_pointer_cast<TessellationMaterial>(material);
 			assert(tessMat && "All tess-objects must use TessellationMaterial");
-			
-			glm::vec2 textureRepetition = tessMat->getTextureRepetition();
-			float maxTessLevel = tessMat->getMaxTessLevel();
-			float minTessDistance = tessMat->getMinTessDistance();
-			float maxTessDistance = tessMat->getMaxTessDistance();
-			float heightScale = tessMat->getHeightScale();
-			int useHeightmapTexture = tessMat->hasHeightmapTexture() ? 1 : 0;
-			
-			push.params1 = glm::vec4(hasTexture, textureRepetition.x, textureRepetition.y, maxTessLevel);
-			push.params2 = glm::vec4(minTessDistance, maxTessDistance, heightScale, useHeightmapTexture);
 
 			vkCmdPushConstants(
 				frameInfo.commandBuffer,

@@ -125,7 +125,7 @@ namespace vk {
 
 			// Camera
 			float aspect = renderer.getAspectRatio();
-			sceneManager.getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
+			sceneManager.getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.01f, 10000.0f);
 
 			// menu / death screen is just rendered on top of game while physics / logic is disabled
 			if (auto commandBuffer = renderer.beginFrame()) {

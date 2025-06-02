@@ -15,8 +15,6 @@ namespace vk {
     struct TessellationPushConstantData {
         glm::mat4 modelMatrix{1.0f};
         glm::mat4 normalMatrix{1.0f};
-        glm::vec4 params1{0.0f, 0.1f, 0.1f, 16.0f};  // x: hasTexture, yz: textureRepetition, w: maxTessLevel
-        glm::vec4 params2{20.0f, 100.0f, 1.0f, 0.0f}; // x: tessDistance, y: minTessDistance, z: heightScale, w: useHeightmapTexture
     };
 
     class TessellationRenderSystem {

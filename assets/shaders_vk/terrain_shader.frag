@@ -11,8 +11,6 @@ layout(location = 0) out vec4 outColor;
 layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
-    vec4 params1;  // x: hasTexture, yz: textureRepetition, w: maxTessLevel
-    vec4 params2;  // x: minTessDistance, y: maxTessDistance, z: heightScale, w: useHeightmapTexture
 } push;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
@@ -26,35 +24,68 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     
     // camera position in world space
     vec4 cameraPosition;
-} ubo;
+} globalUbo;
 
 // Terrain texture
 layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
-// Simple lighting calculation
-vec3 calculateLighting(vec3 normal, vec3 color) {
-    // Simple directional light from above
-    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
-    float diffuse = max(dot(normal, lightDir), 0.0);
+layout(set = 1, binding = 2) uniform Ubo {
+    // x = maxTessLevel, max tessellation subdivisions
+    // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
+    // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
+    // w = heightScale
+    vec4 tessParams;
+
+    // xy = textureRepetition, how often the texture repeats across the whole tessellation object
+    // z = hasTexture
+    // w = useHeightmapTexture
+    vec4 textureParams;
+
+    // x: ambient factor, y: diffuse factor, z: specular factor, w: shininess
+    vec4 lightingProperties;
+} modelUbo;
+
+vec3 phong( vec3 n, vec3 l, vec3 v,
+            vec3 diffuseC, float diffuseF,
+            vec3 specularC, float specularF,
+            float alpha, bool attenuate, vec3 attenuation)
+{
+    float d = length(l);
+    l = normalize(l);
+    float att = 1.0;
+    if (attenuate) {
+        att = 1.0 / (attenuation.x + d*attenuation.y + d*d*attenuation.z);
+    }
+
+    vec3 r = reflect(-l, n);
     
-    // Ambient light
-    float ambient = 0.3;
-    
-    // Calculate final lighting
-    return color * (diffuse + ambient);
+    return (diffuseF * diffuseC * max(0, dot(n, l)) + specularF * specularC * pow(max(0, dot(r, v)), alpha)) * att; 
+}
+
+vec3 clampedReflect(vec3 I, vec3 N)
+{
+	return I - 2.0 * min(dot(N, I), 0.0) * N;
 }
 
 void main() {
+    vec3 N = normalize( fragNormalWorld );
+    vec3 V = normalize(fragPosWorld - globalUbo.cameraPosition.xyz);
 
-    // Get base color (from texture or vertex color)
-    vec3 color = fragColor;
-    if (push.params1.x > 0.0) {  // hasTexture is in params1.x
-        color = texture(texSampler, fragTexCoord).rgb;
+    vec3 diffuseColor = fragColor;
+    if (modelUbo.textureParams.z > 0.0) {  // hasTexture is in params1.x
+        diffuseColor = texture(texSampler, fragTexCoord).rgb;
     }
-    
-    // Apply lighting
-    vec3 litColor = calculateLighting(normalize(fragNormalWorld), color);
-    
-    // Output final color
-    outColor = vec4(litColor, 1.0);
+
+    vec3 light = diffuseColor * modelUbo.lightingProperties.x;
+
+    light += phong(
+        N, -globalUbo.sunDirection.xyz, -V,
+        diffuseColor * globalUbo.sunColor.rgb, modelUbo.lightingProperties.y,
+        globalUbo.sunColor.rgb, modelUbo.lightingProperties.z,
+        modelUbo.lightingProperties.w,
+        false, vec3(1.0)
+    );
+
+    outColor = vec4(light, 1.0f);
+    // outColor = vec4(fragNormalWorld, 1.0f);
 }

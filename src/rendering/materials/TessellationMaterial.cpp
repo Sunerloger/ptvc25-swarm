@@ -43,12 +43,12 @@ namespace vk {
         createTextureSampler(static_cast<float>(textureMipLevels), textureSampler);
 
         uint32_t heightmapMipLevels = createHeightmapImage(heightmapPath);
-        if (m_hasHeightmapTexture) {
+        if (materialData.textureParams.w) {
             heightmapImageView = createImageView(heightmapImage);
             createTextureSampler(static_cast<float>(heightmapMipLevels), heightmapSampler);
         }
 
-        createDescriptorSet();
+        createDescriptorSets();
     }
 
     TessellationMaterial::~TessellationMaterial() {
@@ -58,7 +58,7 @@ namespace vk {
         vkDestroyImage(device.device(), textureImage, nullptr);
         vkFreeMemory(device.device(), textureImageMemory, nullptr);
         
-        if (m_hasHeightmapTexture) {
+        if (materialData.textureParams.w) {
             vkDestroyImageView(device.device(), heightmapImageView, nullptr);
             vkDestroyImage(device.device(), heightmapImage, nullptr);
             vkDestroySampler(device.device(), heightmapSampler, nullptr);
@@ -74,8 +74,14 @@ namespace vk {
     }
 
     void TessellationMaterial::cleanupResources() {
-        descriptorPool.reset();
-        descriptorSetLayout.reset();
+        if (descriptorPool) {
+            descriptorPool->resetPool();
+            descriptorPool.reset();
+        }
+
+        if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
+            descriptorSetLayout.reset();
+        }
     }
 
     void TessellationMaterial::createDescriptorSetLayoutIfNeeded(Device& device) {
@@ -84,12 +90,13 @@ namespace vk {
             descriptorSetLayout = DescriptorSetLayout::Builder(device)
                 .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
                 .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
+                .addBinding(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
                 .build();
-                
-            // support for only 1 material for now (only one terrain)
+
             descriptorPool = DescriptorPool::Builder(device)
-                .setMaxSets(1)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+                .setMaxSets(200 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 * 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .build();
         }
     }
@@ -104,7 +111,7 @@ namespace vk {
     uint32_t TessellationMaterial::createHeightmapImage(const std::string& heightmapPath) {
         auto heightmapData = AssetLoader::getInstance().loadTexture(heightmapPath);
 
-        m_hasHeightmapTexture = true;
+        materialData.textureParams.w = true;
 
         return createTextureFromImageData(heightmapData.pixels, heightmapData.width, heightmapData.height, heightmapData.channels, heightmapImage, heightmapImageMemory);       
     }
@@ -195,71 +202,44 @@ namespace vk {
         }
     }
 
-    void TessellationMaterial::createDescriptorSet() {
-        descriptorSet = VK_NULL_HANDLE;
-
-        VkDescriptorSetLayout layout = descriptorSetLayout->getDescriptorSetLayout();
-        
-        // Allocate descriptor set
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool->getPool();
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &layout;
-        
-        if (vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptorSet) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate descriptor set!");
+    void TessellationMaterial::createDescriptorSets() {
+        for (int i = 0; i < paramsBuffers.size(); i++) {
+            paramsBuffers[i] = std::make_unique<Buffer>(device,
+                sizeof(MaterialData),
+                1,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            paramsBuffers[i]->map();
         }
-        
-        // Update descriptor set for color texture
+
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = textureImageView;
         imageInfo.sampler = textureSampler;
-        
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSet;
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &imageInfo;
-        
-        std::vector<VkWriteDescriptorSet> descriptorWrites = {descriptorWrite};
-        
-        if (m_hasHeightmapTexture) {
-            assert(heightmapImageView != VK_NULL_HANDLE);
 
-            VkDescriptorImageInfo heightmapInfo{};
-            heightmapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        VkDescriptorImageInfo heightImageInfo{};
+        heightImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        heightImageInfo.imageView = heightmapImageView;
+        heightImageInfo.sampler = heightmapSampler;
 
-            heightmapInfo.imageView = heightmapImageView;
-            heightmapInfo.sampler = heightmapSampler;
-
-            VkWriteDescriptorSet heightmapWrite{};
-            heightmapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            heightmapWrite.dstSet = descriptorSet;
-            heightmapWrite.dstBinding = 1;
-            heightmapWrite.dstArrayElement = 0;
-            heightmapWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            heightmapWrite.descriptorCount = 1;
-            heightmapWrite.pImageInfo = &heightmapInfo;
-
-            descriptorWrites.push_back(heightmapWrite);
+        for (int i = 0; i < textureDescriptorSets.size(); i++) {
+            auto bufferInfo = paramsBuffers[i]->descriptorInfo();
+            DescriptorWriter(*descriptorSetLayout, *descriptorPool)
+                .writeImage(0, &imageInfo)
+                .writeImage(1, &heightImageInfo)
+                .writeBuffer(2, &bufferInfo)
+                .build(textureDescriptorSets[i]);
         }
-        
-        vkUpdateDescriptorSets(device.device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
-    void TessellationMaterial::setTessellationParams(float maxLevel, float minDistance, float maxDistance, float heightScale) {
-        this->maxTessLevel = maxLevel;
-        this->minTessDistance = minDistance;
-        this->maxTessDistance = maxDistance;
-        this->heightScale = heightScale;
+    void TessellationMaterial::updateDescriptorSet(int frameIndex) {
+        paramsBuffers[frameIndex]->writeToBuffer(&materialData);
+        paramsBuffers[frameIndex]->flush();
     }
 
-    void TessellationMaterial::setTextureRepetition(glm::vec2 textureRepetition) {
-        this->textureRepetition = textureRepetition;
+    void TessellationMaterial::setParams(MaterialCreationData creationData) {
+        materialData.tessParams = glm::vec4{ creationData.maxTessLevel, creationData.minTessDistance, creationData.maxTessDistance, creationData.heightScale };
+        materialData.textureParams = glm::vec4{ creationData.textureRepetition, 1.0f, 1.0f };
+        materialData.lightingProperties = glm::vec4{ creationData.ka, creationData.kd, creationData.ks, creationData.alpha };
     }
 }

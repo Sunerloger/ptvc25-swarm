@@ -69,10 +69,10 @@ void main() {
 
     if (gl_InvocationID == 0) {
         // compute per-vertex distances
-        float d0 = length((globalUbo.view * gl_in[0].gl_Position).xyz);
-        float d1 = length((globalUbo.view * gl_in[1].gl_Position).xyz);
-        float d2 = length((globalUbo.view * gl_in[2].gl_Position).xyz);
-        float d3 = length((globalUbo.view * gl_in[3].gl_Position).xyz);
+        float d0 = length((globalUbo.cameraPosition - gl_in[0].gl_Position).xyz);
+        float d1 = length((globalUbo.cameraPosition - gl_in[1].gl_Position).xyz);
+        float d2 = length((globalUbo.cameraPosition - gl_in[2].gl_Position).xyz);
+        float d3 = length((globalUbo.cameraPosition - gl_in[3].gl_Position).xyz);
 
         float f0 = mapDist(d0);
         float f1 = mapDist(d1);

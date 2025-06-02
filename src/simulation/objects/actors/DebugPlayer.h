@@ -43,7 +43,7 @@ public:
 	inline JPH::BodyID getBodyID() const override { return JPH::BodyID(JPH::BodyID::cInvalidBodyID); }
 	inline void addPhysicsBody() override {}
 
-	void handleSpeedChange(float scrollOffset, float changeSpeed = 1.0f);
+	void handleSpeedChange(float scrollOffset, float changeSpeed = 0.1f);
 	void updatePosition(float dt, glm::vec3 dir);
 
 	inline float getMovementSpeed() const override { return movementSpeed; }

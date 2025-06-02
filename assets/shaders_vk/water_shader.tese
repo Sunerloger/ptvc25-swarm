@@ -2,7 +2,7 @@
 
 #define MAX_WAVES 32
 
-layout(quads, fractional_odd_spacing, ccw) in;
+layout(quads, fractional_even_spacing, ccw) in;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;

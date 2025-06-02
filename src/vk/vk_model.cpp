@@ -15,7 +15,9 @@
 #define TINYGLTF_IMPLEMENTATION
 #include "tiny_gltf.h"
 #define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtc/noise.hpp>
 
 #include <cassert>
 #include <unordered_map>
@@ -527,89 +529,23 @@ namespace vk {
 		return std::make_unique<Model>(device, builder);
 	}
 
-	// Helper function for Perlin noise generation
-	float fade(float t) {
-		return t * t * t * (t * (t * 6 - 15) + 10);
-	}
-
-	float lerp(float a, float b, float t) {
-		return a + t * (b - a);
-	}
-
-	float grad(int hash, float x, float y, float z) {
-		// Convert lower 4 bits of hash code into 12 gradient directions
-		int h = hash & 15;
-		float u = h < 8 ? x : y;
-		float v = h < 4 ? y : h == 12 || h == 14 ? x
-												 : z;
-		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
-	}
-
-	float perlinNoise(float x, float y, const std::vector<int>& p) {
-		// Find unit grid cell containing point
-		int X = static_cast<int>(std::floor(x)) & 255;
-		int Y = static_cast<int>(std::floor(y)) & 255;
-
-		// Get relative xy coordinates of point within cell
-		x -= std::floor(x);
-		y -= std::floor(y);
-
-		// Compute fade curves for each coordinate
-		float u = fade(x);
-		float v = fade(y);
-
-		// Hash coordinates of the 4 square corners
-		int A = p[X] + Y;
-		int AA = p[A];
-		int AB = p[A + 1];
-		int B = p[X + 1] + Y;
-		int BA = p[B];
-		int BB = p[B + 1];
-
-		// Add blended results from 4 corners of square
-		return lerp(
-			lerp(grad(p[AA], x, y, 0), grad(p[BA], x - 1, y, 0), u),
-			lerp(grad(p[AB], x, y - 1, 0), grad(p[BB], x - 1, y - 1, 0), u),
-			v);
-	}
-
 	std::pair<std::unique_ptr<Model>, std::vector<float>> Model::createTerrainModel(
 		Device& device,
 		int gridSize,
 		const std::string& tileTexturePath,
 		float noiseScale,
-		float heightScale,
 		bool loadHeightTexture,
 		const std::string& heightTexturePath,
 		int seed,
-		glm::vec2 textureRepetition,
 		bool useTessellation,
-		float maxTessLevel,
-		float minTessDistance,
-		float maxTessDistance) {
+		TessellationMaterial::MaterialCreationData creationData) {
 		// Create a vector to store the heightmap data
 		std::vector<float> heightData(gridSize * gridSize);
 		std::vector<unsigned char> imageData(gridSize * gridSize * 4);	// RGBA format (this only enables png for now)
 
-		// Initialize permutation table for Perlin noise
-		std::vector<int> p(512);
-		for (int i = 0; i < 256; i++) {
-			p[i] = i;
-		}
-
 		if (seed == -1) {
 			std::random_device rd;
-			std::mt19937 g(rd());
-			std::shuffle(p.begin(), p.begin() + 256, g);
-		}
-		else {
-			std::mt19937 g(seed);
-			std::shuffle(p.begin(), p.begin() + 256, g);
-		}
-
-		// Duplicate the permutation to avoid overflow
-		for (int i = 0; i < 256; i++) {
-			p[i + 256] = p[i];
+			seed = rd();
 		}
 
 		// Generate heightmap using Perlin noise
@@ -625,7 +561,7 @@ namespace vk {
 				float maxValue = 0.0f;
 
 				for (int i = 0; i < 4; i++) {  // Use 4 octaves
-					h += perlinNoise(nx * frequency, nz * frequency, p) * amplitude;
+					h += glm::perlin(glm::vec3(nx * frequency, nz * frequency, static_cast<float>(seed))) * amplitude;
 					maxValue += amplitude;
 					amplitude *= 0.5f;
 					frequency *= 2.0f;
@@ -696,19 +632,6 @@ namespace vk {
 				// Calculate normal based on neighboring heights
 				glm::vec3 normal = {0.0f, 1.0f, 0.0f};	// Default to up
 
-				// If not on the edge, calculate normal from neighboring vertices
-				if (x > 0 && x < gridSize - 1 && z > 0 && z < gridSize - 1) {
-					float hL = heightData[z * gridSize + (x - 1)];	// Left
-					float hR = heightData[z * gridSize + (x + 1)];	// Right
-					float hD = heightData[(z - 1) * gridSize + x];	// Down
-					float hU = heightData[(z + 1) * gridSize + x];	// Up
-
-					// Calculate normal using central differences
-					glm::vec3 tangent = glm::normalize(glm::vec3(2.0f * step, hR - hL, 0.0f));
-					glm::vec3 bitangent = glm::normalize(glm::vec3(0.0f, hU - hD, 2.0f * step));
-					normal = glm::normalize(glm::cross(tangent, bitangent));
-				}
-
 				// UV coordinates (tiled)
 				// Map UV from 0 to gridSize to create tiling effect
 				glm::vec2 uv = {
@@ -755,8 +678,7 @@ namespace vk {
 			"terrain_tess_control.tesc",
 			"terrain_tess_eval.tese");
 
-		material->setTextureRepetition(textureRepetition); // control texture tiling
-		material->setTessellationParams(maxTessLevel, minTessDistance, maxTessDistance, heightScale);
+		material->setParams(creationData);
 
 		auto& config = material->getPipelineConfig();
 		config.useTessellation = useTessellation;

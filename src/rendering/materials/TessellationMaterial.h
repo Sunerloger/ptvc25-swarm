@@ -2,12 +2,54 @@
 
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
+#include "../../vk/vk_buffer.h"
+#include "../../vk/vk_swap_chain.h"
 #include <glm/glm.hpp>
 
 namespace vk {
 
     class TessellationMaterial : public Material {
     public:
+
+        struct MaterialData {
+            // x = maxTessLevel, max tessellation subdivisions
+            // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
+            // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
+            // w = heightScale
+            glm::vec4 tessParams{ 16.0f, 20.0f, 100.0f, 1.0f };
+
+            // xy = textureRepetition, how often the texture repeats across the whole tessellation object
+            // z = hasTexture
+            // w = useHeightmapTexture
+            glm::vec4 textureParams{ 0.25f, 0.25f, 1.0f, 1.0f };
+
+            // x: ambient factor, y: diffuse factor, z: specular factor, w: shininess
+            glm::vec4 lightingProperties{ 0.3f, 0.65f, 0.05f, 1.0f };
+        };
+
+        struct MaterialCreationData {
+
+            // max tessellation subdivisions
+            float maxTessLevel = 16.0f;
+
+            // within minTessDistance the tessellation has maxTessLevels
+            float minTessDistance = 20.0f;
+
+            // tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
+            float maxTessDistance = 100.0f;
+
+            // height from center to highest peak / lowest valley
+            float heightScale = 1.0f;
+
+            // how often the texture repeats across the whole tessellation object
+            glm::vec2 textureRepetition = glm::vec2{ 0.25f, 0.25f };
+            
+            // lighting properties
+            float ka = 0.3f;
+            float kd = 0.65f;
+            float ks = 0.05f;
+            float alpha = 1.0f;
+        };
         
         // Constructor with separate color and heightmap textures and shader paths
         TessellationMaterial(Device& device, const std::string& texturePath, const std::string& heightmapPath,
@@ -19,22 +61,12 @@ namespace vk {
         
         ~TessellationMaterial() override;
 
-        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return descriptorSet; }
+        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return textureDescriptorSets[frameIndex]; }
         VkDescriptorSetLayout getDescriptorSetLayout() const override {
             return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
         }
         
-        void setTessellationParams(float maxLevel, float minDistance, float maxDistance, float heightScale);
-        
-        void setTextureRepetition(glm::vec2 textureRepetition);
-        
-        // Get current parameters
-        glm::vec2 getTextureRepetition() const { return textureRepetition; }
-        float getMaxTessLevel() const { return maxTessLevel; }
-        float getMinTessDistance() const { return minTessDistance; }
-        float getMaxTessDistance() const { return maxTessDistance; }
-        float getHeightScale() const { return heightScale; }
-        bool hasHeightmapTexture() const { return m_hasHeightmapTexture; }
+        void setParams(MaterialCreationData creationData);
         
         static std::unique_ptr<DescriptorPool> descriptorPool;
         static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
@@ -49,7 +81,9 @@ namespace vk {
                                       int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image);
         void createTextureSampler(float maxLod, VkSampler& sampler);
-        void createDescriptorSet();
+        void createDescriptorSets();
+
+        void updateDescriptorSet(int frameIndex) override;
         
         static void createDescriptorSetLayoutIfNeeded(Device& device);
         
@@ -64,24 +98,11 @@ namespace vk {
         VkDeviceMemory heightmapImageMemory = VK_NULL_HANDLE;
         VkImageView heightmapImageView = VK_NULL_HANDLE;
         VkSampler heightmapSampler = VK_NULL_HANDLE;
-        bool m_hasHeightmapTexture = false;
         
-        // Descriptor set
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> textureDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
+
+        std::vector<std::unique_ptr<Buffer>> paramsBuffers{ SwapChain::MAX_FRAMES_IN_FLIGHT };
         
-        // max tessellation subdivisions
-        float maxTessLevel = 16.0f;
-
-        // within minTessDistance, the tessellation has maxTessLevels
-        float minTessDistance = 20.0f;
-
-        // tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
-        float maxTessDistance = 100.0f;
-
-        // multiplication factor for heightmap
-        float heightScale = 1.0f;
-        
-        // how often the texture repeats across the whole tessellation object
-        glm::vec2 textureRepetition = glm::vec2(1.0f, 1.0f);
+        MaterialData materialData{};
     };
 }

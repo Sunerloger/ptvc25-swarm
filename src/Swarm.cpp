@@ -245,21 +245,25 @@ void Swarm::init() {
 		int samplesPerSide = 100;  // Resolution of the heightmap
 		float noiseScale = 5.0f;   // Controls the "frequency" of the noise
 
+		TessellationMaterial::MaterialCreationData terrainCreationData = {};
+		terrainCreationData.textureRepetition = glm::vec2(samplesPerSide / 2.0f, samplesPerSide / 2.0f);
+		terrainCreationData.heightScale = maxTerrainHeight;
+		terrainCreationData.ka = 0.0f;
+		terrainCreationData.kd = 1.0f;
+		terrainCreationData.ks = 0.0f;
+		terrainCreationData.alpha = 10.0f;
+
 		// Generate terrain model with heightmap
 		auto result = vk::Model::createTerrainModel(
 			device,
 			samplesPerSide,
 			"textures:ground/dirt.png",	 // Tile texture path
 			noiseScale,
-			maxTerrainHeight,
 			/* loadHeightTexture */ false,
 			/* heightTexturePath */ "none",
 			/* seed */ -1, // if -1: use random
-			/* textureRepetition */ glm::vec2(samplesPerSide / 2.0f, samplesPerSide / 2.0f),
 			/* useTessellation */ true,
-			/* maxTessLevel */ 16.0f,
-			/* minTessDistance */ 10.0f,
-			/* maxTessDistance */ 100.0f
+			terrainCreationData
 		);
 
 		// create terrain with procedural heightmap using perlin noise

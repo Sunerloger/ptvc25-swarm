@@ -8,8 +8,6 @@ layout(location = 3) in vec2 uv;
 layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
-    vec4 params1;  // x: hasTexture, yz: textureRepetition, w: maxTessLevel
-    vec4 params2;  // x: minTessDistance, y: maxTessDistance, z: heightScale, w: useHeightmapTexture
 } push;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
@@ -23,7 +21,23 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     
     // camera position in world space
     vec4 cameraPosition;
-} ubo;
+} globalUbo;
+
+layout(set = 1, binding = 2) uniform Ubo {
+    // x = maxTessLevel, max tessellation subdivisions
+    // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
+    // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
+    // w = heightScale
+    vec4 tessParams;
+
+    // xy = textureRepetition, how often the texture repeats across the whole tessellation object
+    // z = hasTexture
+    // w = useHeightmapTexture
+    vec4 textureParams;
+
+    // x: ambient factor, y: diffuse factor, z: specular factor, w: shininess
+    vec4 lightingProperties;
+} modelUbo;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec3 fragPosWorld;
@@ -37,7 +51,7 @@ void main() {
     fragNormalWorld = normalize(mat3(push.normalMatrix) * normal);
     
     // tiling texture coordinates
-    fragTexCoord = uv * push.params1.yz;  // textureRepetition is in params1.yz
+    fragTexCoord = uv * modelUbo.textureParams.xy;
     rawUV = uv;
 
     gl_Position = vec4(position, 1.0);

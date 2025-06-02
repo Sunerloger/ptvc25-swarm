@@ -13,7 +13,7 @@ void DebugPlayer::handleRotation(float deltaYaw, float deltaPitch) {
 }
 
 void DebugPlayer::handleSpeedChange(float scrollOffset, float changeSpeed) {
-	movementSpeed += changeSpeed * scrollOffset;
+	movementSpeed *= 1 + changeSpeed * scrollOffset;
 	movementSpeed = std::clamp(movementSpeed, 0.001f, 100000.0f);
 }
 
