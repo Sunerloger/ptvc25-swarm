@@ -159,6 +159,72 @@ add_library(inih STATIC
   ${inih_SOURCE_DIR}/cpp/INIReader.cpp
 )
 
+FetchContent_Declare(
+  soloud
+  GIT_REPOSITORY https://github.com/jarikomppa/soloud.git
+  GIT_TAG        master
+  GIT_SHALLOW    ON
+)
+FetchContent_GetProperties(soloud)
+if(NOT soloud_POPULATED)
+  FetchContent_Populate(soloud)
+endif()
+
+set(SOLOUD_SOURCES
+  ${soloud_SOURCE_DIR}/src/core/soloud.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_audiosource.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_bus.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_3d.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_basicops.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_faderops.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_filterops.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_getters.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_setters.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_voicegroup.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_core_voiceops.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_fader.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_fft.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_fft_lut.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_file.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_filter.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_misc.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_queue.cpp
+  ${soloud_SOURCE_DIR}/src/core/soloud_thread.cpp
+  ${soloud_SOURCE_DIR}/src/audiosource/wav/soloud_wav.cpp
+  ${soloud_SOURCE_DIR}/src/audiosource/wav/soloud_wavstream.cpp
+  ${soloud_SOURCE_DIR}/src/audiosource/wav/stb_vorbis.c
+  ${soloud_SOURCE_DIR}/src/backend/miniaudio/soloud_miniaudio.cpp
+)
+
+if(WIN32)
+  list(APPEND SOLOUD_SOURCES ${soloud_SOURCE_DIR}/src/backend/winmm/soloud_winmm.cpp)
+  add_definitions(-DWITH_WINMM)
+elseif(APPLE)
+  list(APPEND SOLOUD_SOURCES ${soloud_SOURCE_DIR}/src/backend/coreaudio/soloud_coreaudio.cpp)
+  add_definitions(-DWITH_COREAUDIO)
+else()
+  list(APPEND SOLOUD_SOURCES ${soloud_SOURCE_DIR}/src/backend/alsa/soloud_alsa.cpp)
+  add_definitions(-DWITH_ALSA)
+endif()
+
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dr_libs_impl.c
+"#define DR_MP3_IMPLEMENTATION
+#include \"${soloud_SOURCE_DIR}/src/audiosource/wav/dr_mp3.h\"
+#define DR_WAV_IMPLEMENTATION
+#include \"${soloud_SOURCE_DIR}/src/audiosource/wav/dr_wav.h\"
+#define DR_FLAC_IMPLEMENTATION
+#include \"${soloud_SOURCE_DIR}/src/audiosource/wav/dr_flac.h\"
+")
+
+list(APPEND SOLOUD_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/dr_libs_impl.c)
+list(APPEND SOLOUD_SOURCES ${soloud_SOURCE_DIR}/src/audiosource/wav/dr_impl.cpp)
+
+add_library(soloud STATIC ${SOLOUD_SOURCES})
+target_include_directories(soloud PUBLIC
+  ${soloud_SOURCE_DIR}/include
+  ${soloud_SOURCE_DIR}/src/audiosource/wav
+)
+
 set(JPH_BUILD_SHARED_LIBRARY ON CACHE BOOL "Build JoltPhysics as a DLL" FORCE)
 set(JPH_SHARED_LIBRARY ON CACHE BOOL "Use JoltPhysics as a shared library" FORCE)
 FetchContent_Declare(
@@ -241,6 +307,8 @@ set(LINK_LIBRARIES
     tinygltf
     tinyobjloader
     fmt
+    inih
+    soloud
     $<$<BOOL:${APPLE}>:
         "-framework CoreFoundation"
         "-framework CoreGraphics"
@@ -282,11 +350,11 @@ target_include_directories(inih PUBLIC
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${stb_SOURCE_DIR}
+    ${soloud_SOURCE_DIR}/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${LINK_LIBRARIES}
-    inih
 )
 
 # Setup shader compilation
@@ -361,6 +429,13 @@ add_custom_command(
             $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/settings
 )
 
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/audio/
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/audio
+)
+
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
    set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
@@ -409,4 +484,9 @@ install(
 install(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/settings/"
     DESTINATION "assets/settings"
+)
+
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/audio/"
+    DESTINATION "assets/audio"
 )

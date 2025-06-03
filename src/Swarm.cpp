@@ -204,6 +204,9 @@ void Swarm::onPlayerDeath() {
 }
 
 void Swarm::init() {
+
+	audio::AudioSystem::getInstance().loadSound("gun", "audio:gun_shot.mp3");
+
 	SceneManager& sceneManager = SceneManager::getInstance();
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced

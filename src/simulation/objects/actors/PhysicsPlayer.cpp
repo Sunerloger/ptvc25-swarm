@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+#include "../../../AudioSystem.h"
+
 namespace physics {
 
 	PhysicsPlayer::PhysicsPlayer(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) : settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
@@ -104,6 +106,8 @@ namespace physics {
 			JPH::BroadPhaseLayerFilter(),
 			JPH::ObjectLayerFilter(),
 			filter);
+
+		audio::AudioSystem::getInstance().playSound("gun");
 
 		if (hit) {
 			JPH::BodyID hitBodyID = result.mBodyID;

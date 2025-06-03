@@ -28,6 +28,7 @@ namespace vk {
 		registerPath("settings", "assets/settings");
 		registerPath("compiledShaders", "assets/shaders_vk/compiled");
 		registerPath("generated", "assets/generated");
+		registerPath("audio", "assets/audio");
 
 		// Add project source directory if defined
 #ifdef PROJECT_SOURCE_DIR
@@ -39,6 +40,7 @@ namespace vk {
 		registerPath("projectSettings", std::string(PROJECT_SOURCE_DIR) + "/assets/settings");
 		registerPath("projectCompiledShaders", std::string(PROJECT_SOURCE_DIR) + "/assets/shaders_vk/compiled");
 		registerPath("projectGenerated", std::string(PROJECT_SOURCE_DIR) + "/assets/generated");
+		registerPath("projectAudio", std::string(PROJECT_SOURCE_DIR) + "/assets/audio");
 #endif
 
 		// Print registered paths for debugging

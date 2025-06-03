@@ -12,6 +12,7 @@
 #include "simulation/PhysicsSimulation.h"
 
 #include "asset_utils/AssetManager.h"
+#include "AudioSystem.h"
 #include "SwarmInputController.h"
 
 #include "ui/Font.h"
