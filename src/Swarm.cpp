@@ -9,7 +9,7 @@
 
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
 	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
-	enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
+	enemyModel = Model::createModelFromFile(device, "models:enemy.glb");
 	grenadeModel = Model::createModelFromFile(device, "models:grenade.glb");
 }
 
@@ -342,7 +342,7 @@ void Swarm::init() {
 
 	// Enemies
 	{
-		float enemyHullHeight = 1.25f;
+		float enemyHullHeight = 1.5f;
 		float enemyRadius = 0.3f;
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 		float enemySpawnMinRadius = 20.0f;
@@ -575,7 +575,7 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	if (elapsedTime >= 10.0f && newSecond % 10 == 0 && newSecond != lastSpawnSecond) {
 		printf("Spawning new enemy wave at %d seconds\n", newSecond);
 		lastSpawnSecond = newSecond;
-		float enemyHullHeight = 1.25f;
+		float enemyHullHeight = 1.5f;
 		float enemyRadius = 0.3f;
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 		float enemySpawnMinRadius = 20.0f;

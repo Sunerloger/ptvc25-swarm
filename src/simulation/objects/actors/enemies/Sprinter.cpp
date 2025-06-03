@@ -6,8 +6,7 @@
 
 namespace physics {
 
-	Sprinter::Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system) : 
-		sprinterSettings(sprinterCreationSettings.sprinterSettings), characterSettings(sprinterCreationSettings.characterSettings), physics_system(physics_system) {
+	Sprinter::Sprinter(SprinterCreationSettings sprinterCreationSettings, JPH::PhysicsSystem& physics_system) : sprinterSettings(sprinterCreationSettings.sprinterSettings), characterSettings(sprinterCreationSettings.characterSettings), physics_system(physics_system) {
 		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, sprinterCreationSettings.position, JPH::Quat::sIdentity(), sprinterCreationSettings.inUserData, &this->physics_system));
 		this->forward = RVec3ToGLM(getDirectionToCharacter());
 		this->currentHealth = sprinterSettings.maxHealth;
@@ -19,7 +18,6 @@ namespace physics {
 
 	// doesn't move if the enemy doesn't approximately face the player
 	void Sprinter::updatePhysics(float cPhysicsDeltaTime) {
-
 		// TODO deltaTime is handled by the physics system ?
 
 		float targetAngle = calculateTargetAngle();
@@ -47,21 +45,20 @@ namespace physics {
 		if (isLockedOnPlayer) {
 			JPH::Vec3 currentVelocity = character->GetLinearVelocity();
 			JPH::Vec3 directionToCharacter = getDirectionToCharacter();
-			
+
 			// Create a horizontal-only direction vector
 			JPH::Vec3 horizontalDirection = directionToCharacter;
-			horizontalDirection.SetY(0.0f);  // Zero out Y component for horizontal movement
-			
+			horizontalDirection.SetY(0.0f);	 // Zero out Y component for horizontal movement
+
 			// Handle slopes - similar to Player class
 			JPH::Character::EGroundState ground_state = this->character->GetGroundState();
 			if (ground_state == JPH::Character::EGroundState::OnSteepGround ||
 				ground_state == JPH::Character::EGroundState::NotSupported) {
-				
 				// Get ground normal and project it to horizontal plane
 				JPH::Vec3 normal = character->GetGroundNormal();
 				JPH::Vec3 horizontalNormal = normal;
 				horizontalNormal.SetY(0.0f);
-				
+
 				float normal_length_sq = horizontalNormal.LengthSq();
 				if (normal_length_sq > 0.0f) {
 					// Calculate dot product to see if we're moving into the slope
@@ -72,38 +69,37 @@ namespace physics {
 					}
 				}
 			}
-			
+
 			// Re-normalize after adjustments
 			if (horizontalDirection.LengthSq() > 0.001f) {
 				horizontalDirection = horizontalDirection.Normalized();
 			}
-			
+
 			// Calculate desired horizontal velocity
 			JPH::Vec3 desiredVelocity = horizontalDirection * sprinterSettings.maxMovementSpeed;
-			
+
 			// Preserve current Y velocity (gravity)
 			desiredVelocity.SetY(currentVelocity.GetY());
 
 			JPH::Vec3 newVelocity = currentVelocity;
-			
+
 			if (ground_state != JPH::Character::EGroundState::InAir) {
 				// Blend current and desired velocity (with acceleration)
 				newVelocity += cPhysicsDeltaTime *
-					this->sprinterSettings.accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
+							   this->sprinterSettings.accelerationToMaxSpeed * (desiredVelocity - currentVelocity);
 			}
-			
+
 			// Apply a small upward force when on ground to help with slopes
 			if (ground_state == JPH::Character::EGroundState::OnGround &&
 				glm::abs(newVelocity.GetX()) + glm::abs(newVelocity.GetZ()) > 0.1f) {
-				newVelocity.SetY(newVelocity.GetY() + 0.5f); // Small upward boost
+				newVelocity.SetY(newVelocity.GetY() + 0.5f);  // Small upward boost
 			}
-			
+
 			this->character->SetLinearVelocity(newVelocity);
 		}
 	}
 
 	void Sprinter::updateVisuals(float deltaTime) {
-
 		float targetAngle = calculateTargetAngle();
 		float currentHorizontalAngle = std::atan2(forward.z, forward.x);
 
@@ -131,7 +127,7 @@ namespace physics {
 
 		// Calculate direction vector to player
 		glm::vec3 direction = playerPosition - enemyPosition;
-		
+
 		// Slightly increase the Y component to help with upward movement
 		// This makes enemies try to move slightly upward toward the player
 		direction.y += 0.5f;
@@ -142,7 +138,7 @@ namespace physics {
 
 		// Convert to JPH vector and normalize
 		JPH::Vec3 returnValue = GLMToRVec3(direction).Normalized();
-		
+
 		return returnValue;
 	}
 
@@ -168,7 +164,16 @@ namespace physics {
 		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
 		glm::mat4 R = glm::toMat4(mappedOrientation);
 
-		return T * R;
+		// Apply correction translation to push the model up a bit
+		glm::mat4 T_correction = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.f, 0.0f));
+
+		// Apply correction rotation to make the enemy model stand upright
+		glm::mat4 R_correction_1 = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		// Apply additional Y-axis rotation to make the enemy face the correct direction
+		glm::mat4 R_correction_2 = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		return T * R * T_correction * R_correction_1 * R_correction_2;
 	}
 
 	glm::mat4 Sprinter::computeNormalMatrix() const {
@@ -201,12 +206,11 @@ namespace physics {
 	}
 
 	void Sprinter::printInfo(int iterationStep) const {
-
 		// Output current position and velocity of the enemy
 
 		JPH::RVec3 position = character->GetPosition();
 		JPH::Vec3 velocity = character->GetLinearVelocity();
-		std::cout << "Enemy (Sprinter) [" << this->id <<"] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << getMaxHealth() << std::endl;
+		std::cout << "Enemy (Sprinter) [" << this->id << "] : Step " << iterationStep << " : Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << "), health = " << currentHealth << "/" << getMaxHealth() << std::endl;
 	}
 
 	float Sprinter::getMaxHealth() const {
