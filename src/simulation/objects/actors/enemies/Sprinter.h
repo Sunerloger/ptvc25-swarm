@@ -45,6 +45,7 @@ namespace physics {
 		virtual ~Sprinter();
 
 		JPH::BodyID getBodyID() const override;
+		void awake() override;
 
 		void addPhysicsBody() override;
 		void removePhysicsBody() override;
@@ -52,6 +53,7 @@ namespace physics {
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
+		glm::vec3 getVelocity() const;
 		std::shared_ptr<vk::Model> getModel() const override;
 
 		void postSimulation() override;

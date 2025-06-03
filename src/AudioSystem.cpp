@@ -191,6 +191,13 @@ namespace audio {
 			}
 		}
 	}
+	
+	void AudioSystem::setProtected(std::string handleName, bool isProtected) {
+		auto it = handleMap.find(handleName);
+		if (it != handleMap.end()) {
+			soloud.setProtectVoice(it->second, isProtected);
+		}
+	}
 
 	void AudioSystem::setVolume(std::string handleName, float volume) {
 		auto it = handleMap.find(handleName);
@@ -216,9 +223,8 @@ namespace audio {
 	void AudioSystem::set3dSourceParameters(std::string handleName, glm::vec3 position, glm::vec3 velocity) {
 		auto it = handleMap.find(handleName);
 		if (it == handleMap.end()) return;
-		
-		soloud.set3dSourcePosition(it->second, position.x, position.y, position.z);
-		soloud.set3dSourceVelocity(it->second, velocity.x, velocity.y, velocity.z);
+
+		soloud.set3dSourceParameters(it->second, position.x, position.y, position.z, velocity.x, velocity.y, velocity.z);
 	}
 
 	void AudioSystem::set3dSourceAttenuation(std::string handleName, AttenuationModel model, float rolloffFactor) {

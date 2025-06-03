@@ -80,6 +80,8 @@ class SceneManager {
 	SceneManager(SceneManager&&) = delete;
 	SceneManager& operator=(SceneManager&&) = delete;
 
+	void awakeAll();
+
 	// TODO refactor into timer class
 	float realTime = 0;
 	float gameTime = 0;

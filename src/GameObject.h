@@ -27,6 +27,9 @@ namespace vk {
 			return id;
 		}
 
+		// second initialization stage if info about other game objects is needed
+		virtual void awake() {}
+
 		virtual glm::mat4 computeModelMatrix() const = 0;
 
 		virtual glm::mat4 computeNormalMatrix() const = 0;

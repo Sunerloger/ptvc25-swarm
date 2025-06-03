@@ -136,6 +136,12 @@ void Swarm::toggleDebug() {
 }
 
 void Swarm::onPlayerDeath() {
+
+	audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+	audio::SoundSettings soundSettings{};
+	soundSettings.volume = 5.0;
+	audioSystem.playSound("death", soundSettings);
+
 	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
 	swarmInput.setContext(input::SwarmInputController::ContextID::Death);
 	SceneManager& sceneManager = SceneManager::getInstance();
@@ -209,16 +215,20 @@ void Swarm::init() {
 
 	audioSystem.loadSound("gun", "audio:gun_shot.mp3");
 	audioSystem.loadSound("ambience", "audio:forest_background.mp3");
+	audioSystem.loadSound("death", "audio:death.mp3");
+	audioSystem.loadSound("hurt", "audio:hurt.mp3");
+	audioSystem.loadSound("growl", "audio:growl.mp3");
 	audio::SoundSettings soundSettings{};
 	soundSettings.looping = true;
 	soundSettings.volume = 0.1f;
-	audioSystem.playSound("ambience", soundSettings);
+	audioSystem.playSound("ambience", soundSettings, "background_ambience");
+	audioSystem.setProtected("background_ambience", true);
 
 	SceneManager& sceneManager = SceneManager::getInstance();
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
 
-	float maxTerrainHeight = 30.0f;
+	float maxTerrainHeight = 20.0f;
 
 	// Player
 	{

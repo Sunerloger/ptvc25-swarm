@@ -22,6 +22,8 @@ namespace vk {
 
 	void Engine::run() {
 		SceneManager& sceneManager = SceneManager::getInstance();
+		
+		sceneManager.awakeAll();
 
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
 		for (int i = 0; i < uboBuffers.size(); i++) {

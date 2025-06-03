@@ -4,6 +4,7 @@
 #include <soloud_wav.h>
 
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <memory>
 #include <glm/glm.hpp>
@@ -45,7 +46,7 @@ namespace audio {
 		bool playSoundAt(std::string soundName, glm::vec3 position, const SoundSettings& settings = {}, std::string handleName = "rand");
 
 		void stopAllSounds();
-		void stopSound(std::string soundName);
+		void stopSound(std::string handleName);
 
 		void togglePauseAllSounds();
 		void pauseSound(std::string handleName);
@@ -56,6 +57,7 @@ namespace audio {
 		void setVolume(std::string handleName, float volume);
 		void setPitch(std::string handleName, float pitch);
 		void setLooping(std::string handleName, bool looping);
+		void setProtected(std::string handleName, bool isProtected);
 		
 		void set3dSourceParameters(std::string handleName, glm::vec3 position, glm::vec3 velocity = {0,0,0});
 		void set3dSourceAttenuation(std::string handleName, AttenuationModel model, float rolloffFactor);
@@ -74,6 +76,7 @@ namespace audio {
 
 		std::unordered_map<std::string, std::unique_ptr<SoLoud::Wav>> soundMap;
 		std::unordered_map<std::string, unsigned int> handleMap;
+		std::unordered_set<std::string> protectedHandles;
 
 		std::string generateRandomHandle();
 

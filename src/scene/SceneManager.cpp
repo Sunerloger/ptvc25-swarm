@@ -7,6 +7,13 @@ SceneManager& SceneManager::getInstance() {
 	return instance;
 }
 
+void SceneManager::awakeAll() {
+	// TODO -> only enemies for now
+	for (auto& it : this->scene->enemies) {
+		it.second->awake();
+	}
+}
+
 void SceneManager::updateUIPosition(float deltaTime, glm::vec3 dir) {
 	for (auto& uiObject : this->getUIObjects()) {
 		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();

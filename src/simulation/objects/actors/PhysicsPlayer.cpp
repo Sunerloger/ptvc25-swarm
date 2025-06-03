@@ -107,7 +107,9 @@ namespace physics {
 			JPH::ObjectLayerFilter(),
 			filter);
 
-		audio::AudioSystem::getInstance().playSound("gun");
+		audio::SoundSettings soundSettings{};
+		soundSettings.volume = 0.5f;
+		audio::AudioSystem::getInstance().playSound("gun", soundSettings);
 
 		if (hit) {
 			JPH::BodyID hitBodyID = result.mBodyID;
@@ -156,6 +158,10 @@ namespace physics {
 	// @returns true if dead
 	void PhysicsPlayer::takeDamage(float damage) {
 		currentHealth -= damage;
+
+		audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+		audio::SoundSettings soundSettings{};
+		audioSystem.playSound("hurt", soundSettings);
 
 		if (currentHealth <= 0)
 			settings.deathCallback();
