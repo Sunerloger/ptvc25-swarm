@@ -310,6 +310,13 @@ void SceneManager::updateEnemyVisuals(float deltaTime) {
 	}
 }
 
+void SceneManager::updatePhysicsEntities(float cPhysicsDeltaTime) {
+	for (auto& pair : this->scene->physicsObjects) {
+		std::shared_ptr<physics::ManagedPhysicsEntity> entity = pair.second;
+		entity->updatePhysics(cPhysicsDeltaTime);
+	}
+}
+
 std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneManager::removeGameObject(vk::id_t id) {
 	SceneClass sceneClass;
 
@@ -641,14 +648,14 @@ void SceneManager::clearUIObjects() {
 void SceneManager::clearVegetationObjects() {
 	// Collect IDs of vegetation objects (which are stored as spectral objects)
 	std::vector<vk::id_t> vegetationIds;
-	
+
 	for (const auto& [id, object] : this->scene->spectralObjects) {
 		// Check if this spectral object is a VegetationObject
 		if (dynamic_cast<procedural::VegetationObject*>(object.get())) {
 			vegetationIds.push_back(id);
 		}
 	}
-	
+
 	// Remove vegetation objects
 	for (vk::id_t id : vegetationIds) {
 		this->scene->spectralObjects.erase(id);

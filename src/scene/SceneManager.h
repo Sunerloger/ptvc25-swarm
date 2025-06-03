@@ -125,6 +125,9 @@ class SceneManager {
 	// update step of all active enemies according to their behaviour in rendering system
 	void updateEnemyVisuals(float deltaTime);
 
+	// update step of all managed physics entities (e.g., grenades) according to their behaviour in physics system
+	void updatePhysicsEntities(float cPhysicsDeltaTime);
+
 	// activates detached bodies (added to simulation again)
 	bool activatePhysicsObject(vk::id_t id);
 

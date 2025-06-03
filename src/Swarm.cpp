@@ -650,6 +650,7 @@ void Swarm::prePhysicsUpdate() {
 
 	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but in a separate event manager -> also updates timers stored in sceneManager every frame)
 	sceneManager.updateEnemyPhysics(physicsSimulation.cPhysicsDeltaTime);
+	sceneManager.updatePhysicsEntities(physicsSimulation.cPhysicsDeltaTime);
 }
 
 void Swarm::postPhysicsUpdate() {}

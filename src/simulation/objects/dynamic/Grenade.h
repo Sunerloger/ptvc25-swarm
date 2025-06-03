@@ -35,7 +35,7 @@ namespace physics {
 		virtual ~Grenade() = default;
 
 		void addPhysicsBody() override;
-		void updatePhysics(float deltaTime);
+		void updatePhysics(float deltaTime) override;
 
 		// GameObject interface
 		glm::mat4 computeModelMatrix() const override;
