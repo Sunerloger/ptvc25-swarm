@@ -8,7 +8,9 @@
 #include <random>
 
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
-	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {}
+	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
+	enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
+}
 
 void Swarm::bindInput() {
 	SceneManager& sceneManager = SceneManager::getInstance();
@@ -335,7 +337,6 @@ void Swarm::init() {
 		float enemyHullHeight = 1.25f;
 		float enemyRadius = 0.3f;
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
-		shared_ptr<Model> enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
 		float enemySpawnMinRadius = 20.0f;
 		float enemySpawnMaxRadius = 70.0f;
 
@@ -347,26 +348,26 @@ void Swarm::init() {
 			enemySpawnMinRadius * enemySpawnMinRadius,
 			enemySpawnMaxRadius * enemySpawnMaxRadius);	 // squared to have density distribution uniformly in spawn ring
 
-		for (int i = 0; i < 100; ++i) {
-			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
-			physics::Sprinter::SprinterSettings sprinterSettings = {};
-			sprinterSettings.model = enemyModel;
+		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
+		physics::Sprinter::SprinterSettings sprinterSettings = {};
+		sprinterSettings.model = enemyModel;
 
-			JPH::CharacterSettings enemyCharacterSettings = {};
-			enemyCharacterSettings.mLayer = physics::Layers::MOVING;
-			enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
-			enemyCharacterSettings.mFriction = 1.0f;
-			enemyCharacterSettings.mShape = enemyShape;
-			enemyCharacterSettings.mGravityFactor = 1.0f;
+		JPH::CharacterSettings enemyCharacterSettings = {};
+		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
+		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
+		enemyCharacterSettings.mFriction = 1.0f;
+		enemyCharacterSettings.mShape = enemyShape;
+		enemyCharacterSettings.mGravityFactor = 1.0f;
 
-			physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
-			sprinterCreationSettings.sprinterSettings = sprinterSettings;
-			sprinterCreationSettings.characterSettings = enemyCharacterSettings;
+		physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
+		sprinterCreationSettings.sprinterSettings = sprinterSettings;
+		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
 
+		auto playerPos = sceneManager.getPlayer()->getPosition();
+
+		for (int i = 0; i < 10; ++i) {
 			float angle = angleDist(gen);
 			float radius = std::sqrt(radiusSqDist(gen));
-			auto playerPos = sceneManager.getPlayer()->getPosition();
-
 			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, maxTerrainHeight, playerPos.z + std::sin(angle) * radius);
 
 			sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
@@ -561,6 +562,52 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 			}
 		}
 		oldSecond = newSecond;
+	}
+
+	if (elapsedTime >= 10.0f && newSecond % 10 == 0 && newSecond != lastSpawnSecond) {
+		printf("Spawning new enemy wave at %d seconds\n", newSecond);
+		lastSpawnSecond = newSecond;
+		float enemyHullHeight = 1.25f;
+		float enemyRadius = 0.3f;
+		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
+		float enemySpawnMinRadius = 20.0f;
+		float enemySpawnMaxRadius = 70.0f;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<float> angleDist(
+			0.0f, 2.0f * glm::pi<float>());
+		std::uniform_real_distribution<float> radiusSqDist(
+			enemySpawnMinRadius * enemySpawnMinRadius,
+			enemySpawnMaxRadius * enemySpawnMaxRadius);	 // squared to have density distribution uniformly in spawn ring
+
+		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
+		physics::Sprinter::SprinterSettings sprinterSettings = {};
+		sprinterSettings.model = enemyModel;
+		sprinterSettings.maxMovementSpeed = 10.0f + static_cast<float>(newSecond / 60);
+		sprinterSettings.turnSpeed = 0.5f + static_cast<float>(newSecond / 60) * 0.2f;
+		sprinterSettings.accelerationToMaxSpeed = 1.0f + static_cast<float>(newSecond / 60) * 0.2f;
+
+		JPH::CharacterSettings enemyCharacterSettings = {};
+		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
+		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
+		enemyCharacterSettings.mFriction = 1.0f;
+		enemyCharacterSettings.mShape = enemyShape;
+		enemyCharacterSettings.mGravityFactor = 1.0f;
+
+		physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
+		sprinterCreationSettings.sprinterSettings = sprinterSettings;
+		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
+
+		auto playerPos = sceneManager.getPlayer()->getPosition();
+
+		for (int i = 0; i < 10; ++i) {
+			float angle = angleDist(gen);
+			float radius = std::sqrt(radiusSqDist(gen));
+			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, 15.0, playerPos.z + std::sin(angle) * radius);
+
+			sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
+		}
 	}
 
 	sceneManager.updateEnemyVisuals(deltaTime);
