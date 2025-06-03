@@ -72,6 +72,7 @@ class Swarm : public GameBase {
 	id_t gameHealthTextID;
 	float elapsedTime = 0;
 	int oldSecond = 0;
+	int lastSpawnSecond = 0;
 
 	physics::PhysicsSimulation& physicsSimulation;
 	AssetManager& assetManager;
@@ -89,4 +90,6 @@ class Swarm : public GameBase {
 	int terrainSamplesPerSide = 100;				// Store terrain resolution
 	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};	// Store terrain scale
 	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};	// Store terrain position
+
+	std::shared_ptr<Model> enemyModel;
 };
