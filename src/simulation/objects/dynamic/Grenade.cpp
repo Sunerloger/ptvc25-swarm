@@ -95,7 +95,7 @@ namespace physics {
 		}
 
 		exploded = true;
-		explosionTime = std::chrono::steady_clock::now(); // Record explosion time
+		explosionTime = std::chrono::steady_clock::now();
 
 		JPH::RVec3 explosionCenter = physics_system.GetBodyInterface().GetPosition(bodyID);
 

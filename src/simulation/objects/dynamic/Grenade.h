@@ -18,10 +18,10 @@ namespace physics {
 		struct GrenadeSettings {
 			float explosionRadius = 10.0f;
 			float explosionDamage = 80.0f;
-			float fuseTime = 3.0f;	// seconds before explosion
-			float mass = 0.5f;		// kg
-			float radius = 0.1f;	// meters
-			bool enableDebugOutput = true;
+			float fuseTime = 2.0f;	// seconds before explosion
+			float mass = 1.0f;		// kg
+			float radius = 0.2f;	// meters
+			bool enableDebugOutput = false;
 		};
 
 		struct GrenadeCreationSettings {
@@ -64,7 +64,7 @@ namespace physics {
 		std::chrono::steady_clock::time_point explosionTime;
 		bool exploded = false;
 		bool markedForDeletion = false;
-		static constexpr float DELETION_DELAY = 0.1f; // 100ms delay before deletion
+		static constexpr float DELETION_DELAY = 0.1f;
 
 		void createPhysicsBody(const JPH::RVec3& position, const JPH::Vec3& initialVelocity);
 	};

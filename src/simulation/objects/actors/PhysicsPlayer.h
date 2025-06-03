@@ -64,7 +64,7 @@ namespace physics {
 		void handleRotation(float deltaYaw, float deltaPitch) override;
 		void handleJump();
 		void handleShoot();
-		void handleThrowGrenade(vk::Device& device);
+		void handleThrowGrenade(vk::Device& device, std::shared_ptr<vk::Model> grenadeModel);
 
 		float getMaxHealth() const;
 		float getCurrentHealth() const override;

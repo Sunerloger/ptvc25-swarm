@@ -10,6 +10,7 @@
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
 	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
 	enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
+	grenadeModel = Model::createModelFromFile(device, "models:BoxTextured.glb");
 }
 
 void Swarm::bindInput() {
@@ -41,7 +42,7 @@ void Swarm::bindInput() {
 	swarmInput.onThrowGrenade = [this, &sceneManager]() {
 		Player* player = sceneManager.getPlayer();
 		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
-			static_cast<physics::PhysicsPlayer*>(player)->handleThrowGrenade(device);
+			static_cast<physics::PhysicsPlayer*>(player)->handleThrowGrenade(device, grenadeModel);
 		}
 	};
 

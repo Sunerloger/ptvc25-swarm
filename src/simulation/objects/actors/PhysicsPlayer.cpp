@@ -86,7 +86,7 @@ namespace physics {
 		}
 	}
 
-	void PhysicsPlayer::handleThrowGrenade(vk::Device& device) {
+	void PhysicsPlayer::handleThrowGrenade(vk::Device& device, std::shared_ptr<vk::Model> grenadeModel) {
 		SceneManager& sceneManager = SceneManager::getInstance();
 
 		// Get player position and camera direction
@@ -116,7 +116,7 @@ namespace physics {
 		grenadeCreationSettings.position = throwPosition;
 		grenadeCreationSettings.initialVelocity = throwVelocity;
 		grenadeCreationSettings.grenadeSettings = grenadeSettings;
-		grenadeCreationSettings.model = vk::Model::createModelFromFile(device, "models:BoxTextured.glb");  // Load the BoxTextured.glb model
+		grenadeCreationSettings.model = grenadeModel;  // Use the shared model instead of loading it
 
 		// Create the grenade and add it to the scene
 		auto grenade = std::make_unique<physics::Grenade>(grenadeCreationSettings, physics_system);
