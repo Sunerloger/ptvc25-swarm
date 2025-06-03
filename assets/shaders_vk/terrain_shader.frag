@@ -87,5 +87,4 @@ void main() {
     );
 
     outColor = vec4(light, 1.0f);
-    // outColor = vec4(fragNormalWorld, 1.0f);
 }

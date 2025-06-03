@@ -208,6 +208,8 @@ void Swarm::init() {
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
 
+	float maxTerrainHeight = 30.0f;
+
 	// Player
 	{
 		float playerHeight = 1.40f;
@@ -232,7 +234,7 @@ void Swarm::init() {
 		playerCreationSettings.characterSettings = characterSettings;
 		playerCreationSettings.cameraSettings = cameraSettings;
 		playerCreationSettings.playerSettings = playerSettings;
-		playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
+		playerCreationSettings.position = JPH::RVec3(0.0f, maxTerrainHeight + 1, 0.0f);  // Increased Y position to start higher above terrain
 
 		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
@@ -240,7 +242,6 @@ void Swarm::init() {
 	}
 
 	// Terrain
-	float maxTerrainHeight = 15.0f;	 // Controls the height of the terrain
 	{
 		int samplesPerSide = 100;  // Resolution of the heightmap
 		float noiseScale = 5.0f;   // Controls the "frequency" of the noise
@@ -325,7 +326,7 @@ void Swarm::init() {
 			float radius = std::sqrt(radiusSqDist(gen));
 			auto playerPos = sceneManager.getPlayer()->getPosition();
 
-			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, maxTerrainHeight, playerPos.z + std::sin(angle) * radius);
+			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, maxTerrainHeight+1, playerPos.z + std::sin(angle) * radius);
 
 			sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
 		}

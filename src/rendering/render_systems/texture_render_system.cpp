@@ -118,9 +118,6 @@ namespace vk {
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
 
-			// TODO put in texture ubo and not dependent on descriptor set
-			push.hasTexture = material->getDescriptorSet(renderer.getFrameIndex()) != VK_NULL_HANDLE ? 1 : 0;
-
 			VkShaderStageFlags stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			
 			// if tessellation is used, include those shader stages (potential future unification with tessellation render system)

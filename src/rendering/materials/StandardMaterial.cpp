@@ -22,14 +22,16 @@ namespace vk {
         instanceCount++;
         
         createDescriptorSetLayoutIfNeeded(device);
-        createTextureImage(texturePath);
-        createTextureImageView();
-        createTextureSampler();
-        createDescriptorSet();
+        createTextureImage(texturePath, textureImage, textureImageMemory);
+        textureImageView = createTextureImageView(textureImage);
+        createTextureSampler(textureSampler);
+        createDescriptorSets();
 
         // Set default pipeline configuration
         pipelineConfig.vertShaderPath = "texture_shader.vert";
         pipelineConfig.fragShaderPath = "texture_shader.frag";
+
+        setMaterialData();
     }
 
     StandardMaterial::StandardMaterial(Device& device, const std::string& texturePath,
@@ -40,14 +42,16 @@ namespace vk {
         instanceCount++;
         
         createDescriptorSetLayoutIfNeeded(device);
-        createTextureImage(texturePath);
-        createTextureImageView();
-        createTextureSampler();
-        createDescriptorSet();
+        createTextureImage(texturePath, textureImage, textureImageMemory);
+        textureImageView = createTextureImageView(textureImage);
+        createTextureSampler(textureSampler);
+        createDescriptorSets();
 
         // Set custom pipeline configuration
         pipelineConfig.vertShaderPath = vertShaderPath;
         pipelineConfig.fragShaderPath = fragShaderPath;
+
+        setMaterialData();
     }
 
     StandardMaterial::StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
@@ -60,14 +64,16 @@ namespace vk {
         createDescriptorSetLayoutIfNeeded(device);
         
         // Create texture directly from image data
-        createTextureFromImageData(imageData, width, height, channels);
-        createTextureImageView();
-        createTextureSampler();
-        createDescriptorSet();
+        createTextureFromImageData(imageData, width, height, channels, textureImage, textureImageMemory);
+        textureImageView = createTextureImageView(textureImage);
+        createTextureSampler(textureSampler);
+        createDescriptorSets();
 
         // Set default pipeline configuration
         pipelineConfig.vertShaderPath = "texture_shader.vert";
         pipelineConfig.fragShaderPath = "texture_shader.frag";
+
+        setMaterialData();
     }
 
     StandardMaterial::StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
@@ -81,14 +87,16 @@ namespace vk {
         createDescriptorSetLayoutIfNeeded(device);
         
         // Create texture directly from image data
-        createTextureFromImageData(imageData, width, height, channels);
-        createTextureImageView();
-        createTextureSampler();
-        createDescriptorSet();
+        createTextureFromImageData(imageData, width, height, channels, textureImage, textureImageMemory);
+        textureImageView = createTextureImageView(textureImage);
+        createTextureSampler(textureSampler);
+        createDescriptorSets();
 
         // Set custom pipeline configuration
         pipelineConfig.vertShaderPath = vertShaderPath;
         pipelineConfig.fragShaderPath = fragShaderPath;
+
+        setMaterialData();
     }
 
     StandardMaterial::~StandardMaterial() {
@@ -120,19 +128,21 @@ namespace vk {
     void StandardMaterial::createDescriptorSetLayoutIfNeeded(Device& device) {
         if (!descriptorSetLayout) {
             auto layoutBuilder = DescriptorSetLayout::Builder(device)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .addBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
             
             // Store the layout in a static member to prevent it from being destroyed
             descriptorSetLayout = layoutBuilder.build();
             
             descriptorPool = DescriptorPool::Builder(device)
-                .setMaxSets(100)
+                .setMaxSets(200)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100)
                 .build();
         }
     }
 
-    void StandardMaterial::createTextureImage(const std::string& texturePath) {
+    void StandardMaterial::createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory) {
         // Load texture image
         int width, height, channels;
         std::string resolvedPath = AssetLoader::getInstance().resolvePath(texturePath);
@@ -187,13 +197,13 @@ namespace vk {
         device.createImageWithInfo(
             imageInfo,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            textureImage,
-            textureImageMemory
+            image,
+            imageMemory
         );
 
         // Transition image layout and copy data
         device.transitionImageLayout(
-            textureImage,
+            image,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
@@ -202,7 +212,7 @@ namespace vk {
         // Copy buffer to image
         device.copyBufferToImage(
             stagingBuffer,
-            textureImage,
+            image,
             static_cast<uint32_t>(width),
             static_cast<uint32_t>(height),
             1
@@ -210,7 +220,7 @@ namespace vk {
 
         // Transition to shader read layout
         device.transitionImageLayout(
-            textureImage,
+            image,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -222,7 +232,7 @@ namespace vk {
     }
 
     void StandardMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData,
-                                                    int width, int height, int channels) {
+                                                    int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory) {
         // Calculate image size (always use RGBA format)
         VkDeviceSize imageSize = width * height * 4;
 
@@ -298,13 +308,13 @@ namespace vk {
         device.createImageWithInfo(
             imageInfo,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            textureImage,
-            textureImageMemory
+            image,
+            imageMemory
         );
 
         // Transition image layout and copy buffer to image
         device.transitionImageLayout(
-            textureImage,
+            image,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
@@ -312,14 +322,14 @@ namespace vk {
 
         device.copyBufferToImage(
             stagingBuffer,
-            textureImage,
+            image,
             static_cast<uint32_t>(width),
             static_cast<uint32_t>(height),
             1
         );
 
         device.transitionImageLayout(
-            textureImage,
+            image,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -330,15 +340,15 @@ namespace vk {
         vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
     }
 
-    void StandardMaterial::createTextureImageView() {
-        textureImageView = device.createImageView(
-            textureImage,
+    VkImageView StandardMaterial::createTextureImageView(VkImage& image) {
+        return device.createImageView(
+            image,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_ASPECT_COLOR_BIT
         );
     }
 
-    void StandardMaterial::createTextureSampler() {
+    void StandardMaterial::createTextureSampler(VkSampler& sampler) {
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -357,22 +367,20 @@ namespace vk {
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
 
-        if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+        if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");
         }
     }
 
-    void StandardMaterial::createDescriptorSet() {
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool->getPool();
-        allocInfo.descriptorSetCount = 1;
-        
-        VkDescriptorSetLayout layout = descriptorSetLayout->getDescriptorSetLayout();
-        allocInfo.pSetLayouts = &layout;
+    void StandardMaterial::createDescriptorSets() {
 
-        if (vkAllocateDescriptorSets(device.device(), &allocInfo, &textureDescriptorSet) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate texture descriptor set!");
+        for (int i = 0; i < paramsBuffers.size(); i++) {
+            paramsBuffers[i] = std::make_unique<Buffer>(device,
+                sizeof(MaterialData),
+                1,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            paramsBuffers[i]->map();
         }
 
         VkDescriptorImageInfo imageInfo{};
@@ -380,16 +388,23 @@ namespace vk {
         imageInfo.imageView = textureImageView;
         imageInfo.sampler = textureSampler;
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = textureDescriptorSet;
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &imageInfo;
+        for (int i = 0; i < textureDescriptorSets.size(); i++) {
+            auto bufferInfo = paramsBuffers[i]->descriptorInfo();
+            DescriptorWriter(*descriptorSetLayout, *descriptorPool)
+                .writeImage(0, &imageInfo)
+                .writeBuffer(1, &bufferInfo)
+                .build(textureDescriptorSets[i]);
+        }
+    }
 
-        vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
+    void StandardMaterial::updateDescriptorSet(int frameIndex) {
+        paramsBuffers[frameIndex]->writeToBuffer(&materialData);
+        paramsBuffers[frameIndex]->flush();
+    }
+
+    void StandardMaterial::setMaterialData(MaterialCreationData creationData) {
+        materialData.lightingProperties = glm::vec4{creationData.ka, creationData.kd, creationData.ks, creationData.shininess};
+        materialData.flags.x = textureImage != VK_NULL_HANDLE ? 1 : 0;
     }
 
     void StandardMaterial::cleanupResources() {

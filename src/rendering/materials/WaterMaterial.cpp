@@ -23,9 +23,9 @@ namespace vk {
 		instanceCount++;
 
 		createDescriptorSetLayoutIfNeeded(device);
-		createTextureImage(texturePath);
-		createTextureImageView();
-		createTextureSampler();
+		createTextureImage(texturePath, textureImage, textureImageMemory);
+		textureImageView = createTextureImageView(textureImage);
+		createTextureSampler(textureSampler);
 
 		createDescriptorSets();
 
@@ -65,9 +65,9 @@ namespace vk {
 		instanceCount++;
 
 		createDescriptorSetLayoutIfNeeded(device);
-		createTextureImage(texturePath);
-		createTextureImageView();
-		createTextureSampler();
+		createTextureImage(texturePath, textureImage, textureImageMemory);
+		textureImageView = createTextureImageView(textureImage);
+		createTextureSampler(textureSampler);
 
 		createDescriptorSets();
 
@@ -109,9 +109,9 @@ namespace vk {
 		createDescriptorSetLayoutIfNeeded(device);
 
 		// Create texture directly from image data
-		createTextureFromImageData(imageData, width, height, channels);
-		createTextureImageView();
-		createTextureSampler();
+		createTextureFromImageData(imageData, width, height, channels, textureImage, textureImageMemory);
+		textureImageView = createTextureImageView(textureImage);
+		createTextureSampler(textureSampler);
 
 		createDescriptorSets();
 
@@ -154,9 +154,9 @@ namespace vk {
 		createDescriptorSetLayoutIfNeeded(device);
 
 		// Create texture directly from image data
-		createTextureFromImageData(imageData, width, height, channels);
-		createTextureImageView();
-		createTextureSampler();
+		createTextureFromImageData(imageData, width, height, channels, textureImage, textureImageMemory);
+		textureImageView = createTextureImageView(textureImage);
+		createTextureSampler(textureSampler);
 
 		createDescriptorSets();
 
@@ -235,7 +235,7 @@ namespace vk {
 		}
 	}
 
-	void WaterMaterial::createTextureImage(const std::string& texturePath) {
+	void WaterMaterial::createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory) {
 		// Load texture image
 		int width, height, channels;
 		std::string resolvedPath = AssetLoader::getInstance().resolvePath(texturePath);
@@ -288,12 +288,12 @@ namespace vk {
 		device.createImageWithInfo(
 			imageInfo,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			textureImage,
-			textureImageMemory);
+			image,
+			imageMemory);
 
 		// Transition image layout and copy data
 		device.transitionImageLayout(
-			textureImage,
+			image,
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -301,14 +301,14 @@ namespace vk {
 		// Copy buffer to image
 		device.copyBufferToImage(
 			stagingBuffer,
-			textureImage,
+			image,
 			static_cast<uint32_t>(width),
 			static_cast<uint32_t>(height),
 			1);
 
 		// Transition to shader read layout
 		device.transitionImageLayout(
-			textureImage,
+			image,
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -319,7 +319,7 @@ namespace vk {
 	}
 
 	void WaterMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData,
-		int width, int height, int channels) {
+		int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory) {
 		// Calculate image size (always use RGBA format)
 		VkDeviceSize imageSize = width * height * 4;
 
@@ -394,25 +394,25 @@ namespace vk {
 		device.createImageWithInfo(
 			imageInfo,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			textureImage,
-			textureImageMemory);
+			image,
+			imageMemory);
 
 		// Transition image layout and copy buffer to image
 		device.transitionImageLayout(
-			textureImage,
+			image,
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 		device.copyBufferToImage(
 			stagingBuffer,
-			textureImage,
+			image,
 			static_cast<uint32_t>(width),
 			static_cast<uint32_t>(height),
 			1);
 
 		device.transitionImageLayout(
-			textureImage,
+			image,
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -422,14 +422,14 @@ namespace vk {
 		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
 	}
 
-	void WaterMaterial::createTextureImageView() {
-		textureImageView = device.createImageView(
-			textureImage,
+	VkImageView WaterMaterial::createTextureImageView(VkImage& image) {
+		return device.createImageView(
+			image,
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
-	void WaterMaterial::createTextureSampler() {
+	void WaterMaterial::createTextureSampler(VkSampler& sampler) {
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -448,7 +448,7 @@ namespace vk {
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+		if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create texture sampler!");
 		}
 	}
@@ -478,6 +478,11 @@ namespace vk {
 		}
 	}
 
+	void WaterMaterial::updateDescriptorSet(int frameIndex) {
+		paramsBuffers[frameIndex]->writeToBuffer(&waterData);
+		paramsBuffers[frameIndex]->flush();
+	}
+
 	void WaterMaterial::setWaterData(CreateWaterData createWaterData) {
 		waterData.tessParams = glm::vec4(createWaterData.maxTessLevel, createWaterData.minTessDistance, createWaterData.maxTessDistance, 0.0f);
 		waterData.textureParams = glm::vec4(createWaterData.textureRepetition, 0.0f, 0.0f);
@@ -498,11 +503,6 @@ namespace vk {
 		for (int i = 0; i < count; i++) {
 			waterData.waves[i] = params[i];
 		}
-	}
-
-	void WaterMaterial::updateDescriptorSet(int frameIndex) {
-		paramsBuffers[frameIndex]->writeToBuffer(&waterData);
-		paramsBuffers[frameIndex]->flush();
 	}
 
 	void WaterMaterial::cleanupResources() {

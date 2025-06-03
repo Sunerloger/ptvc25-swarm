@@ -38,15 +38,14 @@ namespace vk {
         
         instanceCount++;
         
-        uint32_t textureMipLevels = createTextureImage(texturePath);
+        uint32_t textureMipLevels = createTextureImage(texturePath, textureImage, textureImageMemory);
         textureImageView = createImageView(textureImage);
         createTextureSampler(static_cast<float>(textureMipLevels), textureSampler);
 
-        uint32_t heightmapMipLevels = createHeightmapImage(heightmapPath);
-        if (materialData.textureParams.w) {
-            heightmapImageView = createImageView(heightmapImage);
-            createTextureSampler(static_cast<float>(heightmapMipLevels), heightmapSampler);
-        }
+        materialData.textureParams.w = true;
+        uint32_t heightmapMipLevels = createTextureImage(heightmapPath, heightmapImage, heightmapImageMemory);
+        heightmapImageView = createImageView(heightmapImage);
+        createTextureSampler(static_cast<float>(heightmapMipLevels), heightmapSampler);
 
         createDescriptorSets();
     }
@@ -102,18 +101,9 @@ namespace vk {
     }
 
     // @return mipLevels
-    uint32_t TessellationMaterial::createTextureImage(const std::string& texturePath) {
+    uint32_t TessellationMaterial::createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory) {
         auto textureData = AssetLoader::getInstance().loadTexture(texturePath);
-        return createTextureFromImageData(textureData.pixels, textureData.width, textureData.height, textureData.channels, textureImage, textureImageMemory);
-    }
-
-    // @return mipLevels
-    uint32_t TessellationMaterial::createHeightmapImage(const std::string& heightmapPath) {
-        auto heightmapData = AssetLoader::getInstance().loadTexture(heightmapPath);
-
-        materialData.textureParams.w = true;
-
-        return createTextureFromImageData(heightmapData.pixels, heightmapData.width, heightmapData.height, heightmapData.channels, heightmapImage, heightmapImageMemory);       
+        return createTextureFromImageData(textureData.pixels, textureData.width, textureData.height, textureData.channels, image, imageMemory);
     }
 
     // @return mipLevels

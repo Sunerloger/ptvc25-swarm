@@ -75,8 +75,7 @@ namespace vk {
         static void cleanupResources();
 
     private:
-        uint32_t createTextureImage(const std::string& texturePath);
-        uint32_t createHeightmapImage(const std::string& heightmapPath);
+        uint32_t createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory);
         uint32_t createTextureFromImageData(const std::vector<unsigned char>& imageData,
                                       int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image);

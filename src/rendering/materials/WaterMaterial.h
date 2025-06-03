@@ -99,11 +99,11 @@ namespace vk {
 		static void cleanupResources();
 
 	private:
-		void createTextureImage(const std::string& texturePath);
+		void createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory);
 		void createTextureFromImageData(const std::vector<unsigned char>& imageData,
-			int width, int height, int channels);
-		void createTextureImageView();
-		void createTextureSampler();
+			int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
+		VkImageView createTextureImageView(VkImage& image);
+		void createTextureSampler(VkSampler& sampler);
 		void createDescriptorSets();
 
 		static void createDescriptorSetLayoutIfNeeded(Device& device);
