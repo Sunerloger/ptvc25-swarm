@@ -55,6 +55,9 @@ public:
 
 	glm::vec3 getCameraPosition() const override { return camera.getPosition(); };
 
+	glm::vec3 getFront() const override { return camera.getFront(); }
+	glm::vec3 getUp() const override { return glm::vec3{ 0.0f, 1.0f, 0.0f }; }
+
 private:
 
 	float movementSpeed = 7.0f;

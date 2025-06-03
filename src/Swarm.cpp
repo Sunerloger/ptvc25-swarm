@@ -205,7 +205,14 @@ void Swarm::onPlayerDeath() {
 
 void Swarm::init() {
 
-	audio::AudioSystem::getInstance().loadSound("gun", "audio:gun_shot.mp3");
+	audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+
+	audioSystem.loadSound("gun", "audio:gun_shot.mp3");
+	audioSystem.loadSound("ambience", "audio:forest_background.mp3");
+	audio::SoundSettings soundSettings{};
+	soundSettings.looping = true;
+	soundSettings.volume = 0.1f;
+	audioSystem.playSound("ambience", soundSettings);
 
 	SceneManager& sceneManager = SceneManager::getInstance();
 

@@ -1,5 +1,7 @@
 #include "Engine.h"
 
+#include "AudioSystem.h"
+
 namespace vk {
 
 	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
@@ -12,6 +14,8 @@ namespace vk {
 
 		game.init();
 		game.setupInput();
+		
+		audio::AudioSystem::getInstance().init();
 	}
 
 	Engine::~Engine() {}
@@ -77,7 +81,7 @@ namespace vk {
 			float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
 			currentTime = newTime;
 			float realDeltaTime = deltaTime;
-			deltaTime = std::min(deltaTime, engineSettings.maxFrameTime);
+			deltaTime = (deltaTime < engineSettings.maxFrameTime) ? deltaTime : engineSettings.maxFrameTime;
 
 			glfwPollEvents();
 
@@ -117,7 +121,8 @@ namespace vk {
 					game.postPhysicsUpdate();
 				}
 				// throw away more than one physics update to prevent physics running too often next step
-				physicsTimeAccumulator = glm::min(physicsTimeAccumulator, engineSettings.cPhysicsDeltaTime);
+				physicsTimeAccumulator = (physicsTimeAccumulator < engineSettings.cPhysicsDeltaTime) ?
+				                                    physicsTimeAccumulator : engineSettings.cPhysicsDeltaTime;
 			}
 			else {
 				game.gamePauseUpdate(deltaTime);
@@ -126,6 +131,8 @@ namespace vk {
 			// Camera
 			float aspect = renderer.getAspectRatio();
 			sceneManager.getPlayer()->setPerspectiveProjection(glm::radians(60.0f), aspect, 0.01f, 10000.0f);
+
+			audio::AudioSystem::getInstance().update3dAudio();
 
 			// menu / death screen is just rendered on top of game while physics / logic is disabled
 			if (auto commandBuffer = renderer.beginFrame()) {

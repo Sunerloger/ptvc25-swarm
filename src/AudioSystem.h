@@ -9,6 +9,26 @@
 #include <glm/glm.hpp>
 
 namespace audio {
+
+	enum class AttenuationModel {
+		NO_ATTENUATION = 0,
+		INVERSE_DISTANCE = 1,    	// 1/d
+		LINEAR_DISTANCE = 2,     	// 1 - d/max
+		EXPONENTIAL_DISTANCE = 3 	// 1/d²
+	};
+
+	struct SoundSettings {
+		float volume = 1.0f;  // [0,1]
+		float pitch = 1.0f;	  // speed/pitch multiplier
+		bool looping = false;
+		bool isInitiallyPaused = false;
+		
+		// Attenuation settings
+		AttenuationModel attenuationModel = AttenuationModel::EXPONENTIAL_DISTANCE;
+		float minDistance = 1.0f;    	// distance where attenuation begins
+		float maxDistance = 1000.0f; 	// distance where attenuation ends
+		float rolloffFactor = 1.0f;  	// how quickly the sound attenuates
+	};
 	
 	class AudioSystem {
 
@@ -16,11 +36,13 @@ namespace audio {
 
 		static AudioSystem& getInstance();
 
+		void init();
+
 		bool loadSound(std::string soundName, std::string path);
 
-		bool playSound(std::string soundName, std::string handleName = "rand");
+		bool playSound(std::string soundName, const SoundSettings& settings = {}, std::string handleName = "rand");
 
-		bool playSoundAt(std::string soundName, glm::vec3 position, std::string handleName = "rand");
+		bool playSoundAt(std::string soundName, glm::vec3 position, const SoundSettings& settings = {}, std::string handleName = "rand");
 
 		void stopAllSounds();
 		void stopSound(std::string soundName);
@@ -30,6 +52,16 @@ namespace audio {
 		void resumeSound(std::string handleName);
 		
 		void cleanupHandles();
+
+		void setVolume(std::string handleName, float volume);
+		void setPitch(std::string handleName, float pitch);
+		void setLooping(std::string handleName, bool looping);
+		
+		void set3dSourceParameters(std::string handleName, glm::vec3 position, glm::vec3 velocity = {0,0,0});
+		void set3dSourceAttenuation(std::string handleName, AttenuationModel model, float rolloffFactor);
+		void set3dSourceMinMaxDistance(std::string handleName, float minDistance, float maxDistance);
+		
+		void update3dAudio();
 
 	private:
 

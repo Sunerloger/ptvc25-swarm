@@ -33,4 +33,7 @@ public:
 	virtual bool isPhysicsPlayer() const { return false; }
 
 	virtual glm::vec3 getCameraPosition() const = 0;
+
+	virtual glm::vec3 getFront() const = 0;
+	virtual glm::vec3 getUp() const = 0;
 };

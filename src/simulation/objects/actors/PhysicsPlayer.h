@@ -75,7 +75,8 @@ namespace physics {
 		glm::vec3 getCameraPosition() const override;
 		inline const glm::mat4 calculateViewMat() const override { return camera.calculateViewMat(); }
 		inline const glm::mat4 getProjMat() const override { return camera.getProjMat(); }
-		inline const glm::vec3 getFront() const { return camera.getFront(); }
+		glm::vec3 getFront() const override { return camera.getFront(); }
+		glm::vec3 getUp() const override { return glm::vec3{0.0f, 1.0f, 0.0f}; }
 
 		void printInfo(int iterationStep) const override;
 
