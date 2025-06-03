@@ -164,9 +164,10 @@ namespace physics {
 
 		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
 		glm::mat4 R = glm::toMat4(rot);
-		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(settings.radius * 2.0f));  // Scale based on radius
+		glm::mat4 R_correction = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(settings.radius * 2.0f * 10.0f));
 
-		return T * R * S;
+		return T * R * R_correction * S;
 	}
 
 	glm::mat4 Grenade::computeNormalMatrix() const {

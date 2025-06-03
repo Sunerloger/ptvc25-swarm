@@ -10,7 +10,7 @@
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
 	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
 	enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
-	grenadeModel = Model::createModelFromFile(device, "models:BoxTextured.glb");
+	grenadeModel = Model::createModelFromFile(device, "models:grenade.glb");
 }
 
 void Swarm::bindInput() {
