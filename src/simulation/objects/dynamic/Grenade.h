@@ -14,13 +14,13 @@
 namespace physics {
 
 	class Grenade : public ManagedPhysicsEntity {
-	public:
+	   public:
 		struct GrenadeSettings {
 			float explosionRadius = 10.0f;
 			float explosionDamage = 80.0f;
-			float fuseTime = 3.0f;  // seconds before explosion
-			float mass = 0.5f;     // kg
-			float radius = 0.1f;   // meters
+			float fuseTime = 3.0f;	// seconds before explosion
+			float mass = 0.5f;		// kg
+			float radius = 0.1f;	// meters
 			bool enableDebugOutput = true;
 		};
 
@@ -43,14 +43,20 @@ namespace physics {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
 
-		bool hasExploded() const { return exploded; }
+		bool hasExploded() const {
+			return exploded;
+		}
 		bool shouldExplode() const;
 		void explode();
 
-		float getExplosionRadius() const { return settings.explosionRadius; }
-		float getExplosionDamage() const { return settings.explosionDamage; }
+		float getExplosionRadius() const {
+			return settings.explosionRadius;
+		}
+		float getExplosionDamage() const {
+			return settings.explosionDamage;
+		}
 
-	private:
+	   private:
 		GrenadeSettings settings;
 		std::shared_ptr<vk::Model> model;
 

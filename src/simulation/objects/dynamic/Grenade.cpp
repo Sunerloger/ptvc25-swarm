@@ -15,16 +15,15 @@ namespace physics {
 
 	Grenade::Grenade(const GrenadeCreationSettings& creationSettings, JPH::PhysicsSystem& physics_system)
 		: ManagedPhysicsEntity(physics_system), settings(creationSettings.grenadeSettings), model(creationSettings.model) {
-		
 		creationTime = std::chrono::steady_clock::now();
-		
+
 		createPhysicsBody(creationSettings.position, creationSettings.initialVelocity);
-		
+
 		if (settings.enableDebugOutput) {
-			std::cout << "Grenade created at position (" 
-				<< creationSettings.position.GetX() << ", " 
-				<< creationSettings.position.GetY() << ", " 
-				<< creationSettings.position.GetZ() << ")" << std::endl;
+			std::cout << "Grenade created at position ("
+					  << creationSettings.position.GetX() << ", "
+					  << creationSettings.position.GetY() << ", "
+					  << creationSettings.position.GetZ() << ")" << std::endl;
 		}
 	}
 
@@ -34,18 +33,17 @@ namespace physics {
 
 		// Create body creation settings
 		JPH::BodyCreationSettings body_settings(
-			sphere_shape, 
-			position, 
-			JPH::Quat::sIdentity(), 
-			JPH::EMotionType::Dynamic, 
-			physics::Layers::MOVING
-		);
+			sphere_shape,
+			position,
+			JPH::Quat::sIdentity(),
+			JPH::EMotionType::Dynamic,
+			physics::Layers::MOVING);
 
 		body_settings.mMassPropertiesOverride.mMass = settings.mass;
 		body_settings.mLinearVelocity = initialVelocity;
-		body_settings.mFriction = 0.8f;      // Some friction for bouncing
-		body_settings.mRestitution = 0.3f;   // Some bounciness
-		body_settings.mLinearDamping = 0.1f; // Air resistance
+		body_settings.mFriction = 0.8f;		  // Some friction for bouncing
+		body_settings.mRestitution = 0.3f;	  // Some bounciness
+		body_settings.mLinearDamping = 0.1f;  // Air resistance
 		body_settings.mAngularDamping = 0.1f;
 
 		// Create the body
@@ -88,12 +86,12 @@ namespace physics {
 		exploded = true;
 
 		JPH::RVec3 explosionCenter = physics_system.GetBodyInterface().GetPosition(bodyID);
-		
+
 		if (settings.enableDebugOutput) {
-			std::cout << "Grenade exploded at position (" 
-				<< explosionCenter.GetX() << ", " 
-				<< explosionCenter.GetY() << ", " 
-				<< explosionCenter.GetZ() << ")" << std::endl;
+			std::cout << "Grenade exploded at position ("
+					  << explosionCenter.GetX() << ", "
+					  << explosionCenter.GetY() << ", "
+					  << explosionCenter.GetZ() << ")" << std::endl;
 		}
 
 		// Get all enemies in range and damage them
@@ -105,30 +103,30 @@ namespace physics {
 			if (auto enemy = weakEnemy.lock()) {
 				glm::vec3 enemyPos = enemy->getPosition();
 				glm::vec3 grenadePos = RVec3ToGLM(explosionCenter);
-				
+
 				float distance = glm::length(enemyPos - grenadePos);
-				
+
 				if (distance <= settings.explosionRadius) {
 					// Calculate damage falloff based on distance
 					float damageMultiplier = 1.0f - (distance / settings.explosionRadius);
-					damageMultiplier = glm::max(0.1f, damageMultiplier); // Minimum 10% damage
-					
+					damageMultiplier = glm::max(0.1f, damageMultiplier);  // Minimum 10% damage
+
 					float actualDamage = settings.explosionDamage * damageMultiplier;
-					
+
 					// Calculate knockback direction
 					glm::vec3 knockbackDir = glm::normalize(enemyPos - grenadePos);
 					if (glm::length(knockbackDir) < 0.01f) {
-						knockbackDir = glm::vec3(0, 1, 0); // Default upward if too close
+						knockbackDir = glm::vec3(0, 1, 0);	// Default upward if too close
 					}
-					
+
 					float knockbackStrength = 20.0f * damageMultiplier;
-					
+
 					bool isDead = enemy->takeDamage(actualDamage, knockbackDir, knockbackStrength);
 					enemiesHit++;
-					
+
 					if (settings.enableDebugOutput) {
-						std::cout << "Enemy hit by grenade explosion. Distance: " << distance 
-							<< ", Damage: " << actualDamage << ", Dead: " << (isDead ? "Yes" : "No") << std::endl;
+						std::cout << "Enemy hit by grenade explosion. Distance: " << distance
+								  << ", Damage: " << actualDamage << ", Dead: " << (isDead ? "Yes" : "No") << std::endl;
 					}
 				}
 			}
@@ -155,7 +153,7 @@ namespace physics {
 
 		glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
 		glm::mat4 R = glm::toMat4(rot);
-		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(settings.radius * 2.0f)); // Scale based on radius
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(settings.radius * 2.0f));  // Scale based on radius
 
 		return T * R * S;
 	}
