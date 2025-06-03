@@ -29,7 +29,7 @@ namespace physics {
 
 	void Grenade::createPhysicsBody(const JPH::RVec3& position, const JPH::Vec3& initialVelocity) {
 		// Create sphere shape for grenade
-		JPH::Ref<JPH::SphereShape> sphere_shape = new JPH::SphereShape(settings.radius);
+		JPH::Ref<JPH::SphereShape> sphere_shape = new JPH::SphereShape(settings.radius * 2);
 
 		// Create body creation settings
 		JPH::BodyCreationSettings body_settings(
@@ -41,10 +41,10 @@ namespace physics {
 
 		body_settings.mMassPropertiesOverride.mMass = settings.mass;
 		body_settings.mLinearVelocity = initialVelocity;
-		body_settings.mFriction = 0.8f;		  // Some friction for bouncing
-		body_settings.mRestitution = 0.3f;	  // Some bounciness
-		body_settings.mLinearDamping = 0.1f;  // Air resistance
-		body_settings.mAngularDamping = 0.1f;
+		body_settings.mFriction = 1.5f;		   // Higher friction to reduce sliding
+		body_settings.mRestitution = 0.1f;	   // Less bounciness
+		body_settings.mLinearDamping = 0.5f;   // Higher linear damping to reduce sliding
+		body_settings.mAngularDamping = 0.8f;  // Much higher angular damping to reduce spinning
 
 		// Create the body
 		JPH::BodyInterface& body_interface = physics_system.GetBodyInterface();
