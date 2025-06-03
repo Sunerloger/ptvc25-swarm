@@ -9,11 +9,16 @@
 #include <Jolt/Physics/Body/BodyFilter.h>
 
 #include <iostream>
+#include <iomanip>
 
 namespace physics {
 
 	PhysicsPlayer::PhysicsPlayer(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) : settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
 		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, playerCreationSettings.position, playerCreationSettings.rotation, playerCreationSettings.inUserData, &this->physics_system));
+
+		// Initialize grenade cooldown timer
+		lastGrenadeThrowTime = std::chrono::steady_clock::now() - std::chrono::seconds(static_cast<long long>(settings.grenadeCooldownTime));
+		hasGrenadeAvailable = true;
 	}
 
 	PhysicsPlayer::~PhysicsPlayer() {
@@ -87,6 +92,13 @@ namespace physics {
 	}
 
 	void PhysicsPlayer::handleThrowGrenade(vk::Device& device, std::shared_ptr<vk::Model> grenadeModel) {
+		// Check if grenade is available
+		if (!canThrowGrenade()) {
+			float remainingTime = getGrenadeCooldownRemaining();
+			std::cout << "Grenade not ready! Cooldown remaining: " << std::fixed << std::setprecision(1) << remainingTime << " seconds" << std::endl;
+			return;
+		}
+
 		SceneManager& sceneManager = SceneManager::getInstance();
 
 		// Get player position and camera direction
@@ -124,7 +136,11 @@ namespace physics {
 		// Add grenade to scene manager for rendering and physics updates
 		sceneManager.addManagedPhysicsEntity(std::move(grenade));
 
-		std::cout << "Grenade thrown!" << std::endl;
+		// Update grenade cooldown state
+		lastGrenadeThrowTime = std::chrono::steady_clock::now();
+		hasGrenadeAvailable = false;
+
+		std::cout << "Grenade thrown! Next grenade available in " << settings.grenadeCooldownTime << " seconds." << std::endl;
 	}
 
 	void PhysicsPlayer::handleShoot() {
@@ -251,5 +267,34 @@ namespace physics {
 		creationSettings.characterSettings = characterSettings;
 
 		return creationSettings;
+	}
+
+	bool PhysicsPlayer::canThrowGrenade() const {
+		if (hasGrenadeAvailable) {
+			return true;
+		}
+
+		auto now = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastGrenadeThrowTime);
+		return elapsed.count() >= (settings.grenadeCooldownTime * 1000.0f);
+	}
+
+	float PhysicsPlayer::getGrenadeCooldownRemaining() const {
+		if (hasGrenadeAvailable) {
+			return 0.0f;
+		}
+
+		auto now = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastGrenadeThrowTime);
+		float elapsedSeconds = elapsed.count() / 1000.0f;
+		float remaining = settings.grenadeCooldownTime - elapsedSeconds;
+		return std::max(0.0f, remaining);
+	}
+
+	void PhysicsPlayer::updateGrenadeCooldown(float deltaTime) {
+		if (!hasGrenadeAvailable && canThrowGrenade()) {
+			hasGrenadeAvailable = true;
+			std::cout << "Grenade is now available!" << std::endl;
+		}
 	}
 }

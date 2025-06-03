@@ -11,6 +11,7 @@
 #include "../../PhysicsConversions.h"
 
 #include <functional>
+#include <chrono>
 
 namespace physics {
 
@@ -29,6 +30,9 @@ namespace physics {
 			float maxHealth = 100.0f;
 
 			float maxFloorSeparationDistance = 0.05f;
+
+			// Grenade cooldown in seconds (60 seconds = 1 minute)
+			float grenadeCooldownTime = 60.0f;
 
 			std::function<void()> deathCallback;
 		};
@@ -65,6 +69,11 @@ namespace physics {
 		void handleJump();
 		void handleShoot();
 		void handleThrowGrenade(vk::Device& device, std::shared_ptr<vk::Model> grenadeModel);
+
+		// Grenade cooldown methods
+		bool canThrowGrenade() const;
+		float getGrenadeCooldownRemaining() const;
+		void updateGrenadeCooldown(float deltaTime);
 
 		float getMaxHealth() const;
 		float getCurrentHealth() const override;
@@ -131,5 +140,9 @@ namespace physics {
 		glm::vec3 currentMovementDirection = glm::vec3{0};
 
 		float currentHealth = 100.0f;
+
+		// Grenade cooldown system
+		std::chrono::steady_clock::time_point lastGrenadeThrowTime;
+		bool hasGrenadeAvailable = true;  // Start with one grenade available
 	};
 }

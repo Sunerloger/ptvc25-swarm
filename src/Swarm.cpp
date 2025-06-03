@@ -645,7 +645,9 @@ void Swarm::prePhysicsUpdate() {
 	if (!isDebugActive) {
 		Player* player = sceneManager.getPlayer();
 		if (player && player->isPhysicsPlayer()) {
-			static_cast<physics::PhysicsPlayer*>(player)->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+			physics::PhysicsPlayer* physicsPlayer = static_cast<physics::PhysicsPlayer*>(player);
+			physicsPlayer->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+			physicsPlayer->updateGrenadeCooldown(physicsSimulation.cPhysicsDeltaTime);
 		}
 	}
 
