@@ -38,6 +38,13 @@ void Swarm::bindInput() {
 		}
 	};
 
+	swarmInput.onThrowGrenade = [this, &sceneManager]() {
+		Player* player = sceneManager.getPlayer();
+		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
+			static_cast<physics::PhysicsPlayer*>(player)->handleThrowGrenade(device);
+		}
+	};
+
 	swarmInput.onMoveUI = [this, &sceneManager](float dt, const glm::vec3 dir) { sceneManager.updateUIPosition(dt, dir); };
 	swarmInput.onRotateUI = [this, &sceneManager](float dt, const glm::vec3 rotDir) { sceneManager.updateUIRotation(dt, rotDir); };
 	swarmInput.onScaleUI = [this, &sceneManager](float dt, float scaleDir) { sceneManager.updateUIScale(dt, scaleDir); };

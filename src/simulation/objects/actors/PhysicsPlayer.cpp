@@ -2,6 +2,7 @@
 
 #include "../../../scene/SceneManager.h"
 #include "enemies/Enemy.h"
+#include "../dynamic/Grenade.h"
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
@@ -83,6 +84,47 @@ namespace physics {
 			// Update the velocity
 			character->SetLinearVelocity(new_velocity);
 		}
+	}
+
+	void PhysicsPlayer::handleThrowGrenade(vk::Device& device) {
+		SceneManager& sceneManager = SceneManager::getInstance();
+
+		// Get player position and camera direction
+		JPH::RVec3 playerPosition = character->GetPosition();
+		glm::vec3 cameraPosition = camera.getPosition();
+		glm::vec3 forward = camera.getFront();
+		
+		// Calculate throw position slightly in front of player to avoid self-collision
+		JPH::RVec3 throwPosition = playerPosition + JPH::RVec3(forward.x * 1.5f, forward.y * 1.5f + 1.0f, forward.z * 1.5f);
+		
+		// Calculate throw velocity with forward momentum and upward arc
+		float throwForce = 15.0f; // Base throwing speed
+		float upwardVelocity = 8.0f; // Upward component for grenade arc
+		JPH::Vec3 throwVelocity = JPH::Vec3(forward.x * throwForce, forward.y * throwForce + upwardVelocity, forward.z * throwForce);
+		
+		// Create grenade settings
+		physics::Grenade::GrenadeSettings grenadeSettings;
+		grenadeSettings.explosionRadius = 8.0f;
+		grenadeSettings.explosionDamage = 75.0f;
+		grenadeSettings.fuseTime = 3.0f;
+		grenadeSettings.mass = 0.5f;
+		grenadeSettings.radius = 0.1f;
+		grenadeSettings.enableDebugOutput = true;
+		
+		// Create grenade creation settings
+		physics::Grenade::GrenadeCreationSettings grenadeCreationSettings;
+		grenadeCreationSettings.position = throwPosition;
+		grenadeCreationSettings.initialVelocity = throwVelocity;
+		grenadeCreationSettings.grenadeSettings = grenadeSettings;
+		grenadeCreationSettings.model = vk::Model::createModelFromFile(device, "models:BoxTextured.glb"); // Load the BoxTextured.glb model
+		
+		// Create the grenade and add it to the scene
+		auto grenade = std::make_unique<physics::Grenade>(grenadeCreationSettings, physics_system);
+		
+		// Add grenade to scene manager for rendering and physics updates
+		sceneManager.addManagedPhysicsEntity(std::move(grenade));
+		
+		std::cout << "Grenade thrown!" << std::endl;
 	}
 
 	void PhysicsPlayer::handleShoot() {
