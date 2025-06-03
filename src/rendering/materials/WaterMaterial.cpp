@@ -152,6 +152,9 @@ namespace vk {
 	}
 
 	WaterMaterial::~WaterMaterial() {
+		// Wait for GPU to finish using resources before destroying them
+		vkDeviceWaitIdle(device.device());
+		
 		// Clean up Vulkan resources
 		if (textureSampler != VK_NULL_HANDLE) {
 			vkDestroySampler(device.device(), textureSampler, nullptr);

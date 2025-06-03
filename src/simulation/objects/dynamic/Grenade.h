@@ -61,7 +61,10 @@ namespace physics {
 		std::shared_ptr<vk::Model> model;
 
 		std::chrono::steady_clock::time_point creationTime;
+		std::chrono::steady_clock::time_point explosionTime;
 		bool exploded = false;
+		bool markedForDeletion = false;
+		static constexpr float DELETION_DELAY = 0.1f; // 100ms delay before deletion
 
 		void createPhysicsBody(const JPH::RVec3& position, const JPH::Vec3& initialVelocity);
 	};

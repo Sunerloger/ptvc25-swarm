@@ -46,6 +46,9 @@ namespace vk {
 	}
 
 	CubemapMaterial::~CubemapMaterial() {
+		// Wait for GPU to finish using resources before destroying them
+		vkDeviceWaitIdle(device.device());
+		
 		// Clean up Vulkan resources
 		if (cubemapSampler != VK_NULL_HANDLE) {
 			vkDestroySampler(device.device(), cubemapSampler, nullptr);

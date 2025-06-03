@@ -58,7 +58,18 @@ namespace physics {
 	}
 
 	void Grenade::updatePhysics(float deltaTime) {
+		if (markedForDeletion) {
+			return;
+		}
+
 		if (exploded) {
+			// Check if enough time has passed since explosion to safely delete
+			auto now = std::chrono::steady_clock::now();
+			auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - explosionTime);
+			if (elapsed.count() >= (DELETION_DELAY * 1000.0f)) {
+				markForDeletion();
+				markedForDeletion = true;
+			}
 			return;
 		}
 
@@ -84,6 +95,7 @@ namespace physics {
 		}
 
 		exploded = true;
+		explosionTime = std::chrono::steady_clock::now(); // Record explosion time
 
 		JPH::RVec3 explosionCenter = physics_system.GetBodyInterface().GetPosition(bodyID);
 
@@ -136,8 +148,7 @@ namespace physics {
 			std::cout << "Grenade explosion hit " << enemiesHit << " enemies within radius " << settings.explosionRadius << std::endl;
 		}
 
-		// Mark grenade for deletion from scene
-		markForDeletion();
+		// Don't mark for deletion immediately - wait for the delay in updatePhysics
 	}
 
 	glm::mat4 Grenade::computeModelMatrix() const {

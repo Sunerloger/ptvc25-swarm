@@ -88,6 +88,9 @@ namespace vk {
 	}
 
 	StandardMaterial::~StandardMaterial() {
+		// Wait for GPU to finish using resources before destroying them
+		vkDeviceWaitIdle(device.device());
+		
 		// Cleanup Vulkan resources
 		if (textureSampler != VK_NULL_HANDLE) {
 			vkDestroySampler(device.device(), textureSampler, nullptr);
