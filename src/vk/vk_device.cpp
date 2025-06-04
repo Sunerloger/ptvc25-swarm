@@ -1,5 +1,7 @@
 #include "vk_device.h"
 
+#include "../Engine.h"
+
 // std headers
 #include <cstring>
 #include <iostream>
@@ -236,17 +238,58 @@ namespace vk {
 	}
 
 	Device::~Device() {
-		vkDeviceWaitIdle(m_device);
-
-		vkDestroyCommandPool(m_device, commandPool, nullptr);
-		vkDestroyDevice(m_device, nullptr);
-
-		if (enableValidationLayers) {
-			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+		std::cout << "Device: Starting destruction sequence" << std::endl;
+		
+		VkResult waitResult = vkDeviceWaitIdle(m_device);
+		if (waitResult != VK_SUCCESS) {
+			std::cerr << "Device: Failed to wait for device idle, error code: " << waitResult << std::endl;
 		}
-
-		vkDestroySurfaceKHR(instance, m_surface, nullptr);
-		vkDestroyInstance(instance, nullptr);
+		
+		if (commandPool != VK_NULL_HANDLE) {
+			std::cout << "Device: Destroying immediate command pool" << std::endl;
+			vkDestroyCommandPool(m_device, commandPool, nullptr);
+			commandPool = VK_NULL_HANDLE;
+		}
+		
+		waitResult = vkDeviceWaitIdle(m_device);
+		if (waitResult != VK_SUCCESS) {
+			std::cerr << "Device: Failed to wait for device idle after immediate command pool destruction, error code: " << waitResult << std::endl;
+		}
+		
+		if (m_device != VK_NULL_HANDLE) {
+			std::cout << "Device: Destroying logical device" << std::endl;
+			
+			auto destructionQueue = vk::Engine::getDestructionQueue();
+			if (destructionQueue) {
+				std::cout << "Device: Final cleanup of destruction queue before device destruction" << std::endl;
+				destructionQueue->cleanup();
+			}
+			
+			vkDestroyDevice(m_device, nullptr);
+			std::cout << "Device: Logical device destroyed" << std::endl;
+			
+			m_device = VK_NULL_HANDLE;
+		}
+		
+		if (enableValidationLayers && debugMessenger != VK_NULL_HANDLE) {
+			std::cout << "Device: Destroying debug messenger" << std::endl;
+			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+			debugMessenger = VK_NULL_HANDLE;
+		}
+		
+		if (m_surface != VK_NULL_HANDLE) {
+			std::cout << "Device: Destroying surface" << std::endl;
+			vkDestroySurfaceKHR(instance, m_surface, nullptr);
+			m_surface = VK_NULL_HANDLE;
+		}
+		
+		if (instance != VK_NULL_HANDLE) {
+			std::cout << "Device: Destroying instance" << std::endl;
+			vkDestroyInstance(instance, nullptr);
+			instance = VK_NULL_HANDLE;
+		}
+		
+		std::cout << "Device: Destruction sequence complete" << std::endl;
 	}
 
 	// Updating createInstance to use the dynamic extension checking

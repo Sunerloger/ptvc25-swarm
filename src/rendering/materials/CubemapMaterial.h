@@ -2,6 +2,7 @@
 
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
+#include "../../vk/vk_swap_chain.h"
 #include <array>
 
 namespace vk {
@@ -14,7 +15,7 @@ namespace vk {
 
         ~CubemapMaterial() override;
 
-        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return cubemapDescriptorSet; }
+        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return cubemapDescriptorSets[frameIndex]; }
         VkDescriptorSetLayout getDescriptorSetLayout() const override {
             return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
         }
@@ -31,7 +32,7 @@ namespace vk {
 
         void createCubemapImageView();
         void createCubemapSampler();
-        void createDescriptorSet();
+        void createDescriptorSets();
 
         static void createDescriptorSetLayoutIfNeeded(Device& device);
 
@@ -39,6 +40,6 @@ namespace vk {
         VkDeviceMemory cubemapImageMemory = VK_NULL_HANDLE;
         VkImageView cubemapImageView = VK_NULL_HANDLE;
         VkSampler cubemapSampler = VK_NULL_HANDLE;
-        VkDescriptorSet cubemapDescriptorSet = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> cubemapDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
     };
 }

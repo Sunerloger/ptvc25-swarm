@@ -7,6 +7,7 @@
 #include "vk/vk_window.h"
 #include "vk/vk_descriptors.h"
 #include "vk/vk_buffer.h"
+#include "vk/vk_destruction_queue.h"
 
 #include "simulation/PhysicsSimulation.h"
 
@@ -45,8 +46,12 @@ namespace vk {
 		Engine& operator=(const Engine&) = delete;
 
 		void run();
+		
+		static DestructionQueue* getDestructionQueue() { return destructionQueue.get(); }
+		
+		static void scheduleResourceDestruction(VkBuffer buffer, VkDeviceMemory memory);
 
-	   private:
+		  private:
 
 		IGame& game;
 		physics::PhysicsSimulation& physicsSimulation;
@@ -58,6 +63,8 @@ namespace vk {
 		Renderer renderer;
 
 		std::unique_ptr<DescriptorPool> globalPool{};
+		
+		static std::unique_ptr<DestructionQueue> destructionQueue;
 
 		chrono::steady_clock::time_point startTime;
 		

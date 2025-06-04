@@ -1,6 +1,7 @@
 #include "vk_pipeline.h"
 #include "vk_model.h"
 #include "../asset_utils/AssetLoader.h"
+#include "../Engine.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -16,18 +17,47 @@ namespace vk {
 	}
 	
 	Pipeline::~Pipeline() {
-		vkDestroyShaderModule(device.device(), vertShaderModule, nullptr);
-		vkDestroyShaderModule(device.device(), fragShaderModule, nullptr);
+		std::cout << "Pipeline: Starting destruction sequence" << std::endl;
 		
-		// Clean up tessellation shader modules if they exist
+		auto destructionQueue = Engine::getDestructionQueue();
+		if (destructionQueue) {
+			if (graphicsPipeline != VK_NULL_HANDLE) {
+				std::cout << "Pipeline: Scheduling pipeline for destruction" << std::endl;
+				destructionQueue->pushPipeline(graphicsPipeline);
+				graphicsPipeline = VK_NULL_HANDLE;
+			}
+		} else {
+			// fallback to immediate destruction if no queue is available
+			if (graphicsPipeline != VK_NULL_HANDLE) {
+				std::cout << "Pipeline: Destroying pipeline immediately" << std::endl;
+				vkDestroyPipeline(device.device(), graphicsPipeline, nullptr);
+				graphicsPipeline = VK_NULL_HANDLE;
+			}
+		}
+		
+		// shader modules can be destroyed immediately as they're not used during rendering
+		if (vertShaderModule != VK_NULL_HANDLE) {
+			vkDestroyShaderModule(device.device(), vertShaderModule, nullptr);
+			vertShaderModule = VK_NULL_HANDLE;
+		}
+		
+		if (fragShaderModule != VK_NULL_HANDLE) {
+			vkDestroyShaderModule(device.device(), fragShaderModule, nullptr);
+			fragShaderModule = VK_NULL_HANDLE;
+		}
+		
+		// clean up tessellation shader modules if they exist
 		if (tessControlShaderModule != VK_NULL_HANDLE) {
 			vkDestroyShaderModule(device.device(), tessControlShaderModule, nullptr);
-		}
-		if (tessEvalShaderModule != VK_NULL_HANDLE) {
-			vkDestroyShaderModule(device.device(), tessEvalShaderModule, nullptr);
+			tessControlShaderModule = VK_NULL_HANDLE;
 		}
 		
-		vkDestroyPipeline(device.device(), graphicsPipeline, nullptr);
+		if (tessEvalShaderModule != VK_NULL_HANDLE) {
+			vkDestroyShaderModule(device.device(), tessEvalShaderModule, nullptr);
+			tessEvalShaderModule = VK_NULL_HANDLE;
+		}
+		
+		std::cout << "Pipeline: Destruction sequence complete" << std::endl;
 	}
 
 	VkPipelineShaderStageCreateInfo Pipeline::makeStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule) {

@@ -10,6 +10,7 @@
 // std
 #include <cassert>
 #include <cstring>
+#include <iostream>
 
 namespace vk {
 
@@ -48,8 +49,27 @@ namespace vk {
 
 	Buffer::~Buffer() {
 		unmap();
-		vkDestroyBuffer(device.device(), buffer, nullptr);
-		vkFreeMemory(device.device(), memory, nullptr);
+		
+		if (buffer != VK_NULL_HANDLE) {
+			std::cout << "Buffer: Destroying buffer " << std::hex << (uint64_t)buffer << std::dec << std::endl;
+			vkDestroyBuffer(device.device(), buffer, nullptr);
+			buffer = VK_NULL_HANDLE;
+		}
+		if (memory != VK_NULL_HANDLE) {
+			std::cout << "Buffer: Freeing memory " << std::hex << (uint64_t)memory << std::dec << std::endl;
+			vkFreeMemory(device.device(), memory, nullptr);
+			memory = VK_NULL_HANDLE;
+		}
+	}
+	
+	void Buffer::scheduleDestroy(DestructionQueue& destructionQueue) {
+		unmap();
+		std::cout << "Buffer: Scheduling destruction of buffer " << std::hex << (uint64_t)buffer
+			<< " and memory " << (uint64_t)memory << std::dec << std::endl;
+		destructionQueue.pushBuffer(buffer, memory);
+		// Set to null to prevent double-free in destructor
+		buffer = VK_NULL_HANDLE;
+		memory = VK_NULL_HANDLE;
 	}
 
 	/**

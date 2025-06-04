@@ -1,6 +1,7 @@
 #include "CubemapMaterial.h"
 #include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
+#include "../../Engine.h"
 // Include stb_image without the implementation
 #include "stb_image.h"
 #include <stdexcept>
@@ -18,7 +19,7 @@ namespace vk {
         createCubemapFromFaces(facePaths);
         createCubemapImageView();
         createCubemapSampler();
-        createDescriptorSet();
+        createDescriptorSets();
 
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
@@ -38,7 +39,7 @@ namespace vk {
         createCubemapFromSingleImage(singleImagePath, isHorizontalStrip);
         createCubemapImageView();
         createCubemapSampler();
-        createDescriptorSet();
+        createDescriptorSets();
 
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
@@ -49,21 +50,49 @@ namespace vk {
     }
 
     CubemapMaterial::~CubemapMaterial() {
-        // Clean up Vulkan resources
-        if (cubemapSampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device.device(), cubemapSampler, nullptr);
-        }
+        auto destructionQueue = Engine::getDestructionQueue();
         
-        if (cubemapImageView != VK_NULL_HANDLE) {
-            vkDestroyImageView(device.device(), cubemapImageView, nullptr);
-        }
-        
-        if (cubemapImage != VK_NULL_HANDLE) {
-            vkDestroyImage(device.device(), cubemapImage, nullptr);
-        }
-        
-        if (cubemapImageMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(device.device(), cubemapImageMemory, nullptr);
+        if (destructionQueue) {
+            // schedule resources for safe destruction
+            for (int i = 0; i < cubemapDescriptorSets.size(); i++) {
+                if (cubemapDescriptorSets[i] != VK_NULL_HANDLE && descriptorPool) {
+                    destructionQueue->pushDescriptorSet(cubemapDescriptorSets[i], descriptorPool->getPool());
+                    cubemapDescriptorSets[i] = VK_NULL_HANDLE;
+                }
+            }
+            
+            if (cubemapSampler != VK_NULL_HANDLE) {
+                destructionQueue->pushSampler(cubemapSampler);
+                cubemapSampler = VK_NULL_HANDLE;
+            }
+            
+            if (cubemapImageView != VK_NULL_HANDLE) {
+                destructionQueue->pushImageView(cubemapImageView);
+                cubemapImageView = VK_NULL_HANDLE;
+            }
+            
+            if (cubemapImage != VK_NULL_HANDLE && cubemapImageMemory != VK_NULL_HANDLE) {
+                destructionQueue->pushImage(cubemapImage, cubemapImageMemory);
+                cubemapImage = VK_NULL_HANDLE;
+                cubemapImageMemory = VK_NULL_HANDLE;
+            }
+        } else {
+            // fallback to immediate destruction if queue is not available
+            if (cubemapSampler != VK_NULL_HANDLE) {
+                vkDestroySampler(device.device(), cubemapSampler, nullptr);
+            }
+            
+            if (cubemapImageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(device.device(), cubemapImageView, nullptr);
+            }
+            
+            if (cubemapImage != VK_NULL_HANDLE) {
+                vkDestroyImage(device.device(), cubemapImage, nullptr);
+            }
+            
+            if (cubemapImageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(device.device(), cubemapImageMemory, nullptr);
+            }
         }
         
         // Decrement instance count and clean up static resources if this is the last instance
@@ -88,8 +117,8 @@ namespace vk {
             descriptorSetLayout = layoutBuilder.build();
             
             descriptorPool = DescriptorPool::Builder(device)
-                .setMaxSets(10)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10)
+                .setMaxSets(10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .build();
         }
     }
@@ -249,9 +278,13 @@ namespace vk {
         
         device.endImmediateCommands(layoutTransitionCmd);
 
-        // Clean up staging buffer
-        vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-        vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        auto destructionQueue = Engine::getDestructionQueue();
+        if (destructionQueue) {
+            destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+        } else {
+            vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+            vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        }
     }
 
     void CubemapMaterial::createCubemapFromSingleImage(const std::string& imagePath, bool isHorizontalStrip) {
@@ -500,9 +533,13 @@ namespace vk {
         
         device.endImmediateCommands(singleImageLayoutCmd);
 
-        // Clean up staging buffer
-        vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-        vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        auto destructionQueue = Engine::getDestructionQueue();
+        if (destructionQueue) {
+            destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+        } else {
+            vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+            vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        }
     }
 
     void CubemapMaterial::createCubemapImageView() {
@@ -546,45 +583,53 @@ namespace vk {
         }
     }
 
-    void CubemapMaterial::createDescriptorSet() {
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool->getPool();
-        allocInfo.descriptorSetCount = 1;
-        
-        VkDescriptorSetLayout layout = descriptorSetLayout->getDescriptorSetLayout();
-        allocInfo.pSetLayouts = &layout;
-
-        if (vkAllocateDescriptorSets(device.device(), &allocInfo, &cubemapDescriptorSet) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate cubemap descriptor set!");
-        }
-
+    void CubemapMaterial::createDescriptorSets() {
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = cubemapImageView;
         imageInfo.sampler = cubemapSampler;
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = cubemapDescriptorSet;
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
+        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+            DescriptorWriter(*descriptorSetLayout, *descriptorPool)
+                .writeImage(0, &imageInfo)
+                .build(cubemapDescriptorSets[i]);
+        }
     }
 
     void CubemapMaterial::cleanupResources() {
+        std::cout << "CubemapMaterial: Starting static resource cleanup" << std::endl;
+        
+        auto* destructionQueue = Engine::getDestructionQueue();
         
         if (descriptorPool) {
-            descriptorPool->resetPool();
-            descriptorPool.reset();
+            if (destructionQueue) {
+                
+                destructionQueue->pushDescriptorPool(descriptorPool->getPool());
+                
+                descriptorPool.reset();
+                std::cout << "CubemapMaterial: Descriptor pool scheduled for destruction" << std::endl;
+            } else {
+                // fallback to immediate destruction if queue is not available
+                descriptorPool->resetPool();
+                descriptorPool.reset();
+                std::cout << "CubemapMaterial: Descriptor pool destroyed immediately" << std::endl;
+            }
         }
         
         if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
-            descriptorSetLayout.reset();
+            if (destructionQueue) {
+                VkDescriptorSetLayout layoutHandle = descriptorSetLayout->getDescriptorSetLayout();
+                destructionQueue->pushDescriptorSetLayout(layoutHandle);
+                
+                descriptorSetLayout.reset();
+                std::cout << "CubemapMaterial: Descriptor set layout scheduled for destruction" << std::endl;
+            } else {
+                // fallback to immediate destruction if queue is not available
+                descriptorSetLayout.reset();
+                std::cout << "CubemapMaterial: Descriptor set layout destroyed immediately" << std::endl;
+            }
         }
+        
+        std::cout << "CubemapMaterial: Static resource cleanup complete" << std::endl;
     }
 }

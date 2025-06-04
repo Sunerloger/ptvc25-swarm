@@ -1,6 +1,7 @@
 #include "UIMaterial.h"
 #include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
+#include "../../Engine.h"
 
 #include "stb_image.h"
 
@@ -23,7 +24,7 @@ namespace vk {
 		createTextureImage(texturePath);
 		createTextureImageView();
 		createTextureSampler();
-		createDescriptorSet();
+		createDescriptorSets();
 
 		// Set default pipeline configuration
 		pipelineConfig.vertShaderPath = "ui_shader.vert";
@@ -47,7 +48,7 @@ namespace vk {
 		createTextureImage(texturePath);
 		createTextureImageView();
 		createTextureSampler();
-		createDescriptorSet();
+		createDescriptorSets();
 
 		// Set custom pipeline configuration
 		pipelineConfig.vertShaderPath = vertShaderPath;
@@ -73,7 +74,7 @@ namespace vk {
 		createTextureFromImageData(imageData, width, height, channels);
 		createTextureImageView();
 		createTextureSampler();
-		createDescriptorSet();
+		createDescriptorSets();
 
 		// Set default pipeline configuration
 		pipelineConfig.vertShaderPath = "ui_shader.vert";
@@ -100,7 +101,7 @@ namespace vk {
 		createTextureFromImageData(imageData, width, height, channels);
 		createTextureImageView();
 		createTextureSampler();
-		createDescriptorSet();
+		createDescriptorSets();
 
 		// Set custom pipeline configuration
 		pipelineConfig.vertShaderPath = vertShaderPath;
@@ -117,23 +118,34 @@ namespace vk {
 	}
 
 	UIMaterial::~UIMaterial() {
-		// Clean up Vulkan resources
-		if (textureSampler != VK_NULL_HANDLE) {
-			vkDestroySampler(device.device(), textureSampler, nullptr);
+		auto destructionQueue = vk::Engine::getDestructionQueue();
+		
+		if (destructionQueue) {
+			// schedule resources for safe destruction
+			if (textureSampler != VK_NULL_HANDLE) {
+				destructionQueue->pushSampler(textureSampler);
+				textureSampler = VK_NULL_HANDLE;
+			}
+	
+			if (textureImageView != VK_NULL_HANDLE) {
+				destructionQueue->pushImageView(textureImageView);
+				textureImageView = VK_NULL_HANDLE;
+			}
+	
+			if (textureImage != VK_NULL_HANDLE && textureImageMemory != VK_NULL_HANDLE) {
+				destructionQueue->pushImage(textureImage, textureImageMemory);
+				textureImage = VK_NULL_HANDLE;
+				textureImageMemory = VK_NULL_HANDLE;
+			}
+			
+			for (int i = 0; i < textureDescriptorSets.size(); i++) {
+				if (textureDescriptorSets[i] != VK_NULL_HANDLE && descriptorPool) {
+					destructionQueue->pushDescriptorSet(textureDescriptorSets[i], descriptorPool->getPool());
+					textureDescriptorSets[i] = VK_NULL_HANDLE;
+				}
+			}
 		}
-
-		if (textureImageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(device.device(), textureImageView, nullptr);
-		}
-
-		if (textureImage != VK_NULL_HANDLE) {
-			vkDestroyImage(device.device(), textureImage, nullptr);
-		}
-
-		if (textureImageMemory != VK_NULL_HANDLE) {
-			vkFreeMemory(device.device(), textureImageMemory, nullptr);
-		}
-
+	
 		// Decrement instance count and clean up static resources if this is the last instance
 		instanceCount--;
 		if (instanceCount == 0) {
@@ -151,8 +163,8 @@ namespace vk {
 			descriptorSetLayout = layoutBuilder.build();
 
 			descriptorPool = DescriptorPool::Builder(device)
-								 .setMaxSets(100)
-								 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
+								 .setMaxSets(100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+								 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
 								 .build();
 		}
 	}
@@ -235,9 +247,13 @@ namespace vk {
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		// Clean up staging buffer
-		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		auto destructionQueue = vk::Engine::getDestructionQueue();
+		if (destructionQueue) {
+			destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+		} else {
+			vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+			vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		}
 	}
 
 	void UIMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData,
@@ -339,9 +355,13 @@ namespace vk {
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		// Clean up staging buffer
-		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		auto destructionQueue = vk::Engine::getDestructionQueue();
+		if (destructionQueue) {
+			destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+		} else {
+			vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+			vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		}
 	}
 
 	void UIMaterial::createTextureImageView() {
@@ -375,44 +395,38 @@ namespace vk {
 		}
 	}
 
-	void UIMaterial::createDescriptorSet() {
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool->getPool();
-		allocInfo.descriptorSetCount = 1;
-
-		VkDescriptorSetLayout layout = descriptorSetLayout->getDescriptorSetLayout();
-		allocInfo.pSetLayouts = &layout;
-
-		if (vkAllocateDescriptorSets(device.device(), &allocInfo, &textureDescriptorSet) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to allocate texture descriptor set!");
-		}
-
+	void UIMaterial::createDescriptorSets() {
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = textureImageView;
 		imageInfo.sampler = textureSampler;
 
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = textureDescriptorSet;
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
+		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+			// Use the DescriptorWriter to create and update the descriptor set
+			DescriptorWriter(*descriptorSetLayout, *descriptorPool)
+				.writeImage(0, &imageInfo)
+				.build(textureDescriptorSets[i]);
+		}
 	}
 
 	void UIMaterial::cleanupResources() {
-
+		auto destructionQueue = vk::Engine::getDestructionQueue();
+		
 		if (descriptorPool) {
-			descriptorPool->resetPool();
+			if (destructionQueue) {
+				// schedule descriptor pool for safe destruction
+				destructionQueue->pushDescriptorPool(descriptorPool->getPool());
+			} else {
+				descriptorPool->resetPool();
+			}
 			descriptorPool.reset();
 		}
-
+	
 		if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
+			if (destructionQueue) {
+				// schedule descriptor set layout for safe destruction
+				destructionQueue->pushDescriptorSetLayout(descriptorSetLayout->getDescriptorSetLayout());
+			}
 			descriptorSetLayout.reset();
 		}
 	}

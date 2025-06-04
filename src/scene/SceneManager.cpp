@@ -640,8 +640,13 @@ std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTessellationRenderOb
 }
 
 void SceneManager::clearUIObjects() {
+	// remove each UI object's entry from the idToClass map
+	for (auto& uiPair : this->scene->uiObjects) {
+		this->idToClass.erase(uiPair.first);
+	}
+	
+	// clear the UI objects map
 	this->scene->uiObjects.clear();
-	this->idToClass.clear();
 }
 
 void SceneManager::toggleWireframeOnTessellationObjects() {

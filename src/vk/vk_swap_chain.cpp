@@ -9,6 +9,8 @@
 #include <set>
 #include <stdexcept>
 
+#include "../Engine.h"
+
 namespace vk {
 
 	SwapChain::SwapChain(Device &deviceRef, VkExtent2D extent)
@@ -74,6 +76,10 @@ namespace vk {
 		);
 	}
 
+	size_t SwapChain::getCurrentFrame() const {
+		return currentFrame;
+	}
+
 	VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) {
 		vkWaitForFences(
 			device.device(),
@@ -81,6 +87,10 @@ namespace vk {
 			&inFlightFences[currentFrame],
 			VK_TRUE,
 			UINT64_MAX);
+
+		if (auto destructionQueue = Engine::getDestructionQueue()) {
+			destructionQueue->flush();
+		}
 
 		VkResult result = vkAcquireNextImageKHR(
 			device.device(),

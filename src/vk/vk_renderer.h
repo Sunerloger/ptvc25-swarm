@@ -39,6 +39,10 @@ namespace vk {
 			return currentFrameIndex;
 		}
 		void recreateSwapChain();
+		
+		SwapChain& getSwapChain() const {
+			return *m_swapChain;
+		}
 
 	private:
 		void createFramePools();

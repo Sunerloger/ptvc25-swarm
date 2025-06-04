@@ -326,7 +326,7 @@ void Swarm::init() {
 			enemySpawnMinRadius * enemySpawnMinRadius,
 			enemySpawnMaxRadius * enemySpawnMaxRadius);	 // squared to have density distribution uniformly in spawn ring
 
-		for (int i = 0; i < 100; ++i) {
+		for (int i = 0; i < 30; ++i) {
 			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
 			physics::Sprinter::SprinterSettings sprinterSettings = {};
 			sprinterSettings.model = enemyModel;

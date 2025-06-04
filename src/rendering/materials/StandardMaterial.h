@@ -4,6 +4,7 @@
 #include "../../vk/vk_descriptors.h"
 #include "../../vk/vk_buffer.h"
 #include "../../vk/vk_swap_chain.h"
+#include "../../Engine.h"
 
 #include <glm/glm.hpp>
 

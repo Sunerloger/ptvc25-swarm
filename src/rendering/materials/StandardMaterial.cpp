@@ -100,24 +100,56 @@ namespace vk {
     }
 
     StandardMaterial::~StandardMaterial() {
-        // Clean up Vulkan resources
-        if (textureSampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device.device(), textureSampler, nullptr);
+        auto* destructionQueue = Engine::getDestructionQueue();
+        if (destructionQueue) {
+            for (int i = 0; i < textureDescriptorSets.size(); i++) {
+                if (textureDescriptorSets[i] != VK_NULL_HANDLE && descriptorPool) {
+                    destructionQueue->pushDescriptorSet(textureDescriptorSets[i], descriptorPool->getPool());
+                    textureDescriptorSets[i] = VK_NULL_HANDLE;
+                }
+            }
+            
+            if (textureSampler != VK_NULL_HANDLE) {
+                destructionQueue->pushSampler(textureSampler);
+                textureSampler = VK_NULL_HANDLE;
+            }
+            
+            if (textureImageView != VK_NULL_HANDLE) {
+                destructionQueue->pushImageView(textureImageView);
+                textureImageView = VK_NULL_HANDLE;
+            }
+            
+            if (textureImage != VK_NULL_HANDLE && textureImageMemory != VK_NULL_HANDLE) {
+                destructionQueue->pushImage(textureImage, textureImageMemory);
+                textureImage = VK_NULL_HANDLE;
+                textureImageMemory = VK_NULL_HANDLE;
+            }
+            
+            for (auto& buffer : paramsBuffers) {
+                if (buffer) {
+                    buffer->scheduleDestroy(*destructionQueue);
+                }
+            }
+        } else {
+            // fallback to immediate destruction if queue is not available
+            if (textureSampler != VK_NULL_HANDLE) {
+                vkDestroySampler(device.device(), textureSampler, nullptr);
+            }
+            
+            if (textureImageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(device.device(), textureImageView, nullptr);
+            }
+            
+            if (textureImage != VK_NULL_HANDLE) {
+                vkDestroyImage(device.device(), textureImage, nullptr);
+            }
+            
+            if (textureImageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(device.device(), textureImageMemory, nullptr);
+            }
         }
         
-        if (textureImageView != VK_NULL_HANDLE) {
-            vkDestroyImageView(device.device(), textureImageView, nullptr);
-        }
-        
-        if (textureImage != VK_NULL_HANDLE) {
-            vkDestroyImage(device.device(), textureImage, nullptr);
-        }
-        
-        if (textureImageMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(device.device(), textureImageMemory, nullptr);
-        }
-        
-        // Decrement instance count and clean up static resources if this is the last instance
+        // decrement instance count and clean up static resources if this is the last instance
         instanceCount--;
         if (instanceCount == 0) {
             std::cout << "Cleaning up StandardMaterial static resources" << std::endl;
@@ -135,9 +167,9 @@ namespace vk {
             descriptorSetLayout = layoutBuilder.build();
             
             descriptorPool = DescriptorPool::Builder(device)
-                .setMaxSets(200)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100)
+                .setMaxSets(200 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .build();
         }
     }
@@ -226,9 +258,13 @@ namespace vk {
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         );
 
-        // Clean up staging buffer
-        vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-        vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        auto* destructionQueue = Engine::getDestructionQueue();
+        if (destructionQueue) {
+            destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+        } else {
+            vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+            vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        }
     }
 
     void StandardMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData,
@@ -335,9 +371,13 @@ namespace vk {
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         );
 
-        // Clean up staging buffer
-        vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-        vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        auto* destructionQueue = Engine::getDestructionQueue();
+        if (destructionQueue) {
+            destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+        } else {
+            vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+            vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        }
     }
 
     VkImageView StandardMaterial::createTextureImageView(VkImage& image) {
@@ -408,13 +448,45 @@ namespace vk {
     }
 
     void StandardMaterial::cleanupResources() {
-        if (descriptorPool) {
-            descriptorPool->resetPool();
-            descriptorPool.reset();
-        }
-        
-        if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
-            descriptorSetLayout.reset();
-        }
+    	std::cout << "StandardMaterial: Starting static resource cleanup" << std::endl;
+    	
+    	auto* destructionQueue = Engine::getDestructionQueue();
+    	
+    	if (descriptorPool) {
+    		if (destructionQueue) {
+    			// Get the pool handle before resetting the unique_ptr
+    			VkDescriptorPool poolHandle = descriptorPool->getPool();
+    			
+    			// Don't reset the unique_ptr until after all descriptor sets have been freed
+    			// This prevents a double-free situation where the destructor tries to destroy
+    			// the pool that's already scheduled for destruction
+    			destructionQueue->pushDescriptorPool(poolHandle);
+    			
+    			// Now it's safe to reset the unique_ptr
+    			descriptorPool.reset();
+    			std::cout << "StandardMaterial: Descriptor pool scheduled for destruction" << std::endl;
+    		} else {
+    			// fallback to immediate destruction if queue is not available
+    			descriptorPool->resetPool();
+    			descriptorPool.reset();
+    			std::cout << "StandardMaterial: Descriptor pool destroyed immediately" << std::endl;
+    		}
+    	}
+    	
+    	if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
+    		if (destructionQueue) {
+    			VkDescriptorSetLayout layoutHandle = descriptorSetLayout->getDescriptorSetLayout();
+    			destructionQueue->pushDescriptorSetLayout(layoutHandle);
+    			
+    			descriptorSetLayout.reset();
+    			std::cout << "StandardMaterial: Descriptor set layout scheduled for destruction" << std::endl;
+    		} else {
+    			// fallback to immediate destruction if queue is not available
+    			descriptorSetLayout.reset();
+    			std::cout << "StandardMaterial: Descriptor set layout destroyed immediately" << std::endl;
+    		}
+    	}
+    	
+    	std::cout << "StandardMaterial: Static resource cleanup complete" << std::endl;
     }
 }

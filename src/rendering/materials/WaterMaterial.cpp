@@ -2,13 +2,12 @@
 
 #include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
+#include "../../Engine.h"
 
 #include "stb_image.h"
 
 #include <stdexcept>
 #include <iostream>
-
-#include "../../vk/vk_swap_chain.h"
 
 namespace vk {
 
@@ -192,21 +191,55 @@ namespace vk {
 	}
 
 	WaterMaterial::~WaterMaterial() {
-		// Clean up Vulkan resources
-		if (textureSampler != VK_NULL_HANDLE) {
-			vkDestroySampler(device.device(), textureSampler, nullptr);
-		}
-
-		if (textureImageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(device.device(), textureImageView, nullptr);
-		}
-
-		if (textureImage != VK_NULL_HANDLE) {
-			vkDestroyImage(device.device(), textureImage, nullptr);
-		}
-
-		if (textureImageMemory != VK_NULL_HANDLE) {
-			vkFreeMemory(device.device(), textureImageMemory, nullptr);
+		auto destructionQueue = Engine::getDestructionQueue();
+		
+		if (destructionQueue) {
+			// schedule resources for safe destruction
+			if (textureSampler != VK_NULL_HANDLE) {
+				destructionQueue->pushSampler(textureSampler);
+				textureSampler = VK_NULL_HANDLE;
+			}
+	
+			if (textureImageView != VK_NULL_HANDLE) {
+				destructionQueue->pushImageView(textureImageView);
+				textureImageView = VK_NULL_HANDLE;
+			}
+	
+			if (textureImage != VK_NULL_HANDLE && textureImageMemory != VK_NULL_HANDLE) {
+				destructionQueue->pushImage(textureImage, textureImageMemory);
+				textureImage = VK_NULL_HANDLE;
+				textureImageMemory = VK_NULL_HANDLE;
+			}
+			
+			for (int i = 0; i < textureDescriptorSets.size(); i++) {
+				if (textureDescriptorSets[i] != VK_NULL_HANDLE && descriptorPool) {
+					destructionQueue->pushDescriptorSet(textureDescriptorSets[i], descriptorPool->getPool());
+					textureDescriptorSets[i] = VK_NULL_HANDLE;
+				}
+			}
+			
+			for (auto& buffer : paramsBuffers) {
+				if (buffer) {
+					buffer->scheduleDestroy(*destructionQueue);
+				}
+			}
+		} else {
+			// fallback to immediate destruction if queue is not available
+			if (textureSampler != VK_NULL_HANDLE) {
+				vkDestroySampler(device.device(), textureSampler, nullptr);
+			}
+			
+			if (textureImageView != VK_NULL_HANDLE) {
+				vkDestroyImageView(device.device(), textureImageView, nullptr);
+			}
+			
+			if (textureImage != VK_NULL_HANDLE) {
+				vkDestroyImage(device.device(), textureImage, nullptr);
+			}
+			
+			if (textureImageMemory != VK_NULL_HANDLE) {
+				vkFreeMemory(device.device(), textureImageMemory, nullptr);
+			}
 		}
 
 		// Decrement instance count and clean up static resources if this is the last instance
@@ -313,9 +346,13 @@ namespace vk {
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		// Clean up staging buffer
-		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		auto destructionQueue = Engine::getDestructionQueue();
+		if (destructionQueue) {
+			destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+		} else {
+			vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+			vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		}
 	}
 
 	void WaterMaterial::createTextureFromImageData(const std::vector<unsigned char>& imageData,
@@ -417,9 +454,13 @@ namespace vk {
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		// Clean up staging buffer
-		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		auto destructionQueue = Engine::getDestructionQueue();
+		if (destructionQueue) {
+			destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+		} else {
+			vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+			vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		}
 	}
 
 	VkImageView WaterMaterial::createTextureImageView(VkImage& image) {
@@ -506,12 +547,21 @@ namespace vk {
 	}
 
 	void WaterMaterial::cleanupResources() {
+		auto destructionQueue = Engine::getDestructionQueue();
+		
 		if (descriptorPool) {
-			descriptorPool->resetPool();
+			if (destructionQueue) {
+				destructionQueue->pushDescriptorPool(descriptorPool->getPool());
+			} else {
+				descriptorPool->resetPool();
+			}
 			descriptorPool.reset();
 		}
-
+	
 		if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
+			if (destructionQueue) {
+				destructionQueue->pushDescriptorSetLayout(descriptorSetLayout->getDescriptorSetLayout());
+			}
 			descriptorSetLayout.reset();
 		}
 	}

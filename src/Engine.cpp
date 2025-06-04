@@ -4,6 +4,8 @@
 
 namespace vk {
 
+	std::unique_ptr<DestructionQueue> Engine::destructionQueue = nullptr;
+
 	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
 		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager), renderer(window, device) {
 
@@ -11,6 +13,11 @@ namespace vk {
 						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
 						 .build();
+		
+		if (!destructionQueue) {
+			std::cout << "Engine: Creating destruction queue" << std::endl;
+			destructionQueue = std::make_unique<DestructionQueue>(device, renderer.getSwapChain());
+		}
 
 		game.init();
 		game.setupInput();
@@ -18,7 +25,24 @@ namespace vk {
 		audio::AudioSystem::getInstance().init();
 	}
 
-	Engine::~Engine() {}
+	Engine::~Engine() {
+	    std::cout << "Engine: Starting shutdown sequence" << std::endl;
+	    
+	    if (destructionQueue) {
+	        std::cout << "Engine: Cleaning up destruction queue" << std::endl;
+	        destructionQueue->cleanup();
+	        std::cout << "Engine: Resetting destruction queue" << std::endl;
+	        destructionQueue.reset();
+	    } else {
+	        std::cout << "Engine: Warning - No destruction queue to clean up" << std::endl;
+	    }
+	    
+	    if (globalPool) {
+	        globalPool.reset();
+	    }
+	    
+	    std::cout << "Engine: Shutdown sequence complete" << std::endl;
+	}
 
 	void Engine::run() {
 		SceneManager& sceneManager = SceneManager::getInstance();
@@ -138,6 +162,7 @@ namespace vk {
 
 			// menu / death screen is just rendered on top of game while physics / logic is disabled
 			if (auto commandBuffer = renderer.beginFrame()) {
+
 				int frameIndex = renderer.getFrameIndex();
 				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex]};
 
@@ -179,6 +204,25 @@ namespace vk {
 				renderer.endSwapChainRenderPass(commandBuffer);
 				renderer.endFrame();
 			}
+		}
+		if (destructionQueue) {
+			for (auto& bufPtr : uboBuffers) {
+				if (bufPtr) {
+					bufPtr->scheduleDestroy(*destructionQueue);
+					bufPtr.reset();
+				}
+			}
+		}
+	}
+
+	void Engine::scheduleResourceDestruction(VkBuffer buffer, VkDeviceMemory memory) {
+		if (destructionQueue) {
+			std::cout << "Engine: Scheduling buffer " << std::hex << (uint64_t)buffer
+				<< " and memory " << (uint64_t)memory << std::dec << " for destruction" << std::endl;
+			destructionQueue->pushBuffer(buffer, memory);
+		} else {
+			std::cout << "Engine: Warning - Cannot schedule buffer " << std::hex << (uint64_t)buffer
+				<< " for destruction - no destruction queue" << std::dec << std::endl;
 		}
 	}
 }

@@ -53,7 +53,19 @@ namespace vk {
 		}
 	}
 
-	Model::~Model() {}
+	Model::~Model() {
+	    auto destructionQueue = Engine::getDestructionQueue();
+	    if (destructionQueue) {
+	        if (vertexBuffer) {
+	            vertexBuffer->scheduleDestroy(*destructionQueue);
+	            vertexBuffer.reset();
+	        }
+	        if (indexBuffer) {
+	            indexBuffer->scheduleDestroy(*destructionQueue);
+	            indexBuffer.reset();
+	        }
+	    }
+	}
 
 	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename, bool isUI) {
 		Builder builder{};

@@ -65,9 +65,13 @@ namespace vk {
 			m_swapChain->waitForAllFences();
 		}
 		
+		std::cout << "Renderer: All fences signaled, now freeing command buffers and pools" << std::endl;
+		
 		for (uint32_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
-			vkFreeCommandBuffers(device.device(), m_framePools[i], 1, &m_commandBuffers[i]);
-			vkDestroyCommandPool(device.device(), m_framePools[i], nullptr);
+			if (m_commandBuffers[i] != VK_NULL_HANDLE && m_framePools[i] != VK_NULL_HANDLE) {
+				vkFreeCommandBuffers(device.device(), m_framePools[i], 1, &m_commandBuffers[i]);
+				vkDestroyCommandPool(device.device(), m_framePools[i], nullptr);
+			}
 		}
 		m_commandBuffers.clear();
 		m_framePools.clear();

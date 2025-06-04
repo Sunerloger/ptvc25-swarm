@@ -2,6 +2,7 @@
 
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
+#include "../../vk/vk_swap_chain.h"
 
 namespace vk {
 
@@ -20,7 +21,7 @@ namespace vk {
             const std::string& vertShaderPath, const std::string& fragShaderPath);
         ~UIMaterial() override;
 
-        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return textureDescriptorSet; }
+        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return textureDescriptorSets[frameIndex]; }
         VkDescriptorSetLayout getDescriptorSetLayout() const override {
             return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
         }
@@ -37,7 +38,7 @@ namespace vk {
             int width, int height, int channels);
         void createTextureImageView();
         void createTextureSampler();
-        void createDescriptorSet();
+        void createDescriptorSets();
 
         static void createDescriptorSetLayoutIfNeeded(Device& device);
 
@@ -45,6 +46,6 @@ namespace vk {
         VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
         VkImageView textureImageView = VK_NULL_HANDLE;
         VkSampler textureSampler = VK_NULL_HANDLE;
-        VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> textureDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
     };
 }
