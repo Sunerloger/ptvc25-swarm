@@ -92,4 +92,5 @@ class Swarm : public GameBase {
 	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};	// Store terrain position
 
 	std::shared_ptr<Model> enemyModel;
+	std::shared_ptr<Model> grenadeModel;
 };

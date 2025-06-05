@@ -9,7 +9,8 @@
 
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
 	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
-	enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
+	enemyModel = Model::createModelFromFile(device, "models:enemy.glb");
+	grenadeModel = Model::createModelFromFile(device, "models:grenade.glb");
 }
 
 void Swarm::bindInput() {
@@ -35,6 +36,13 @@ void Swarm::bindInput() {
 		Player* player = sceneManager.getPlayer();
 		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
 			static_cast<physics::PhysicsPlayer*>(player)->handleShoot();
+		}
+	};
+
+	swarmInput.onThrowGrenade = [this, &sceneManager]() {
+		Player* player = sceneManager.getPlayer();
+		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
+			static_cast<physics::PhysicsPlayer*>(player)->handleThrowGrenade(device, grenadeModel);
 		}
 	};
 
@@ -334,7 +342,7 @@ void Swarm::init() {
 
 	// Enemies
 	{
-		float enemyHullHeight = 1.25f;
+		float enemyHullHeight = 1.5f;
 		float enemyRadius = 0.3f;
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 		float enemySpawnMinRadius = 20.0f;
@@ -567,7 +575,7 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	if (elapsedTime >= 10.0f && newSecond % 10 == 0 && newSecond != lastSpawnSecond) {
 		printf("Spawning new enemy wave at %d seconds\n", newSecond);
 		lastSpawnSecond = newSecond;
-		float enemyHullHeight = 1.25f;
+		float enemyHullHeight = 1.5f;
 		float enemyRadius = 0.3f;
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
 		float enemySpawnMinRadius = 20.0f;
@@ -637,12 +645,15 @@ void Swarm::prePhysicsUpdate() {
 	if (!isDebugActive) {
 		Player* player = sceneManager.getPlayer();
 		if (player && player->isPhysicsPlayer()) {
-			static_cast<physics::PhysicsPlayer*>(player)->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+			physics::PhysicsPlayer* physicsPlayer = static_cast<physics::PhysicsPlayer*>(player);
+			physicsPlayer->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+			physicsPlayer->updateGrenadeCooldown(physicsSimulation.cPhysicsDeltaTime);
 		}
 	}
 
 	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but in a separate event manager -> also updates timers stored in sceneManager every frame)
 	sceneManager.updateEnemyPhysics(physicsSimulation.cPhysicsDeltaTime);
+	sceneManager.updatePhysicsEntities(physicsSimulation.cPhysicsDeltaTime);
 }
 
 void Swarm::postPhysicsUpdate() {}

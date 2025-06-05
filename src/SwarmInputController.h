@@ -39,6 +39,7 @@ namespace input {
 		std::function<void(float dx, float dy)> onLook;
 		std::function<void()> onJump;
 		std::function<void()> onShoot;
+		std::function<void()> onThrowGrenade;
 
 		std::function<void()> onToggleDebug;
 

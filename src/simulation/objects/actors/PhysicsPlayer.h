@@ -11,26 +11,28 @@
 #include "../../PhysicsConversions.h"
 
 #include <functional>
+#include <chrono>
 
 namespace physics {
 
 	class PhysicsPlayer : public Player, public IPhysicsEntity {
-
-	public:
-
+	   public:
 		struct PlayerSettings {
-
 			// update per second
 			float movementSpeed = 7.0f;
 			float jumpHeight = 1.0f;
 			bool controlMovementDuringJump = true;
 
 			float shootRange = 1000.0f;
+			float grenadeRange = 100.0f;
 			float shootDamage = 40.0f;
 			float knockbackSpeed = 10.0f;
 			float maxHealth = 100.0f;
 
 			float maxFloorSeparationDistance = 0.05f;
+
+			// Grenade cooldown in seconds (60 seconds = 1 minute)
+			float grenadeCooldownTime = 60.0f;
 
 			std::function<void()> deathCallback;
 		};
@@ -66,6 +68,12 @@ namespace physics {
 		void handleRotation(float deltaYaw, float deltaPitch) override;
 		void handleJump();
 		void handleShoot();
+		void handleThrowGrenade(vk::Device& device, std::shared_ptr<vk::Model> grenadeModel);
+
+		// Grenade cooldown methods
+		bool canThrowGrenade() const;
+		float getGrenadeCooldownRemaining() const;
+		void updateGrenadeCooldown(float deltaTime);
 
 		float getMaxHealth() const;
 		float getCurrentHealth() const override;
@@ -73,37 +81,55 @@ namespace physics {
 		bool isDead() const;
 
 		const glm::vec3 getCameraPosition() const;
-		inline const glm::mat4 calculateViewMat() const override { return camera.calculateViewMat(); }
-		inline const glm::mat4 getProjMat() const override { return camera.getProjMat(); }
-		inline const glm::vec3 getFront() const { return camera.getFront(); }
+		inline const glm::mat4 calculateViewMat() const override {
+			return camera.calculateViewMat();
+		}
+		inline const glm::mat4 getProjMat() const override {
+			return camera.getProjMat();
+		}
+		inline const glm::vec3 getFront() const {
+			return camera.getFront();
+		}
 
 		void printInfo(int iterationStep) const override;
 
 		JPH::BodyID getBodyID() const override;
 
-		inline void setViewDirection(glm::vec3 direction) { camera.setViewDirection(direction); }
-		inline void setViewTarget(glm::vec3 target) { camera.setViewTarget(target); }
+		inline void setViewDirection(glm::vec3 direction) {
+			camera.setViewDirection(direction);
+		}
+		inline void setViewTarget(glm::vec3 target) {
+			camera.setViewTarget(target);
+		}
 
-		inline void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) { 
-			camera.setOrthographicProjection(left, right, top, bottom, near, far); }
+		inline void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {
+			camera.setOrthographicProjection(left, right, top, bottom, near, far);
+		}
 		inline void setPerspectiveProjection(float fov, float aspect, float near, float far) override {
-			camera.setPerspectiveProjection(fov, aspect, near, far); }
+			camera.setPerspectiveProjection(fov, aspect, near, far);
+		}
 
-		inline CharacterCameraSettings getCameraSettings() const override { return camera.getSettings(); }
+		inline CharacterCameraSettings getCameraSettings() const override {
+			return camera.getSettings();
+		}
 
 		glm::mat4 computeModelMatrix() const override;
 		glm::mat4 computeNormalMatrix() const override;
 		glm::vec3 getPosition() const override;
-		inline std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
-		inline float getMovementSpeed() const override { return settings.movementSpeed; }
-		
-		bool isPhysicsPlayer() const override { return true; }
+		inline std::shared_ptr<vk::Model> getModel() const override {
+			return nullptr;
+		}
+		inline float getMovementSpeed() const override {
+			return settings.movementSpeed;
+		}
+
+		bool isPhysicsPlayer() const override {
+			return true;
+		}
 
 		PlayerCreationSettings getCreationSettings() const;
 
-
-	private:
-
+	   private:
 		JPH::CharacterSettings characterSettings;
 
 		CharacterCamera camera;
@@ -111,8 +137,12 @@ namespace physics {
 
 		JPH::PhysicsSystem& physics_system;
 
-		glm::vec3 currentMovementDirection = glm::vec3{ 0 };
+		glm::vec3 currentMovementDirection = glm::vec3{0};
 
 		float currentHealth = 100.0f;
+
+		// Grenade cooldown system
+		std::chrono::steady_clock::time_point lastGrenadeThrowTime;
+		bool hasGrenadeAvailable = true;  // Start with one grenade available
 	};
 }

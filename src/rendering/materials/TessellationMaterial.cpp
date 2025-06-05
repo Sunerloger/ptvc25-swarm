@@ -136,6 +136,9 @@ namespace vk {
 	}
 
 	TessellationMaterial::~TessellationMaterial() {
+		// Wait for GPU to finish using resources before destroying them
+		vkDeviceWaitIdle(device.device());
+		
 		// Clean up resources
 		vkDestroySampler(device.device(), textureSampler, nullptr);
 		vkDestroyImageView(device.device(), textureImageView, nullptr);
