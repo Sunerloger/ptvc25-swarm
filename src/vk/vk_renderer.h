@@ -26,7 +26,7 @@ namespace vk {
 		}
 		VkCommandBuffer getCurrentCommandBuffer() const {
 			assert(isFrameStarted && "Cannot get command buffer when frame not in progress.");
-			return m_commandBuffers[currentFrameIndex];
+			return m_commandBuffers[currentRenderFrameIndex];
 		}
 
 		VkCommandBuffer beginFrame();
@@ -36,7 +36,7 @@ namespace vk {
 
 		int getFrameIndex() const {
 			assert(isFrameStarted && "Cannot get frame index when frame not in progress.");
-			return currentFrameIndex;
+			return currentRenderFrameIndex;
 		}
 		void recreateSwapChain();
 		
@@ -56,7 +56,7 @@ namespace vk {
 		std::vector<VkCommandBuffer> m_commandBuffers;
 
 		uint32_t currentImageIndex;
-		int currentFrameIndex{0};
+		int currentRenderFrameIndex{0};
 		bool isFrameStarted{false};
 	};
 }

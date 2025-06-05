@@ -1,4 +1,4 @@
-#include "tessellation_render_system.h"
+#include "terrain_render_system.h"
 
 #include <stdexcept>
 #include <glm/glm.hpp>
@@ -9,17 +9,17 @@
 
 namespace vk {
 
-	TessellationRenderSystem::TessellationRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout)
+	TerrainRenderSystem::TerrainRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout)
 		: device{ device }, renderer{ renderer }, globalSetLayout{ globalSetLayout } {
 	}
 
-	TessellationRenderSystem::~TessellationRenderSystem() {
+	TerrainRenderSystem::~TerrainRenderSystem() {
 		for (auto& [key, layout] : pipelineLayoutCache) {
 			vkDestroyPipelineLayout(device.device(), layout, nullptr);
 		}
 	}
 
-	void TessellationRenderSystem::getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
+	void TerrainRenderSystem::getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
 		// Check if we already have a pipeline layout for this material layout
 		auto it = pipelineLayoutCache.find(materialSetLayout);
 		if (it != pipelineLayoutCache.end()) {
@@ -28,10 +28,10 @@ namespace vk {
 		}
 
 		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | 
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT |
 		                               VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(TessellationPushConstantData);
+		pushConstantRange.size = sizeof(TerrainPushConstantData);
 
 		std::vector<VkDescriptorSetLayout> setLayouts = { globalSetLayout, materialSetLayout };
 
@@ -51,7 +51,7 @@ namespace vk {
 	}
 
 
-	TessellationRenderSystem::PipelineInfo& TessellationRenderSystem::getPipeline(const Material& material) {
+	TerrainRenderSystem::PipelineInfo& TerrainRenderSystem::getPipeline(const Material& material) {
 		// Get the material's pipeline configuration
 		PipelineConfigInfo config = material.getPipelineConfig();
 
@@ -84,11 +84,11 @@ namespace vk {
 		return pipelineCache[config] = std::move(pipelineInfo);
 	}
 
-	void TessellationRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
+	void TerrainRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
 		SceneManager& sceneManager = SceneManager::getInstance();
 
-		// render all tessellation objects
-		for (std::weak_ptr<GameObject> weakObj : sceneManager.getTessellationRenderObjects()) {
+		// render all terrain objects
+		for (std::weak_ptr<GameObject> weakObj : sceneManager.getTerrainRenderObjects()) {
 			std::shared_ptr<GameObject> gameObject = weakObj.lock();
 			if (!gameObject || !gameObject->getModel())
 				continue;
@@ -114,7 +114,7 @@ namespace vk {
 				0, nullptr
 			);
 
-			TessellationPushConstantData push{};
+			TerrainPushConstantData push{};
 
 			// Use the game object's model matrix and normal matrix
 			push.modelMatrix = gameObject->computeModelMatrix();
@@ -125,15 +125,15 @@ namespace vk {
 			int hasTexture = material->getDescriptorSet(renderer.getFrameIndex()) != VK_NULL_HANDLE ? 1 : 0;
 			
 			auto tessMat = std::static_pointer_cast<TessellationMaterial>(material);
-			assert(tessMat && "All tess-objects must use TessellationMaterial");
+			assert(tessMat && "All terrain objects must use TessellationMaterial");
 
 			vkCmdPushConstants(
 				frameInfo.commandBuffer,
 				pipelineInfo.pipelineLayout,
-				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | 
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT |
 				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
 				0,
-				sizeof(TessellationPushConstantData),
+				sizeof(TerrainPushConstantData),
 				&push
 			);
 

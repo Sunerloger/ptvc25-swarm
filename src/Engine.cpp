@@ -16,7 +16,7 @@ namespace vk {
 		
 		if (!destructionQueue) {
 			std::cout << "Engine: Creating destruction queue" << std::endl;
-			destructionQueue = std::make_unique<DestructionQueue>(device, renderer.getSwapChain());
+			destructionQueue = std::make_unique<DestructionQueue>(device, &renderer.getSwapChain());
 		}
 
 		game.init();
@@ -80,7 +80,7 @@ namespace vk {
 			globalSetLayout->getDescriptorSetLayout()
 		};
 
-		TessellationRenderSystem tessellationRenderSystem{
+		TerrainRenderSystem terrainRenderSystem{
 			device,
 			renderer,
 			globalSetLayout->getDescriptorSetLayout()
@@ -115,6 +115,7 @@ namespace vk {
 
 			if (window.framebufferResized) {
 				renderer.recreateSwapChain();
+				destructionQueue->setSwapChain(&renderer.getSwapChain());
 				window.framebufferResized = false;
 			}
 
@@ -178,7 +179,7 @@ namespace vk {
 
 				renderer.beginSwapChainRenderPass(commandBuffer);
 				textureRenderSystem.renderGameObjects(frameInfo);
-				tessellationRenderSystem.renderGameObjects(frameInfo);
+				terrainRenderSystem.renderGameObjects(frameInfo);
 				waterRenderSystem.renderGameObjects(frameInfo);
 
 				VkClearAttachment clearAttachment{};

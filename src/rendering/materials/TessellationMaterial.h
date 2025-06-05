@@ -86,11 +86,33 @@ namespace vk {
         
         static void createDescriptorSetLayoutIfNeeded(Device& device);
         
-        // Texture resources
-        VkImage textureImage = VK_NULL_HANDLE;
-        VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
-        VkImageView textureImageView = VK_NULL_HANDLE;
-        VkSampler textureSampler = VK_NULL_HANDLE;
+        // fractal Brownian motion noise
+        float TessellationMaterial::seamlessFbm(const glm::vec2& uv, float scale, int octaves, float lacunarity, float gain);
+        
+        float cellular(const glm::vec2& p, float cellSize);
+        
+        // Generate procedural textures
+        void generateRockTexture(int width, int height);
+        void generateGrassTexture(int width, int height);
+        void generateSnowTexture(int width, int height);
+        
+        // Rock texture resources
+        VkImage rockTextureImage = VK_NULL_HANDLE;
+        VkDeviceMemory rockTextureImageMemory = VK_NULL_HANDLE;
+        VkImageView rockTextureImageView = VK_NULL_HANDLE;
+        VkSampler rockTextureSampler = VK_NULL_HANDLE;
+        
+        // Grass texture resources
+        VkImage grassTextureImage = VK_NULL_HANDLE;
+        VkDeviceMemory grassTextureImageMemory = VK_NULL_HANDLE;
+        VkImageView grassTextureImageView = VK_NULL_HANDLE;
+        VkSampler grassTextureSampler = VK_NULL_HANDLE;
+        
+        // Snow texture resources
+        VkImage snowTextureImage = VK_NULL_HANDLE;
+        VkDeviceMemory snowTextureImageMemory = VK_NULL_HANDLE;
+        VkImageView snowTextureImageView = VK_NULL_HANDLE;
+        VkSampler snowTextureSampler = VK_NULL_HANDLE;
         
         // Heightmap resources (optional)
         VkImage heightmapImage = VK_NULL_HANDLE;

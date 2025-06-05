@@ -34,10 +34,7 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     vec4 cameraPosition;
 } globalUbo;
 
-// Optional heightmap texture
-layout(set = 1, binding = 1) uniform sampler2D heightMap;
-
-layout(set = 1, binding = 2) uniform Ubo {
+layout(set = 1, binding = 0) uniform Ubo {
     // x = maxTessLevel, max tessellation subdivisions
     // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
     // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
@@ -52,6 +49,9 @@ layout(set = 1, binding = 2) uniform Ubo {
     // x: ambient factor, y: diffuse factor, z: specular factor, w: shininess
     vec4 lightingProperties;
 } modelUbo;
+
+// optional heightmap texture
+layout(set = 1, binding = 4) uniform sampler2D heightMap;
 
 float sampleHeightOffset(vec2 uv) {
     // texture automatically normalized to [0,1]

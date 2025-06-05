@@ -26,10 +26,8 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     vec4 cameraPosition;
 } globalUbo;
 
-// Terrain texture
-layout(set = 1, binding = 0) uniform sampler2D texSampler;
-
-layout(set = 1, binding = 2) uniform Ubo {
+// Terrain textures
+layout(set = 1, binding = 0) uniform Ubo {
     // x = maxTessLevel, max tessellation subdivisions
     // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
     // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
@@ -45,10 +43,14 @@ layout(set = 1, binding = 2) uniform Ubo {
     vec4 lightingProperties;
 } modelUbo;
 
-vec3 phong( vec3 n, vec3 l, vec3 v,
-            vec3 diffuseC, float diffuseF,
-            vec3 specularC, float specularF,
-            float alpha, bool attenuate, vec3 attenuation)
+layout(set = 1, binding = 1) uniform sampler2D rockTexture;
+layout(set = 1, binding = 2) uniform sampler2D grassTexture;
+layout(set = 1, binding = 3) uniform sampler2D snowTexture;
+
+vec3 phong(vec3 n, vec3 l, vec3 v,
+           vec3 diffuseC, float diffuseF,
+           vec3 specularC, float specularF,
+           float alpha, bool attenuate, vec3 attenuation)
 {
     float d = length(l);
     l = normalize(l);
@@ -59,21 +61,46 @@ vec3 phong( vec3 n, vec3 l, vec3 v,
 
     vec3 r = reflect(-l, n);
     
-    return (diffuseF * diffuseC * max(0, dot(n, l)) + specularF * specularC * pow(max(0, dot(r, v)), alpha)) * att; 
+    return (diffuseF * diffuseC * max(0, dot(n, l)) + specularF * specularC * pow(max(0, dot(r, v)), alpha)) * att;
 }
 
 vec3 clampedReflect(vec3 I, vec3 N)
 {
-	return I - 2.0 * min(dot(N, I), 0.0) * N;
+    return I - 2.0 * min(dot(N, I), 0.0) * N;
 }
 
 void main() {
-    vec3 N = normalize( fragNormalWorld );
+    vec3 N = normalize(fragNormalWorld);
     vec3 V = normalize(fragPosWorld - globalUbo.cameraPosition.xyz);
 
-    vec3 diffuseColor = fragColor;
-    if (modelUbo.textureParams.z > 0.0) {  // hasTexture is in params1.x
-        diffuseColor = texture(texSampler, fragTexCoord).rgb;
+    float normalizedHeight = clamp((fragHeight + modelUbo.tessParams.w) / (2.0 * modelUbo.tessParams.w), 0.0, 1.0);
+    
+    float wave = sin(fragPosWorld.x * 0.1) * cos(fragPosWorld.z * 0.1) * 0.1f;
+
+    float rockBase    = 0.4;
+    float grassBase   = 0.6;
+
+    float rockThreshold = rockBase + wave;
+    float grassThreshold = grassBase + wave;
+    float blendRange = 0.015;
+    
+    vec2 scaledTexCoord = fragTexCoord * modelUbo.textureParams.xy;
+    vec3 rockColor = texture(rockTexture, scaledTexCoord).rgb;
+    vec3 grassColor = texture(grassTexture, scaledTexCoord).rgb;
+    vec3 snowColor = texture(snowTexture, scaledTexCoord).rgb;
+    
+    float rockWeight = 1.0 - smoothstep(rockThreshold - blendRange, rockThreshold + blendRange, normalizedHeight);
+    float grassWeight = smoothstep(rockThreshold - blendRange, rockThreshold + blendRange, normalizedHeight)
+                      * (1.0 - smoothstep(grassThreshold - blendRange, grassThreshold + blendRange, normalizedHeight));
+    float snowWeight = smoothstep(grassThreshold - blendRange, grassThreshold + blendRange, normalizedHeight);
+    
+    vec3 diffuseColor = rockColor * rockWeight + grassColor * grassWeight + snowColor * snowWeight;
+    
+    // slope-based blending (less snow on steep slopes)
+    float slope = 1.0 - abs(dot(N, vec3(0.0, 1.0, 0.0)));
+    if (slope > 0.5) {
+        float slopeBlend = smoothstep(0.5, 0.9, slope);
+        diffuseColor = mix(diffuseColor, rockColor, slopeBlend * snowWeight);
     }
 
     vec3 light = diffuseColor * modelUbo.lightingProperties.x;

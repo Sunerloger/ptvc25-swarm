@@ -35,7 +35,7 @@ layout(set = 0, binding = 0) uniform GlobalUbo {
     vec4 cameraPosition;
 } globalUbo;
 
-layout(set = 1, binding = 2) uniform Ubo {
+layout(set = 1, binding = 0) uniform Ubo {
     // x = maxTessLevel, max tessellation subdivisions
     // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
     // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)

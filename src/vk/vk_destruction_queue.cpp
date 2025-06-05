@@ -5,7 +5,7 @@
 
 namespace vk {
 
-DestructionQueue::DestructionQueue(Device& device, SwapChain& swapChain)
+DestructionQueue::DestructionQueue(Device& device, SwapChain* swapChain)
     : device(device), swapChain(swapChain) {
 }
 
@@ -15,64 +15,111 @@ DestructionQueue::~DestructionQueue() {
 
 void DestructionQueue::pushBuffer(VkBuffer buffer, VkDeviceMemory memory) {
     if (buffer != VK_NULL_HANDLE || memory != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].buffers.push_back({buffer, memory});
+        // during resize operations, add to immediate deletion queue instead of frame-based queue
+        // this ensures resources are properly tracked even during resize
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.buffers.push_back({buffer, memory});
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            
+        	frameDeletionQueues[frameIndex].buffers.push_back({buffer, memory});
+        }
     }
 }
 
 void DestructionQueue::pushImage(VkImage image, VkDeviceMemory memory) {
     if (image != VK_NULL_HANDLE || memory != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].images.push_back({image, memory});
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.images.push_back({image, memory});
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].images.push_back({image, memory});
+        }
     }
 }
 
 void DestructionQueue::pushImageView(VkImageView imageView) {
     if (imageView != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].imageViews.push_back(imageView);
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.imageViews.push_back(imageView);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].imageViews.push_back(imageView);
+        }
     }
 }
 
 void DestructionQueue::pushSampler(VkSampler sampler) {
     if (sampler != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].samplers.push_back(sampler);
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.samplers.push_back(sampler);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].samplers.push_back(sampler);
+        }
     }
 }
 
 void DestructionQueue::pushPipeline(VkPipeline pipeline) {
     if (pipeline != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].pipelines.push_back(pipeline);
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.pipelines.push_back(pipeline);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].pipelines.push_back(pipeline);
+        }
     }
 }
 
 void DestructionQueue::pushPipelineLayout(VkPipelineLayout pipelineLayout) {
     if (pipelineLayout != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].pipelineLayouts.push_back(pipelineLayout);
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.pipelineLayouts.push_back(pipelineLayout);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].pipelineLayouts.push_back(pipelineLayout);
+        }
     }
 }
 
 void DestructionQueue::pushDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout) {
     if (descriptorSetLayout != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].descriptorSetLayouts.push_back(descriptorSetLayout);
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.descriptorSetLayouts.push_back(descriptorSetLayout);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].descriptorSetLayouts.push_back(descriptorSetLayout);
+        }
     }
 }
 
 void DestructionQueue::pushDescriptorPool(VkDescriptorPool descriptorPool) {
     if (descriptorPool != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].descriptorPools.push_back(descriptorPool);
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.descriptorPools.push_back(descriptorPool);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].descriptorPools.push_back(descriptorPool);
+        }
     }
 }
 
 void DestructionQueue::pushDescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorPool parentPool) {
     if (descriptorSet != VK_NULL_HANDLE && parentPool != VK_NULL_HANDLE) {
-        uint32_t frameIndex = swapChain.getCurrentFrame();
-        frameDeletionQueues[frameIndex].descriptorSets.push_back({descriptorSet, parentPool});
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.descriptorSets.push_back({descriptorSet, parentPool});
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].descriptorSets.push_back({descriptorSet, parentPool});
+        }
     }
 }
 
@@ -204,15 +251,34 @@ void DestructionQueue::cleanupDeletionQueue(DeletionQueue& queue) {
 }
 
 void DestructionQueue::flush() {
+	static bool wasResizing = false;
+	bool isResizing = device.getWindow().framebufferResized;
 	
-	uint32_t currentFrame = swapChain.getCurrentFrame();
+	if (wasResizing && !isResizing) {
+		std::cout << "DestructionQueue: Resize operation completed, cleaning up immediate deletion queue" << std::endl;
+		cleanupDeletionQueue(immediateDeletionQueue);
+	}
+	
+	wasResizing = isResizing;
+	
+	if (isResizing) {
+		return;
+	}
+	
+	uint32_t currentFrame = swapChain->getCurrentFrame();
 	
 	// calculate the frame that was just completed
 	uint32_t frameToCleanup = (currentFrame + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 	
+	if (frameToCleanup >= frameDeletionQueues.size()) {
+		std::cout << "DestructionQueue: ERROR - frameToCleanup " << frameToCleanup
+			<< " is out of bounds (max: " << (frameDeletionQueues.size() - 1) << ")" << std::endl;
+		return;
+	}
+	
 	// wait for the fence of the frame we're about to clean up
 	// this ensures the GPU has finished using the resources
-	VkFence fenceToWait = swapChain.getInFlightFence(frameToCleanup);
+	VkFence fenceToWait = swapChain->getInFlightFence(frameToCleanup);
 	if (fenceToWait != VK_NULL_HANDLE) {
 		VkResult result = vkWaitForFences(
 			device.device(),
@@ -239,7 +305,7 @@ void DestructionQueue::cleanup() {
 	
 	// Wait for all in-flight fences from the swapchain
 	// more targeted than vkDeviceWaitIdle and allows other swapchains to continue working
-	swapChain.waitForAllFences();
+	swapChain->waitForAllFences();
 	
 	std::cout << "DestructionQueue: All fences signaled, cleaning up resources" << std::endl;
 	

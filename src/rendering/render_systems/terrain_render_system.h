@@ -12,16 +12,16 @@
 
 namespace vk {
 
-    struct TessellationPushConstantData {
+    struct TerrainPushConstantData {
         glm::mat4 modelMatrix{1.0f};
         glm::mat4 normalMatrix{1.0f};
     };
 
-    class TessellationRenderSystem {
+    class TerrainRenderSystem {
     
     public:
-        TessellationRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
-        ~TessellationRenderSystem();
+        TerrainRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
+        ~TerrainRenderSystem();
 
         void renderGameObjects(FrameInfo& frameInfo);
 

@@ -62,7 +62,7 @@ void Swarm::bindInput() {
 	};
 
 	swarmInput.onToggleWireframeMode = [this, &sceneManager]() {
-		sceneManager.toggleWireframeOnTessellationObjects();
+		sceneManager.toggleWireframeOnTerrainObjects();
 		sceneManager.toggleWireframeOnWaterObjects();
 	};
 
@@ -228,7 +228,7 @@ void Swarm::init() {
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
 
-	float maxTerrainHeight = 20.0f;
+	float maxTerrainHeight = 25.0f;
 
 	// Player
 	{
@@ -267,12 +267,8 @@ void Swarm::init() {
 		float noiseScale = 5.0f;   // Controls the "frequency" of the noise
 
 		TessellationMaterial::MaterialCreationData terrainCreationData = {};
-		terrainCreationData.textureRepetition = glm::vec2(samplesPerSide / 2.0f, samplesPerSide / 2.0f);
+		terrainCreationData.textureRepetition = glm::vec2(samplesPerSide / 20.0f, samplesPerSide / 20.0f);
 		terrainCreationData.heightScale = maxTerrainHeight;
-		terrainCreationData.ka = 0.0f;
-		terrainCreationData.kd = 1.0f;
-		terrainCreationData.ks = 0.0f;
-		terrainCreationData.alpha = 10.0f;
 
 		// Generate terrain model with heightmap
 		auto result = vk::Model::createTerrainModel(
@@ -295,7 +291,7 @@ void Swarm::init() {
 			glm::vec3{0.0, -2.0, 0.0},	// position slightly below origin to prevent falling through
 			glm::vec3{100.0f, maxTerrainHeight, 100.0f},
 			std::move(result.second));
-		sceneManager.addTessellationObject(std::move(terrain));
+		sceneManager.addTerrainObject(std::move(terrain));
 	}
 	// Skybox
 	{

@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <glm/gtc/noise.hpp>
 
 namespace vk {
 
@@ -39,10 +40,12 @@ namespace vk {
         
         instanceCount++;
         
-        uint32_t textureMipLevels = createTextureImage(texturePath, textureImage, textureImageMemory);
-        textureImageView = createImageView(textureImage);
-        createTextureSampler(static_cast<float>(textureMipLevels), textureSampler);
-
+        // Generate procedural textures (256x256 resolution)
+        const int textureSize = 256;
+        generateRockTexture(textureSize, textureSize);
+        generateGrassTexture(textureSize, textureSize);
+        generateSnowTexture(textureSize, textureSize);
+        
         materialData.textureParams.w = true;
         uint32_t heightmapMipLevels = createTextureImage(heightmapPath, heightmapImage, heightmapImageMemory);
         heightmapImageView = createImageView(heightmapImage);
@@ -56,20 +59,52 @@ namespace vk {
         
         if (destructionQueue) {
             // schedule resources for safe destruction
-            if (textureSampler != VK_NULL_HANDLE) {
-                destructionQueue->pushSampler(textureSampler);
-                textureSampler = VK_NULL_HANDLE;
+            if (rockTextureSampler != VK_NULL_HANDLE) {
+                destructionQueue->pushSampler(rockTextureSampler);
+                rockTextureSampler = VK_NULL_HANDLE;
             }
             
-            if (textureImageView != VK_NULL_HANDLE) {
-                destructionQueue->pushImageView(textureImageView);
-                textureImageView = VK_NULL_HANDLE;
+            if (rockTextureImageView != VK_NULL_HANDLE) {
+                destructionQueue->pushImageView(rockTextureImageView);
+                rockTextureImageView = VK_NULL_HANDLE;
             }
             
-            if (textureImage != VK_NULL_HANDLE && textureImageMemory != VK_NULL_HANDLE) {
-                destructionQueue->pushImage(textureImage, textureImageMemory);
-                textureImage = VK_NULL_HANDLE;
-                textureImageMemory = VK_NULL_HANDLE;
+            if (rockTextureImage != VK_NULL_HANDLE && rockTextureImageMemory != VK_NULL_HANDLE) {
+                destructionQueue->pushImage(rockTextureImage, rockTextureImageMemory);
+                rockTextureImage = VK_NULL_HANDLE;
+                rockTextureImageMemory = VK_NULL_HANDLE;
+            }
+            
+            if (grassTextureSampler != VK_NULL_HANDLE) {
+                destructionQueue->pushSampler(grassTextureSampler);
+                grassTextureSampler = VK_NULL_HANDLE;
+            }
+            
+            if (grassTextureImageView != VK_NULL_HANDLE) {
+                destructionQueue->pushImageView(grassTextureImageView);
+                grassTextureImageView = VK_NULL_HANDLE;
+            }
+            
+            if (grassTextureImage != VK_NULL_HANDLE && grassTextureImageMemory != VK_NULL_HANDLE) {
+                destructionQueue->pushImage(grassTextureImage, grassTextureImageMemory);
+                grassTextureImage = VK_NULL_HANDLE;
+                grassTextureImageMemory = VK_NULL_HANDLE;
+            }
+            
+            if (snowTextureSampler != VK_NULL_HANDLE) {
+                destructionQueue->pushSampler(snowTextureSampler);
+                snowTextureSampler = VK_NULL_HANDLE;
+            }
+            
+            if (snowTextureImageView != VK_NULL_HANDLE) {
+                destructionQueue->pushImageView(snowTextureImageView);
+                snowTextureImageView = VK_NULL_HANDLE;
+            }
+            
+            if (snowTextureImage != VK_NULL_HANDLE && snowTextureImageMemory != VK_NULL_HANDLE) {
+                destructionQueue->pushImage(snowTextureImage, snowTextureImageMemory);
+                snowTextureImage = VK_NULL_HANDLE;
+                snowTextureImageMemory = VK_NULL_HANDLE;
             }
             
             for (int i = 0; i < textureDescriptorSets.size(); i++) {
@@ -104,20 +139,52 @@ namespace vk {
             }
         } else {
             // fallback to immediate destruction if queue is not available
-            if (textureSampler != VK_NULL_HANDLE) {
-                vkDestroySampler(device.device(), textureSampler, nullptr);
+            if (rockTextureSampler != VK_NULL_HANDLE) {
+                vkDestroySampler(device.device(), rockTextureSampler, nullptr);
             }
             
-            if (textureImageView != VK_NULL_HANDLE) {
-                vkDestroyImageView(device.device(), textureImageView, nullptr);
+            if (rockTextureImageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(device.device(), rockTextureImageView, nullptr);
             }
             
-            if (textureImage != VK_NULL_HANDLE) {
-                vkDestroyImage(device.device(), textureImage, nullptr);
+            if (rockTextureImage != VK_NULL_HANDLE) {
+                vkDestroyImage(device.device(), rockTextureImage, nullptr);
             }
             
-            if (textureImageMemory != VK_NULL_HANDLE) {
-                vkFreeMemory(device.device(), textureImageMemory, nullptr);
+            if (rockTextureImageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(device.device(), rockTextureImageMemory, nullptr);
+            }
+            
+            if (grassTextureSampler != VK_NULL_HANDLE) {
+                vkDestroySampler(device.device(), grassTextureSampler, nullptr);
+            }
+            
+            if (grassTextureImageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(device.device(), grassTextureImageView, nullptr);
+            }
+            
+            if (grassTextureImage != VK_NULL_HANDLE) {
+                vkDestroyImage(device.device(), grassTextureImage, nullptr);
+            }
+            
+            if (grassTextureImageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(device.device(), grassTextureImageMemory, nullptr);
+            }
+            
+            if (snowTextureSampler != VK_NULL_HANDLE) {
+                vkDestroySampler(device.device(), snowTextureSampler, nullptr);
+            }
+            
+            if (snowTextureImageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(device.device(), snowTextureImageView, nullptr);
+            }
+            
+            if (snowTextureImage != VK_NULL_HANDLE) {
+                vkDestroyImage(device.device(), snowTextureImage, nullptr);
+            }
+            
+            if (snowTextureImageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(device.device(), snowTextureImageMemory, nullptr);
             }
             
             if (materialData.textureParams.w) {
@@ -169,16 +236,17 @@ namespace vk {
 
     void TessellationMaterial::createDescriptorSetLayoutIfNeeded(Device& device) {
         if (descriptorSetLayout == nullptr) {
-            // color texture sampler and heightmap sampler
             descriptorSetLayout = DescriptorSetLayout::Builder(device)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
-                .addBinding(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
                 .build();
 
             descriptorPool = DescriptorPool::Builder(device)
-                .setMaxSets(200 * SwapChain::MAX_FRAMES_IN_FLIGHT)
-                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 * 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .setMaxSets(500 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 * 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .build();
         }
@@ -290,10 +358,20 @@ namespace vk {
             paramsBuffers[i]->map();
         }
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = textureImageView;
-        imageInfo.sampler = textureSampler;
+        VkDescriptorImageInfo rockImageInfo{};
+        rockImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        rockImageInfo.imageView = rockTextureImageView;
+        rockImageInfo.sampler = rockTextureSampler;
+
+        VkDescriptorImageInfo grassImageInfo{};
+        grassImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        grassImageInfo.imageView = grassTextureImageView;
+        grassImageInfo.sampler = grassTextureSampler;
+
+        VkDescriptorImageInfo snowImageInfo{};
+        snowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        snowImageInfo.imageView = snowTextureImageView;
+        snowImageInfo.sampler = snowTextureSampler;
 
         VkDescriptorImageInfo heightImageInfo{};
         heightImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -303,9 +381,11 @@ namespace vk {
         for (int i = 0; i < textureDescriptorSets.size(); i++) {
             auto bufferInfo = paramsBuffers[i]->descriptorInfo();
             DescriptorWriter(*descriptorSetLayout, *descriptorPool)
-                .writeImage(0, &imageInfo)
-                .writeImage(1, &heightImageInfo)
-                .writeBuffer(2, &bufferInfo)
+                .writeBuffer(0, &bufferInfo)
+                .writeImage(1, &rockImageInfo)
+                .writeImage(2, &grassImageInfo)
+                .writeImage(3, &snowImageInfo)
+                .writeImage(4, &heightImageInfo)
                 .build(textureDescriptorSets[i]);
         }
     }
@@ -319,5 +399,179 @@ namespace vk {
         materialData.tessParams = glm::vec4{ creationData.maxTessLevel, creationData.minTessDistance, creationData.maxTessDistance, creationData.heightScale };
         materialData.textureParams = glm::vec4{ creationData.textureRepetition, 1.0f, 1.0f };
         materialData.lightingProperties = glm::vec4{ creationData.ka, creationData.kd, creationData.ks, creationData.alpha };
+    }
+    
+    // fractal Brownian motion (layered noise)
+    float TessellationMaterial::seamlessFbm(const glm::vec2& uv, float scale, int octaves, float lacunarity, float gain) {
+        float sum = 0.0f;
+        float amp = 1.0f;
+        float freq = 1.0f;
+        for (int i = 0; i < octaves; i++) {
+            glm::vec2 p = uv * scale * freq;
+            float angleX = p.x * 2.0f * glm::pi<float>();
+            float angleY = p.y * 2.0f * glm::pi<float>();
+            glm::vec4 samplePos = glm::vec4(
+                std::cos(angleX), std::sin(angleX),
+                std::cos(angleY), std::sin(angleY)
+            );
+            sum += amp * glm::perlin(samplePos);  // sample 4D Perlin to wrap seamlessly
+            freq *= lacunarity;
+            amp *= gain;
+        }
+        return sum * 0.5f + 0.5f;  // [0,1]
+    }
+    
+    float TessellationMaterial::cellular(const glm::vec2& p, float cellSize) {
+        glm::vec2 baseCell = glm::floor(p / cellSize);
+        
+        float minDist = 1.0f;
+        
+        for (int y = -1; y <= 1; y++) {
+            for (int x = -1; x <= 1; x++) {
+                glm::vec2 cellPos = baseCell + glm::vec2(x, y);
+                
+                glm::vec2 cellOffset = glm::vec2(
+                    glm::fract(glm::sin(glm::dot(cellPos, glm::vec2(127.1f, 311.7f))) * 43758.5453f),
+                    glm::fract(glm::sin(glm::dot(cellPos, glm::vec2(269.5f, 183.3f))) * 43758.5453f)
+                );
+                
+                glm::vec2 featurePoint = cellPos + cellOffset;
+                
+                float dist = glm::length((p / cellSize) - featurePoint);
+                
+                minDist = glm::min(minDist, dist);
+            }
+        }
+        
+        return minDist;
+    }
+    
+    void TessellationMaterial::generateRockTexture(int width, int height) {
+        std::vector<unsigned char> textureData(width * height * 4);
+        
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float nx = static_cast<float>(x) / width;
+                float ny = static_cast<float>(y) / height;
+                
+                // rock cracks
+                float cellNoise1 = cellular(glm::vec2(nx * 1.5f, ny * 1.5f), 0.4f);
+                float cellNoise2 = cellular(glm::vec2(nx * 1.5f + 0.5f, ny * 1.5f + 0.5f), 0.5f);
+                
+                float crackPattern = (1.0f - cellNoise1) * (1.0f - cellNoise2) * 4.0f;
+                crackPattern = glm::clamp(crackPattern, 0.0f, 1.0f);
+                
+                float largeDetail = seamlessFbm(glm::vec2(nx, ny), 2.5f, 4, 2.0f, 0.5f);
+                float smallDetail = seamlessFbm(glm::vec2(nx, ny), 12.0f, 4, 2.0f, 0.4f);
+                
+                float rockPattern = largeDetail * 0.2f + smallDetail * 0.1f + crackPattern * 0.7f;
+                
+                glm::vec3 baseStone = glm::vec3(0.12f, 0.10f, 0.08f);
+                glm::vec3 colorVariation = glm::vec3(rockPattern * 0.6f, rockPattern * 0.55f, rockPattern * 0.5f);
+                glm::vec3 stoneRGB = baseStone + colorVariation;
+                unsigned char r = static_cast<unsigned char>(glm::clamp(stoneRGB.r, 0.0f, 1.0f) * 255);
+                unsigned char g = static_cast<unsigned char>(glm::clamp(stoneRGB.g, 0.0f, 1.0f) * 255);
+                unsigned char b = static_cast<unsigned char>(glm::clamp(stoneRGB.b, 0.0f, 1.0f) * 255);
+                unsigned char a = 255;
+                
+                int index = (y * width + x) * 4;
+                textureData[index] = r;
+                textureData[index + 1] = g;
+                textureData[index + 2] = b;
+                textureData[index + 3] = a;
+            }
+        }
+        
+        uint32_t mipLevels = createTextureFromImageData(textureData, width, height, 4, rockTextureImage, rockTextureImageMemory);
+        rockTextureImageView = createImageView(rockTextureImage);
+        createTextureSampler(static_cast<float>(mipLevels), rockTextureSampler);
+    }
+    
+    void TessellationMaterial::generateGrassTexture(int width, int height) {
+        std::vector<unsigned char> textureData(width * height * 4);
+        
+        const float noiseScale = 3.0f;
+        
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float nx = static_cast<float>(x) / width * noiseScale;
+                float ny = static_cast<float>(y) / height * noiseScale;
+                
+                float largeDetail = seamlessFbm(glm::vec2(nx, ny), 2.0f, 4, 2.0f, 0.5f);
+                float mediumDetail = seamlessFbm(glm::vec2(nx, ny), 6.0f, 3, 2.0f, 0.4f);
+                
+                // directional streaks for grass blades using cellular noise
+                float cellPattern1 = cellular(glm::vec2(nx * 12.0f, ny * 12.0f + largeDetail), 0.08f);
+                float cellPattern2 = cellular(glm::vec2(nx * 12.0f + 0.3f, ny * 12.0f), 0.08f);
+                
+                float streaks = (1.0f - cellPattern1) * (1.0f - cellPattern2);
+                streaks = glm::pow(streaks, 3.0f); // Adjust contrast
+                
+                float grassPattern = largeDetail * 0.15f + mediumDetail * 0.05f + streaks * 0.8f;
+                
+                float baseGreen = 0.4f;
+                float variation = grassPattern * 0.4f;
+                
+                unsigned char r = static_cast<unsigned char>((0.05f + variation * 0.2f) * 255);
+                unsigned char g = static_cast<unsigned char>((baseGreen + variation * 0.6f) * 255);
+                unsigned char b = static_cast<unsigned char>((0.05f + variation * 0.1f) * 255);
+                unsigned char a = 255;
+                
+                int index = (y * width + x) * 4;
+                textureData[index] = r;
+                textureData[index + 1] = g;
+                textureData[index + 2] = b;
+                textureData[index + 3] = a;
+            }
+        }
+        
+        uint32_t mipLevels = createTextureFromImageData(textureData, width, height, 4, grassTextureImage, grassTextureImageMemory);
+        grassTextureImageView = createImageView(grassTextureImage);
+        createTextureSampler(static_cast<float>(mipLevels), grassTextureSampler);
+    }
+    
+    void TessellationMaterial::generateSnowTexture(int width, int height) {
+        std::vector<unsigned char> textureData(width * height * 4);
+        
+        const float noiseScale = 1.5f;
+        
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float nx = static_cast<float>(x) / width * noiseScale;
+                float ny = static_cast<float>(y) / height * noiseScale;
+                
+                float largeDetail = seamlessFbm(glm::vec2(nx, ny), 1.5f, 3, 2.0f, 0.5f);
+                float smallDetail = seamlessFbm(glm::vec2(nx, ny), 4.0f, 2, 2.0f, 0.3f);
+                
+                float snowPattern = largeDetail * 0.7f + smallDetail * 0.3f;
+                
+                // occasional sparkles using cellular noise
+                float cellValue = cellular(glm::vec2(nx * 16.0f, ny * 16.0f), 0.12f);
+                float sparkle = 0.0f;
+                
+                // only create sparkles at cell edges (where distance is around 0.5)
+                if (cellValue > 0.3f && cellValue < 0.7f) {
+                    sparkle = 0.7f * (1.0f - std::abs(cellValue - 0.5f) * 2.0f);
+                }
+                
+                float baseSnowR = 0.85f, baseSnowG = 0.88f, baseSnowB = 0.95f;
+                float variation = snowPattern * 0.08f;
+                float sparkleTint = sparkle * 0.9f;
+                unsigned char r = static_cast<unsigned char>(glm::clamp(baseSnowR, 0.0f, 1.0f) * 255);
+                unsigned char g = static_cast<unsigned char>(glm::clamp(baseSnowG, 0.0f, 1.0f) * 255);
+                unsigned char b = static_cast<unsigned char>(glm::clamp(baseSnowB + variation + sparkleTint, 0.0f, 1.0f) * 255);
+                unsigned char a = 255;
+                
+                int index = (y * width + x) * 4;
+                textureData[index] = r;
+                textureData[index + 1] = g;
+                textureData[index + 2] = b;
+                textureData[index + 3] = a;
+            }
+        }
+        
+        uint32_t mipLevels = createTextureFromImageData(textureData, width, height, 4, snowTextureImage, snowTextureImageMemory);
+        snowTextureImageView = createImageView(snowTextureImage);
+        createTextureSampler(static_cast<float>(mipLevels), snowTextureSampler);
     }
 }

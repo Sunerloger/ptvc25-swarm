@@ -25,7 +25,7 @@ struct DeletionQueue {
 class DestructionQueue {
 
 public:
-    DestructionQueue(Device& device, SwapChain& swapChain);
+    DestructionQueue(Device& device, SwapChain* swapChain);
     ~DestructionQueue();
 
     void pushBuffer(VkBuffer buffer, VkDeviceMemory memory);
@@ -38,6 +38,11 @@ public:
     void pushDescriptorPool(VkDescriptorPool descriptorPool);
     void pushDescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorPool parentPool);
 
+    // for resize operations
+    void setSwapChain(SwapChain* newSwapChain) {
+        swapChain = newSwapChain;
+    }
+
     // called at the end of each frame to process deletions
     void flush();
     
@@ -46,7 +51,8 @@ public:
 
 private:
     Device& device;
-    SwapChain& swapChain;
+    // pointer so that it can be updated on resize
+    SwapChain* swapChain;
     
     // keep deletion queues for each frame in flight
     std::array<DeletionQueue, SwapChain::MAX_FRAMES_IN_FLIGHT> frameDeletionQueues; // Using 2 for MAX_FRAMES_IN_FLIGHT

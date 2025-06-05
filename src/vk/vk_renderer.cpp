@@ -1,5 +1,7 @@
 #include "vk_renderer.h"
 
+#include "vk_destruction_queue.h"
+
 // std
 #include <array>
 #include <cassert>
@@ -92,7 +94,7 @@ namespace vk {
 		}
 
 		// reset all command buffers in the pool of the frame (ready for new commands but does not release memory) -> this is safe because of the fence in acquireNextImage
-		vkResetCommandPool(device.device(), m_framePools[currentFrameIndex], 0);
+		vkResetCommandPool(device.device(), m_framePools[currentRenderFrameIndex], 0);
 
 		isFrameStarted = true;
 
@@ -123,7 +125,7 @@ namespace vk {
 		}
 
 		isFrameStarted = false;
-		currentFrameIndex = (currentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
+		currentRenderFrameIndex = (currentRenderFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 	}
 
 	void Renderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer) {

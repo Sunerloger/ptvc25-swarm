@@ -59,6 +59,10 @@ namespace vk {
 		VkQueue presentQueue() {
 			return m_presentQueue;
 		}
+		
+		Window& getWindow() {
+			return window;
+		}
 
 		SwapChainSupportDetails getSwapChainSupport() {
 			return querySwapChainSupport(physicalDevice_);
