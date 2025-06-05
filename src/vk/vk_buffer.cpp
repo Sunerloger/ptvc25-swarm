@@ -6,6 +6,7 @@
  */
 
 #include "vk_buffer.h"
+#include "../Engine.h"
 
 // std
 #include <cassert>
@@ -50,24 +51,30 @@ namespace vk {
 	Buffer::~Buffer() {
 		unmap();
 		
-		if (buffer != VK_NULL_HANDLE) {
-			std::cout << "Buffer: Destroying buffer " << std::hex << (uint64_t)buffer << std::dec << std::endl;
-			vkDestroyBuffer(device.device(), buffer, nullptr);
-			buffer = VK_NULL_HANDLE;
-		}
-		if (memory != VK_NULL_HANDLE) {
-			std::cout << "Buffer: Freeing memory " << std::hex << (uint64_t)memory << std::dec << std::endl;
-			vkFreeMemory(device.device(), memory, nullptr);
-			memory = VK_NULL_HANDLE;
+		auto destructionQueue = Engine::getDestructionQueue();
+		if (destructionQueue && buffer != VK_NULL_HANDLE) {
+			scheduleDestroy(*destructionQueue);
+		} else {
+			// fallback to direct destruction if no queue is available
+			if (buffer != VK_NULL_HANDLE) {
+				std::cout << "Buffer: WARNING - Destroying buffer " << std::hex << (uint64_t)buffer
+					<< " directly without destruction queue" << std::dec << std::endl;
+				vkDestroyBuffer(device.device(), buffer, nullptr);
+				buffer = VK_NULL_HANDLE;
+			}
+			if (memory != VK_NULL_HANDLE) {
+				std::cout << "Buffer: WARNING - Freeing memory " << std::hex << (uint64_t)memory
+					<< " directly without destruction queue" << std::dec << std::endl;
+				vkFreeMemory(device.device(), memory, nullptr);
+				memory = VK_NULL_HANDLE;
+			}
 		}
 	}
 	
 	void Buffer::scheduleDestroy(DestructionQueue& destructionQueue) {
 		unmap();
-		std::cout << "Buffer: Scheduling destruction of buffer " << std::hex << (uint64_t)buffer
-			<< " and memory " << (uint64_t)memory << std::dec << std::endl;
 		destructionQueue.pushBuffer(buffer, memory);
-		// Set to null to prevent double-free in destructor
+		// set to null to prevent double-free in destructor
 		buffer = VK_NULL_HANDLE;
 		memory = VK_NULL_HANDLE;
 	}
