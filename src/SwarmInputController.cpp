@@ -52,6 +52,16 @@ namespace input {
 		inputManager.registerKeyCallback(GLFW_KEY_SPACE, [this]() { if (onJump)  onJump(); }, this, ContextID::Gameplay);
 		inputManager.registerMouseButtonCallback(GLFW_MOUSE_BUTTON_LEFT, [this]() { if (onShoot) onShoot(); }, this, ContextID::Gameplay);
 
+		// throw grenade
+		inputManager.registerKeyCallback(
+			GLFW_KEY_G,
+			[this]() {
+				if (onThrowGrenade)
+					onThrowGrenade();
+			},
+			this,
+			ContextID::Global);
+
 		inputManager.registerPollingAction(
 			[this](float dt) {
 				// movement

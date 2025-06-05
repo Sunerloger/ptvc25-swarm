@@ -5,6 +5,7 @@
 // std lib headers
 #include <string>
 #include <vector>
+#include <cstdint>	// Required for uint32_t
 
 namespace vk {
 
@@ -77,32 +78,25 @@ namespace vk {
 		VkCommandBuffer beginImmediateCommands();
 		void endImmediateCommands(VkCommandBuffer commandBuffer);
 		void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-		VkSampler createTextureSampler();
-		bool hasStencilComponent(VkFormat format);
+		void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, uint32_t layerCount = 1, uint32_t baseArrayLayer = 0);	 // Overloaded version
+		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels = 1);
+	
+		// Mipmapping
+		void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels, uint32_t layerCount = 1);
 
-		// Buffer Helper Functions
-		void createBuffer(
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags properties,
-			VkBuffer &buffer,
-			VkDeviceMemory &bufferMemory);
-		void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-		void copyBufferToImage(
-			VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
+		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory);
+		void createImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory);
+		void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
+		void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);	 // Add copyBuffer declaration
 
-		void createImageWithInfo(
-			const VkImageCreateInfo &imageInfo,
-			VkMemoryPropertyFlags properties,
-			VkImage &image,
-			VkDeviceMemory &imageMemory);
-
-		VkPhysicalDeviceProperties properties;
+		VkPhysicalDeviceProperties properties;	// Add properties member
 
 		void createCommandPool(VkCommandPool& out_pool);
 
 	   private:
+		bool hasStencilComponent(VkFormat format);	// Add declaration for hasStencilComponent
+		VkSampler createTextureSampler();			// Add declaration for createTextureSampler
+
 		void createInstance();
 		void setupDebugMessenger();
 		void createSurface();

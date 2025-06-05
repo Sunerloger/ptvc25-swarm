@@ -55,7 +55,7 @@ private:
     SwapChain* swapChain;
     
     // keep deletion queues for each frame in flight
-    std::array<DeletionQueue, SwapChain::MAX_FRAMES_IN_FLIGHT> frameDeletionQueues; // Using 2 for MAX_FRAMES_IN_FLIGHT
+    std::array<DeletionQueue, SwapChain::MAX_FRAMES_IN_FLIGHT> frameDeletionQueues;
     
     // immediate deletion queue for resources that need to be deleted right away
     // this is used during cleanup

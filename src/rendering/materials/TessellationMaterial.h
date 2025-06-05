@@ -5,12 +5,12 @@
 #include "../../vk/vk_buffer.h"
 #include "../../vk/vk_swap_chain.h"
 #include <glm/glm.hpp>
+#include <cstdint>	// Required for uint32_t
 
 namespace vk {
 
     class TessellationMaterial : public Material {
     public:
-
         struct MaterialData {
             // x = maxTessLevel, max tessellation subdivisions
             // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
@@ -28,7 +28,6 @@ namespace vk {
         };
 
         struct MaterialCreationData {
-
             // max tessellation subdivisions
             float maxTessLevel = 16.0f;
 
@@ -50,7 +49,7 @@ namespace vk {
             float ks = 0.05f;
             float alpha = 1.0f;
         };
-        
+
         // Constructor with separate color and heightmap textures and shader paths
         TessellationMaterial(Device& device, const std::string& texturePath, const std::string& heightmapPath,
                        const std::string& vertShaderPath = "texture_shader.vert",
@@ -77,7 +76,7 @@ namespace vk {
     private:
         uint32_t createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory);
         uint32_t createTextureFromImageData(const std::vector<unsigned char>& imageData,
-                                      int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
+                                       int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image);
         void createTextureSampler(float maxLod, VkSampler& sampler);
         void createDescriptorSets();
@@ -101,24 +100,28 @@ namespace vk {
         VkDeviceMemory rockTextureImageMemory = VK_NULL_HANDLE;
         VkImageView rockTextureImageView = VK_NULL_HANDLE;
         VkSampler rockTextureSampler = VK_NULL_HANDLE;
+        uint32_t rockTextureMipLevels = 1;
         
         // Grass texture resources
         VkImage grassTextureImage = VK_NULL_HANDLE;
         VkDeviceMemory grassTextureImageMemory = VK_NULL_HANDLE;
         VkImageView grassTextureImageView = VK_NULL_HANDLE;
         VkSampler grassTextureSampler = VK_NULL_HANDLE;
+        uint32_t grassTextureMipLevels = 1;
         
         // Snow texture resources
         VkImage snowTextureImage = VK_NULL_HANDLE;
         VkDeviceMemory snowTextureImageMemory = VK_NULL_HANDLE;
         VkImageView snowTextureImageView = VK_NULL_HANDLE;
         VkSampler snowTextureSampler = VK_NULL_HANDLE;
+        uint32_t snowTextureMipLevels = 1;
         
         // Heightmap resources (optional)
         VkImage heightmapImage = VK_NULL_HANDLE;
         VkDeviceMemory heightmapImageMemory = VK_NULL_HANDLE;
         VkImageView heightmapImageView = VK_NULL_HANDLE;
         VkSampler heightmapSampler = VK_NULL_HANDLE;
+        uint32_t heightmapMipLevels = 1;
         
         std::vector<VkDescriptorSet> textureDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
 

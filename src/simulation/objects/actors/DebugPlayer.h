@@ -24,7 +24,7 @@ public:
 
 	void printInfo(int iterationStep) const override;
 
-	inline void takeDamage(float damage) override {}
+	inline void takeDamage(float healthToSubtract, glm::vec3 direction = glm::vec3{ 0 }, float knockbackSpeed = 0.0f) override {}
 
 	inline float getCurrentHealth() const override { return std::numeric_limits<float>::max();}
 

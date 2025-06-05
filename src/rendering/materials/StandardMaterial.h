@@ -7,13 +7,12 @@
 #include "../../Engine.h"
 
 #include <glm/glm.hpp>
+#include <cstdint>
 
 namespace vk {
 
-    class StandardMaterial : public Material {
-
-    public:
-
+	class StandardMaterial : public Material {
+	   public:
         struct MaterialData {
             // x = ka, y = kd, z = ks, w = alpha
             glm::vec4 lightingProperties = glm::vec4{ 0.15f, 0.6f, 0.25f, 10.0f };
@@ -31,10 +30,10 @@ namespace vk {
         StandardMaterial(Device& device, const std::string& texturePath);
         StandardMaterial(Device& device, const std::string& texturePath,
                         const std::string& vertShaderPath, const std::string& fragShaderPath);
-        // Constructor for embedded textures
+        // constructor for embedded textures
         StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
                         int width, int height, int channels);
-        // Constructor for embedded textures with custom shaders
+        // constructor for embedded textures with custom shaders
         StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
                         int width, int height, int channels,
                         const std::string& vertShaderPath, const std::string& fragShaderPath);
@@ -69,9 +68,9 @@ namespace vk {
         VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
         VkImageView textureImageView = VK_NULL_HANDLE;
         VkSampler textureSampler = VK_NULL_HANDLE;
+        uint32_t mipLevels = 1;
 
-        std::vector<VkDescriptorSet> textureDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
-
+        std::vector<VkDescriptorSet> textureDescriptorSets = std::vector<VkDescriptorSet>(SwapChain::MAX_FRAMES_IN_FLIGHT);
         std::vector<std::unique_ptr<Buffer>> paramsBuffers{ SwapChain::MAX_FRAMES_IN_FLIGHT };
 
         MaterialData materialData;

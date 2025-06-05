@@ -21,6 +21,8 @@ void DestructionQueue::pushBuffer(VkBuffer buffer, VkDeviceMemory memory) {
             immediateDeletionQueue.buffers.push_back({buffer, memory});
         } else {
             uint32_t frameIndex = swapChain->getCurrentFrame();
+
+			std::cout << "Destruction Queue - Push Buffer: Current frame index in swapchain - " << frameIndex << std::endl;
             
         	frameDeletionQueues[frameIndex].buffers.push_back({buffer, memory});
         }

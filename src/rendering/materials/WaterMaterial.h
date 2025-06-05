@@ -6,6 +6,7 @@
 #include "../../vk/vk_swap_chain.h"
 
 #include <glm/glm.hpp>
+#include <cstdint>
 
 namespace vk {
 
@@ -102,7 +103,7 @@ namespace vk {
 		void createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory);
 		void createTextureFromImageData(const std::vector<unsigned char>& imageData,
 			int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
-		VkImageView createTextureImageView(VkImage& image);
+		VkImageView createImageView(VkImage& image);
 		void createTextureSampler(VkSampler& sampler);
 		void createDescriptorSets();
 
@@ -119,5 +120,6 @@ namespace vk {
 		std::vector<std::unique_ptr<Buffer>> paramsBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
 
 		WaterData waterData;
+		uint32_t mipLevels = 1;
 	};
 }

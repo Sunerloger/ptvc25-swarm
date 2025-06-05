@@ -30,7 +30,7 @@ if (MSVC)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
     endif()
 
-    set(CMAKE_CXX_FLAGS_DEBUG "/GS /Od /Ob0 /RTC1")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Zi /FS /GS /Od /Ob0 /RTC1")
     set(CMAKE_CXX_FLAGS_RELEASE "/GS- /Gy /O2 /Oi /Ot")
     set(CMAKE_CXX_FLAGS_DISTRIBUTION "/GS- /Gy /O2 /Oi /Ot")
 

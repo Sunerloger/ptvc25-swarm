@@ -6,13 +6,15 @@
 #include <stdexcept>
 #include <iostream>
 #include <glm/gtc/noise.hpp>
+#include <cmath>
+#include <algorithm>
 
 namespace vk {
 
-    // Static member initialization
-    std::unique_ptr<DescriptorPool> TessellationMaterial::descriptorPool = nullptr;
-    std::unique_ptr<DescriptorSetLayout> TessellationMaterial::descriptorSetLayout = nullptr;
-    int TessellationMaterial::instanceCount = 0;
+	// Static member initialization
+	std::unique_ptr<DescriptorPool> TessellationMaterial::descriptorPool = nullptr;
+	std::unique_ptr<DescriptorSetLayout> TessellationMaterial::descriptorSetLayout = nullptr;
+	int TessellationMaterial::instanceCount = 0;
 
     // Constructor with separate color and heightmap textures and shader paths
     TessellationMaterial::TessellationMaterial(Device& device, const std::string& texturePath, const std::string& heightmapPath,
@@ -47,7 +49,7 @@ namespace vk {
         generateSnowTexture(textureSize, textureSize);
         
         materialData.textureParams.w = true;
-        uint32_t heightmapMipLevels = createTextureImage(heightmapPath, heightmapImage, heightmapImageMemory);
+        heightmapMipLevels = createTextureImage(heightmapPath, heightmapImage, heightmapImageMemory);
         heightmapImageView = createImageView(heightmapImage);
         createTextureSampler(static_cast<float>(heightmapMipLevels), heightmapSampler);
 
@@ -307,7 +309,13 @@ namespace vk {
         // Transition image layout and copy data
         device.transitionImageLayout(image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         device.copyBufferToImage(stagingBuffer, image, width, height, 1);
-        device.transitionImageLayout(image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        
+        // Generate mipmaps if this is not a heightmap texture
+        if (&image != &heightmapImage) {
+            device.generateMipmaps(image, VK_FORMAT_R8G8B8A8_UNORM, width, height, mipLevels);
+        } else {
+            device.transitionImageLayout(image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
         
         auto destructionQueue = vk::Engine::getDestructionQueue();
         if (destructionQueue) {
@@ -518,9 +526,9 @@ namespace vk {
             }
         }
 
-        uint32_t mipLevels = createTextureFromImageData(textureData, width, height, 4, rockTextureImage, rockTextureImageMemory);
+        rockTextureMipLevels = createTextureFromImageData(textureData, width, height, 4, rockTextureImage, rockTextureImageMemory);
         rockTextureImageView = createImageView(rockTextureImage);
-        createTextureSampler(static_cast<float>(mipLevels), rockTextureSampler);
+        createTextureSampler(static_cast<float>(rockTextureMipLevels), rockTextureSampler);
     }
     
     void TessellationMaterial::generateGrassTexture(int width, int height) {
@@ -565,9 +573,9 @@ namespace vk {
             }
         }
         
-        uint32_t mipLevels = createTextureFromImageData(textureData, width, height, 4, grassTextureImage, grassTextureImageMemory);
+        grassTextureMipLevels = createTextureFromImageData(textureData, width, height, 4, grassTextureImage, grassTextureImageMemory);
         grassTextureImageView = createImageView(grassTextureImage);
-        createTextureSampler(static_cast<float>(mipLevels), grassTextureSampler);
+        createTextureSampler(static_cast<float>(grassTextureMipLevels), grassTextureSampler);
     }
     
     void TessellationMaterial::generateSnowTexture(int width, int height) {
@@ -598,8 +606,8 @@ namespace vk {
             }
         }
         
-        uint32_t mipLevels = createTextureFromImageData(textureData, width, height, 4, snowTextureImage, snowTextureImageMemory);
+        snowTextureMipLevels = createTextureFromImageData(textureData, width, height, 4, snowTextureImage, snowTextureImageMemory);
         snowTextureImageView = createImageView(snowTextureImage);
-        createTextureSampler(static_cast<float>(mipLevels), snowTextureSampler);
+        createTextureSampler(static_cast<float>(snowTextureMipLevels), snowTextureSampler);
     }
 }

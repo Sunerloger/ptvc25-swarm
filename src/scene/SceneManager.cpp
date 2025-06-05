@@ -1,4 +1,5 @@
 #include "SceneManager.h"
+#include "../procedural/VegetationObject.h"
 
 SceneManager::SceneManager() : scene(std::make_unique<Scene>()) {}
 
@@ -313,6 +314,13 @@ void SceneManager::updateEnemyVisuals(float deltaTime) {
 	for (auto& pair : this->scene->enemies) {
 		std::shared_ptr<physics::Enemy> enemy = pair.second;
 		enemy->updateVisuals(deltaTime);
+	}
+}
+
+void SceneManager::updatePhysicsEntities(float cPhysicsDeltaTime) {
+	for (auto& pair : this->scene->physicsObjects) {
+		std::shared_ptr<physics::ManagedPhysicsEntity> entity = pair.second;
+		entity->updatePhysics(cPhysicsDeltaTime);
 	}
 }
 
@@ -660,5 +668,23 @@ void SceneManager::toggleWireframeOnWaterObjects() {
 	for (auto& it : this->scene->waterObjects) {
 		std::shared_ptr<vk::GameObject> object = it.second;
 		object->toggleWireframeModeIfSupported();
+	}
+}
+
+void SceneManager::clearVegetationObjects() {
+	// Collect IDs of vegetation objects (which are stored as spectral objects)
+	std::vector<vk::id_t> vegetationIds;
+
+	for (const auto& [id, object] : this->scene->spectralObjects) {
+		// Check if this spectral object is a VegetationObject
+		if (dynamic_cast<procedural::VegetationObject*>(object.get())) {
+			vegetationIds.push_back(id);
+		}
+	}
+
+	// Remove vegetation objects
+	for (vk::id_t id : vegetationIds) {
+		this->scene->spectralObjects.erase(id);
+		this->idToClass.erase(id);
 	}
 }

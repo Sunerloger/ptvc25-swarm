@@ -2,12 +2,14 @@
 
 #include "../../../scene/SceneManager.h"
 #include "enemies/Enemy.h"
+#include "../dynamic/Grenade.h"
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
 
 #include <iostream>
+#include <iomanip>
 
 #include "../../../AudioSystem.h"
 
@@ -15,6 +17,10 @@ namespace physics {
 
 	PhysicsPlayer::PhysicsPlayer(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) : settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
 		this->character = std::unique_ptr<JPH::Character>(new JPH::Character(&this->characterSettings, playerCreationSettings.position, playerCreationSettings.rotation, playerCreationSettings.inUserData, &this->physics_system));
+
+		// Initialize grenade cooldown timer
+		lastGrenadeThrowTime = std::chrono::steady_clock::now() - std::chrono::seconds(static_cast<long long>(settings.grenadeCooldownTime));
+		hasGrenadeAvailable = true;
 	}
 
 	PhysicsPlayer::~PhysicsPlayer() {
@@ -87,6 +93,61 @@ namespace physics {
 		}
 	}
 
+	void PhysicsPlayer::handleThrowGrenade(vk::Device& device, std::shared_ptr<vk::Model> grenadeModel) {
+		// Check if grenade is available
+		if (!canThrowGrenade()) {
+			float remainingTime = getGrenadeCooldownRemaining();
+			std::cout << "Grenade not ready! Cooldown remaining: " << std::fixed << std::setprecision(1) << remainingTime << " seconds" << std::endl;
+			return;
+		}
+
+		SceneManager& sceneManager = SceneManager::getInstance();
+
+		// Get player position and camera direction
+		JPH::RVec3 playerPosition = character->GetPosition();
+		glm::vec3 cameraPosition = camera.getPosition();
+		glm::vec3 forward = camera.getFront();
+
+		// Calculate throw position slightly in front of player to avoid self-collision
+		JPH::RVec3 throwPosition = playerPosition + JPH::RVec3(forward.x * 1.5f, forward.y * 1.5f + 1.0f, forward.z * 1.5f);
+
+		// Calculate throw velocity with forward momentum and upward arc
+		float throwForce = 15.0f;	  // Base throwing speed
+		float upwardVelocity = 8.0f;  // Upward component for grenade arc
+		JPH::Vec3 throwVelocity = JPH::Vec3(forward.x * throwForce, forward.y * throwForce + upwardVelocity, forward.z * throwForce);
+
+		// Create grenade settings
+		physics::Grenade::GrenadeSettings grenadeSettings;
+		grenadeSettings.explosionRadius = 8.0f;
+		grenadeSettings.explosionDamage = 75.0f;
+		grenadeSettings.fuseTime = 3.0f;
+		grenadeSettings.mass = 0.5f;
+		grenadeSettings.radius = 0.1f;
+		grenadeSettings.enableDebugOutput = true;
+
+		// Create grenade creation settings
+		physics::Grenade::GrenadeCreationSettings grenadeCreationSettings;
+		grenadeCreationSettings.position = throwPosition;
+		grenadeCreationSettings.initialVelocity = throwVelocity;
+		grenadeCreationSettings.grenadeSettings = grenadeSettings;
+		grenadeCreationSettings.model = grenadeModel;  // Use the shared model instead of loading it
+
+		// Create the grenade and add it to the scene
+		auto grenade = std::make_unique<physics::Grenade>(grenadeCreationSettings, physics_system);
+
+		// Add grenade to scene manager for rendering and physics updates
+		sceneManager.addManagedPhysicsEntity(std::move(grenade));
+
+		audio::SoundSettings soundSettings{};
+		audio::AudioSystem::getInstance().playSound("grenade_pin", soundSettings);
+
+		// Update grenade cooldown state
+		lastGrenadeThrowTime = std::chrono::steady_clock::now();
+		hasGrenadeAvailable = false;
+
+		std::cout << "Grenade thrown! Next grenade available in " << settings.grenadeCooldownTime << " seconds." << std::endl;
+	}
+
 	void PhysicsPlayer::handleShoot() {
 		SceneManager& sceneManager = SceneManager::getInstance();
 
@@ -156,8 +217,15 @@ namespace physics {
 	}
 
 	// @returns true if dead
-	void PhysicsPlayer::takeDamage(float damage) {
-		currentHealth -= damage;
+	void PhysicsPlayer::takeDamage(float healthToSubtract, glm::vec3 direction, float knockbackSpeed) {
+		this->currentHealth -= healthToSubtract;
+
+		if (direction != glm::vec3(0.0f)) {
+			JPH::Vec3 dir = GLMToRVec3(glm::normalize(direction));
+
+			// apply short lived velocity
+			character->SetLinearVelocity(dir * knockbackSpeed);
+		}
 
 		audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
 		audio::SoundSettings soundSettings{};
@@ -219,5 +287,34 @@ namespace physics {
 		creationSettings.characterSettings = characterSettings;
 
 		return creationSettings;
+	}
+
+	bool PhysicsPlayer::canThrowGrenade() const {
+		if (hasGrenadeAvailable) {
+			return true;
+		}
+
+		auto now = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastGrenadeThrowTime);
+		return elapsed.count() >= (settings.grenadeCooldownTime * 1000.0f);
+	}
+
+	float PhysicsPlayer::getGrenadeCooldownRemaining() const {
+		if (hasGrenadeAvailable) {
+			return 0.0f;
+		}
+
+		auto now = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastGrenadeThrowTime);
+		float elapsedSeconds = elapsed.count() / 1000.0f;
+		float remaining = settings.grenadeCooldownTime - elapsedSeconds;
+		return remaining > 0.0f ? remaining : 0.0f;
+	}
+
+	void PhysicsPlayer::updateGrenadeCooldown(float deltaTime) {
+		if (!hasGrenadeAvailable && canThrowGrenade()) {
+			hasGrenadeAvailable = true;
+			std::cout << "Grenade is now available!" << std::endl;
+		}
 	}
 }

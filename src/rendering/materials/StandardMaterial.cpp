@@ -1,6 +1,7 @@
 #include "StandardMaterial.h"
 #include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
+#include "../../Engine.h"
 
 // Include stb_image without the implementation
 #include "stb_image.h"
@@ -10,10 +11,10 @@
 
 namespace vk {
 
-    // Initialize static members
-    std::unique_ptr<DescriptorPool> StandardMaterial::descriptorPool;
-    std::unique_ptr<DescriptorSetLayout> StandardMaterial::descriptorSetLayout;
-    int StandardMaterial::instanceCount = 0;
+	// Initialize static members
+	std::unique_ptr<DescriptorPool> StandardMaterial::descriptorPool;
+	std::unique_ptr<DescriptorSetLayout> StandardMaterial::descriptorSetLayout;
+	int StandardMaterial::instanceCount = 0;
 
     StandardMaterial::StandardMaterial(Device& device, const std::string& texturePath)
         : Material(device) {
@@ -184,12 +185,11 @@ namespace vk {
             throw std::runtime_error("Failed to load texture image: " + resolvedPath);
         }
 
-        VkDeviceSize imageSize = width * height * 4; // 4 bytes per pixel (RGBA)
-
+        VkDeviceSize imageSize = width * height * 4;  // 4 bytes per pixel (RGBA)
+        
         // Create staging buffer
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-
         device.createBuffer(
             imageSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -197,42 +197,42 @@ namespace vk {
             stagingBuffer,
             stagingBufferMemory
         );
-
+        
         // Copy image data to staging buffer
         void* data;
         vkMapMemory(device.device(), stagingBufferMemory, 0, imageSize, 0, &data);
-        
-        // Simple copy without rotation - we'll fix the UV coordinates instead
         memcpy(data, imageData, static_cast<size_t>(imageSize));
-        
         vkUnmapMemory(device.device(), stagingBufferMemory);
-
+        
         // Free the image data as it's now in the staging buffer
         stbi_image_free(imageData);
-
-        // Create the texture image
+        
+        // Calculate mip levels
+        uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+        
+        // Create image
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
         imageInfo.extent.width = width;
         imageInfo.extent.height = height;
         imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = 1;
+        imageInfo.mipLevels = mipLevels;
         imageInfo.arrayLayers = 1;
         imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        
         device.createImageWithInfo(
             imageInfo,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             image,
             imageMemory
         );
-
+        
         // Transition image layout and copy data
         device.transitionImageLayout(
             image,
@@ -240,7 +240,7 @@ namespace vk {
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
         );
-
+        
         // Copy buffer to image
         device.copyBufferToImage(
             stagingBuffer,
@@ -249,15 +249,9 @@ namespace vk {
             static_cast<uint32_t>(height),
             1
         );
-
-        // Transition to shader read layout
-        device.transitionImageLayout(
-            image,
-            VK_FORMAT_R8G8B8A8_SRGB,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        );
-
+        
+        device.generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, width, height, mipLevels);
+        
         auto* destructionQueue = Engine::getDestructionQueue();
         if (destructionQueue) {
             destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
@@ -271,14 +265,7 @@ namespace vk {
                                                     int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory) {
         // Calculate image size (always use RGBA format)
         VkDeviceSize imageSize = width * height * 4;
-
-        if (imageData.empty()) {
-            throw std::runtime_error("Empty image data provided");
-        }
-
-        std::cout << "Creating texture from image data: " << width << "x" << height
-                  << " with " << channels << " channels, size: " << imageData.size() << " bytes" << std::endl;
-
+        
         // Create staging buffer
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -289,7 +276,7 @@ namespace vk {
             stagingBuffer,
             stagingBufferMemory
         );
-
+        
         // Copy pixel data to staging buffer
         void* data;
         vkMapMemory(device.device(), stagingBufferMemory, 0, imageSize, 0, &data);
@@ -299,9 +286,7 @@ namespace vk {
         
         if (channels == 4) {
             // Direct copy for RGBA data
-            for (size_t i = 0; i < imageSize && i < imageData.size(); i++) {
-                dst[i] = imageData[i];
-            }
+            memcpy(dst, imageData.data(), std::min(imageSize, static_cast<VkDeviceSize>(imageData.size())));
         } else if (channels == 3) {
             // Convert RGB to RGBA
             for (int y = 0; y < height; y++) {
@@ -313,17 +298,23 @@ namespace vk {
                         dst[dstIdx] = imageData[srcIdx];       // R
                         dst[dstIdx + 1] = imageData[srcIdx + 1]; // G
                         dst[dstIdx + 2] = imageData[srcIdx + 2]; // B
-                        dst[dstIdx + 3] = 255;                   // A (opaque)
+                        dst[dstIdx + 3] = 255;                  // A (opaque)
                     }
                 }
             }
         } else {
             // Handle other formats if needed
+            vkUnmapMemory(device.device(), stagingBufferMemory);
+            vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+            vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
             throw std::runtime_error("Unsupported image format with " + std::to_string(channels) + " channels");
         }
         
         vkUnmapMemory(device.device(), stagingBufferMemory);
-
+        
+        // Calculate mip levels
+        uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+        
         // Create image
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -331,23 +322,22 @@ namespace vk {
         imageInfo.extent.width = width;
         imageInfo.extent.height = height;
         imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = 1;
+        imageInfo.mipLevels = mipLevels;
         imageInfo.arrayLayers = 1;
         imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageInfo.flags = 0;
-
+        
         device.createImageWithInfo(
             imageInfo,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             image,
             imageMemory
         );
-
+        
         // Transition image layout and copy buffer to image
         device.transitionImageLayout(
             image,
@@ -355,7 +345,7 @@ namespace vk {
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
         );
-
+        
         device.copyBufferToImage(
             stagingBuffer,
             image,
@@ -363,14 +353,9 @@ namespace vk {
             static_cast<uint32_t>(height),
             1
         );
-
-        device.transitionImageLayout(
-            image,
-            VK_FORMAT_R8G8B8A8_SRGB,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        );
-
+        
+        device.generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, width, height, mipLevels);
+        
         auto* destructionQueue = Engine::getDestructionQueue();
         if (destructionQueue) {
             destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
@@ -405,7 +390,7 @@ namespace vk {
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.0f;
+        samplerInfo.maxLod = static_cast<float>(mipLevels);
 
         if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");

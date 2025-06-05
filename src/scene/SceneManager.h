@@ -132,6 +132,9 @@ class SceneManager {
 	// update step of all active enemies according to their behaviour in rendering system
 	void updateEnemyVisuals(float deltaTime);
 
+	// update step of all managed physics entities (e.g., grenades) according to their behaviour in physics system
+	void updatePhysicsEntities(float cPhysicsDeltaTime);
+
 	// activates detached bodies (added to simulation again)
 	bool activatePhysicsObject(vk::id_t id);
 
@@ -166,6 +169,9 @@ class SceneManager {
 	std::vector<std::weak_ptr<vk::GameObject>> getTerrainRenderObjects();
 
 	void clearUIObjects();
+
+	// Clear vegetation objects from the scene
+	void clearVegetationObjects();
 
 	void toggleUIVisibility() {
 		isUIVisible = !isUIVisible;

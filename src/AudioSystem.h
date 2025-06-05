@@ -25,7 +25,7 @@ namespace audio {
 		bool isInitiallyPaused = false;
 		
 		// Attenuation settings
-		AttenuationModel attenuationModel = AttenuationModel::EXPONENTIAL_DISTANCE;
+		AttenuationModel attenuationModel = AttenuationModel::LINEAR_DISTANCE;
 		float minDistance = 1.0f;    	// distance where attenuation begins
 		float maxDistance = 1000.0f; 	// distance where attenuation ends
 		float rolloffFactor = 1.0f;  	// how quickly the sound attenuates

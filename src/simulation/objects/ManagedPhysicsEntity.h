@@ -9,17 +9,19 @@
 
 namespace physics {
 	class ManagedPhysicsEntity : public vk::GameObject, public IPhysicsEntity {
-	
-	public:
-		
+	   public:
 		virtual ~ManagedPhysicsEntity();
 
 		void removePhysicsBody() override;
 
-		JPH::BodyID getBodyID() const override { return this->bodyID; }
-	
-	protected:
+		JPH::BodyID getBodyID() const override {
+			return this->bodyID;
+		}
 
+		// Virtual method for physics updates - can be overridden by derived classes that need updates
+		virtual void updatePhysics(float deltaTime) {}
+
+	   protected:
 		ManagedPhysicsEntity(JPH::PhysicsSystem& physics_system);
 
 		JPH::PhysicsSystem& physics_system;

@@ -1,12 +1,17 @@
 #include "Swarm.h"
 
 #include "scene/SceneManager.h"
+#include "procedural/VegetationIntegrator.h"
+#include "procedural/VegetationSharedResources.h"
 
 #include <fmt/format.h>
 #include <random>
 
 Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
-	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {}
+	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
+	enemyModel = Model::createModelFromFile(device, "models:enemy.glb");
+	grenadeModel = Model::createModelFromFile(device, "models:grenade.glb");
+}
 
 void Swarm::bindInput() {
 	SceneManager& sceneManager = SceneManager::getInstance();
@@ -31,6 +36,13 @@ void Swarm::bindInput() {
 		Player* player = sceneManager.getPlayer();
 		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
 			static_cast<physics::PhysicsPlayer*>(player)->handleShoot();
+		}
+	};
+
+	swarmInput.onThrowGrenade = [this, &sceneManager]() {
+		Player* player = sceneManager.getPlayer();
+		if (player && player->isPhysicsPlayer() && player->getBodyID() != JPH::BodyID(JPH::BodyID::cInvalidBodyID)) {
+			static_cast<physics::PhysicsPlayer*>(player)->handleThrowGrenade(device, grenadeModel);
 		}
 	};
 
@@ -218,6 +230,8 @@ void Swarm::init() {
 	audioSystem.loadSound("death", "audio:death.mp3");
 	audioSystem.loadSound("hurt", "audio:hurt.mp3");
 	audioSystem.loadSound("growl", "audio:growl.mp3");
+	audioSystem.loadSound("explosion", "audio:explosion.mp3");
+	audioSystem.loadSound("grenade_pin", "audio:grenade_pin.mp3");
 	audio::SoundSettings soundSettings{};
 	soundSettings.looping = true;
 	soundSettings.volume = 0.1f;
@@ -262,9 +276,9 @@ void Swarm::init() {
 	}
 
 	// Terrain
+	int samplesPerSide = 100;
 	{
-		int samplesPerSide = 100;  // Resolution of the heightmap
-		float noiseScale = 5.0f;   // Controls the "frequency" of the noise
+		float noiseScale = 5.0f;  // Controls the "frequency" of the noise
 
 		TessellationMaterial::MaterialCreationData terrainCreationData = {};
 		terrainCreationData.textureRepetition = glm::vec2(samplesPerSide / 20.0f, samplesPerSide / 20.0f);
@@ -283,16 +297,76 @@ void Swarm::init() {
 			terrainCreationData
 		);
 
+		// Store heightfield data for vegetation and parameter tuning
+		if (result.second.size() >= samplesPerSide * samplesPerSide) {
+			heightfieldData = result.second;  // Copy the heightfield data
+		}
+		else {
+			// Create flat heightfield if result doesn't have enough data
+			heightfieldData.resize(samplesPerSide * samplesPerSide, 0.0f);
+		}
+
+		// Store terrain parameters for regeneration
+		terrainSamplesPerSide = samplesPerSide;
+		terrainScale = glm::vec3{ 100.0f, maxTerrainHeight, 100.0f };
+		terrainPosition = glm::vec3{ 0.0, -2.0, 0.0 };
+
 		// create terrain with procedural heightmap using perlin noise
 		// create terrain with the generated heightmap data
 		auto terrain = std::make_unique<physics::Terrain>(
 			physicsSimulation.getPhysicsSystem(),
 			std::move(result.first),
-			glm::vec3{0.0, -2.0, 0.0},	// position slightly below origin to prevent falling through
-			glm::vec3{100.0f, maxTerrainHeight, 100.0f},
+			glm::vec3{ 0.0, -2.0, 0.0 },	// position slightly below origin to prevent falling through
+			glm::vec3{ 100.0f, maxTerrainHeight, 100.0f },
 			std::move(result.second));
+
 		sceneManager.addTerrainObject(std::move(terrain));
+
+		// Create shared vegetation resources to avoid descriptor pool exhaustion
+		auto sharedResources = std::make_shared<procedural::VegetationSharedResources>(device);
 	}
+
+	// Vegetation (L-Systems) - moved inside terrain block to access heightfield data
+	{
+		procedural::VegetationIntegrator vegetationIntegrator(device);
+
+		procedural::VegetationIntegrator::VegetationSettings vegSettings;
+		vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
+		vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
+
+		vegSettings.treeDensity = 0.002f;
+
+		// Slope constraints for realistic placement
+		vegSettings.maxTreeSlope = 30.0f;
+
+		// Scale variation for much larger, more impressive trees
+		vegSettings.treeScaleRange = glm::vec2(1.2f, 2.5f);
+
+		// Use random seed for deterministic vegetation
+		vegSettings.placementSeed = 12345;
+
+		try {
+			// Generate enhanced vegetation on terrain using the heightfield data
+			vegetationIntegrator.generateEnhancedVegetationOnTerrain(
+				vegSettings,
+				heightfieldData,
+				samplesPerSide,
+				glm::vec3(100.0f, maxTerrainHeight, 100.0f),
+				glm::vec3(0.0, -2.0, 0.0));
+
+			// Add generated enhanced vegetation to scene
+			vegetationIntegrator.addEnhancedVegetationToScene(sceneManager);
+
+			// Report statistics
+			auto stats = vegetationIntegrator.getVegetationStats();
+			printf("Added enhanced L-System vegetation: %d trees\n", stats.treeCount);
+
+		}
+		catch (const std::exception& e) {
+			printf("Error generating vegetation: %s\n", e.what());
+		}
+	}
+
 	// Skybox
 	{
 		std::array<std::string, 6> cubemapFaces = {
@@ -307,10 +381,9 @@ void Swarm::init() {
 
 	// Enemies
 	{
-		float enemyHullHeight = 1.25f;
+		float enemyHullHeight = 1.5f;
 		float enemyRadius = 0.3f;
 		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
-		shared_ptr<Model> enemyModel = Model::createModelFromFile(device, "models:CesiumMan.glb");
 		float enemySpawnMinRadius = 20.0f;
 		float enemySpawnMaxRadius = 70.0f;
 
@@ -322,22 +395,24 @@ void Swarm::init() {
 			enemySpawnMinRadius * enemySpawnMinRadius,
 			enemySpawnMaxRadius * enemySpawnMaxRadius);	 // squared to have density distribution uniformly in spawn ring
 
-		for (int i = 0; i < 30; ++i) {
-			Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
-			physics::Sprinter::SprinterSettings sprinterSettings = {};
-			sprinterSettings.model = enemyModel;
+		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
+		physics::Sprinter::SprinterSettings sprinterSettings = {};
+		sprinterSettings.model = enemyModel;
 
-			JPH::CharacterSettings enemyCharacterSettings = {};
-			enemyCharacterSettings.mLayer = physics::Layers::MOVING;
-			enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
-			enemyCharacterSettings.mFriction = 1.0f;
-			enemyCharacterSettings.mShape = enemyShape;
-			enemyCharacterSettings.mGravityFactor = 1.0f;
+		JPH::CharacterSettings enemyCharacterSettings = {};
+		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
+		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
+		enemyCharacterSettings.mFriction = 1.0f;
+		enemyCharacterSettings.mShape = enemyShape;
+		enemyCharacterSettings.mGravityFactor = 1.0f;
 
-			physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
-			sprinterCreationSettings.sprinterSettings = sprinterSettings;
-			sprinterCreationSettings.characterSettings = enemyCharacterSettings;
+		physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
+		sprinterCreationSettings.sprinterSettings = sprinterSettings;
+		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
 
+		auto playerPos = sceneManager.getPlayer()->getPosition();
+
+		for (int i = 0; i < 10; ++i) {
 			float angle = angleDist(gen);
 			float radius = std::sqrt(radiusSqDist(gen));
 			auto playerPos = sceneManager.getPlayer()->getPosition();
@@ -574,6 +649,55 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 		oldSecond = newSecond;
 	}
 
+	if (sceneManager.realTime >= 10.0f && newSecond % 10 == 0 && newSecond != lastSpawnSecond) {
+		printf("Spawning new enemy wave at %d seconds\n", newSecond);
+		lastSpawnSecond = newSecond;
+		float enemyHullHeight = 1.5f;
+		float enemyRadius = 0.3f;
+		JPH::RotatedTranslatedShapeSettings enemyShapeSettings = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * enemyHullHeight + enemyRadius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * enemyHullHeight, enemyRadius));
+		float enemySpawnMinRadius = 20.0f;
+		float enemySpawnMaxRadius = 70.0f;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<float> angleDist(
+			0.0f, 2.0f * glm::pi<float>());
+		std::uniform_real_distribution<float> radiusSqDist(
+			enemySpawnMinRadius * enemySpawnMinRadius,
+			enemySpawnMaxRadius * enemySpawnMaxRadius);	 // squared to have density distribution uniformly in spawn ring
+
+		Ref<Shape> enemyShape = enemyShapeSettings.Create().Get();
+		physics::Sprinter::SprinterSettings sprinterSettings = {};
+		sprinterSettings.model = enemyModel;
+		sprinterSettings.maxMovementSpeed = 10.0f + static_cast<float>(newSecond / 60);
+		sprinterSettings.turnSpeed = 0.5f + static_cast<float>(newSecond / 60) * 0.2f;
+		sprinterSettings.accelerationToMaxSpeed = 1.0f + static_cast<float>(newSecond / 60) * 0.2f;
+
+		JPH::CharacterSettings enemyCharacterSettings = {};
+		enemyCharacterSettings.mLayer = physics::Layers::MOVING;
+		enemyCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -enemyRadius);	 // accept contacts that touch the lower sphere of the capsule
+		enemyCharacterSettings.mFriction = 1.0f;
+		enemyCharacterSettings.mShape = enemyShape;
+		enemyCharacterSettings.mGravityFactor = 1.0f;
+
+		physics::Sprinter::SprinterCreationSettings sprinterCreationSettings = {};
+		sprinterCreationSettings.sprinterSettings = sprinterSettings;
+		sprinterCreationSettings.characterSettings = enemyCharacterSettings;
+
+		auto playerPos = sceneManager.getPlayer()->getPosition();
+
+		for (int i = 0; i < 10; ++i) {
+			float angle = angleDist(gen);
+			float radius = std::sqrt(radiusSqDist(gen));
+			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, 15.0, playerPos.z + std::sin(angle) * radius);
+
+			std::unique_ptr<physics::Enemy> enemy = std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem());
+			enemy->awake(); // for sound effects
+
+			sceneManager.addEnemy(std::move(enemy));
+		}
+	}
+
 	sceneManager.updateEnemyVisuals(deltaTime);
 
 	// Update health text
@@ -601,14 +725,20 @@ void Swarm::prePhysicsUpdate() {
 	if (!isDebugActive) {
 		Player* player = sceneManager.getPlayer();
 		if (player && player->isPhysicsPlayer()) {
-			static_cast<physics::PhysicsPlayer*>(player)->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+			physics::PhysicsPlayer* physicsPlayer = static_cast<physics::PhysicsPlayer*>(player);
+			physicsPlayer->handleMovement(physicsSimulation.cPhysicsDeltaTime);
+			physicsPlayer->updateGrenadeCooldown(physicsSimulation.cPhysicsDeltaTime);
 		}
 	}
 
 	// TODO hook an event manager and call update on all methods that are registered (objects register methods like with input polling but in a separate event manager -> also updates timers stored in sceneManager every frame)
 	sceneManager.updateEnemyPhysics(physicsSimulation.cPhysicsDeltaTime);
+	sceneManager.updatePhysicsEntities(physicsSimulation.cPhysicsDeltaTime);
 }
 
 void Swarm::postPhysicsUpdate() {}
 
-void Swarm::gamePauseUpdate(float deltaTime) {}
+void Swarm::gamePauseUpdate(float deltaTime) {
+	// Update tree parameter tuning system even when paused
+	// This allows real-time parameter visualization when escape menu is open
+}

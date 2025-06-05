@@ -137,11 +137,11 @@ namespace vk {
 				// maximum: subSteps * cPhysicsDeltaTime, if more: physics runs slower to prevent spiral of death
 				for (int subSteps = 0; physicsTimeAccumulator >= engineSettings.cPhysicsDeltaTime && subSteps < physicsSimulation.maxPhysicsSubSteps; subSteps++) {
 					game.prePhysicsUpdate();
-					
+
 					physicsSimulation.preSimulation();
 					physicsSimulation.simulate();
 					physicsSimulation.postSimulation(engineSettings.debugPlayer, engineSettings.debugEnemies);
-					
+
 					physicsTimeAccumulator -= engineSettings.cPhysicsDeltaTime;
 					sceneManager.simulationTime += engineSettings.cPhysicsDeltaTime;
 
