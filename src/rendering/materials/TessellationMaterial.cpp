@@ -402,7 +402,7 @@ namespace vk {
     }
     
     // fractal Brownian motion (layered noise)
-    float TessellationMaterial::seamlessFbm(const glm::vec2& uv, float scale, int octaves, float lacunarity, float gain) {
+    float TessellationMaterial::seamlessFbm(glm::vec2 uv, float scale, int octaves, float lacunarity, float gain) {
         float sum = 0.0f;
         float amp = 1.0f;
         float freq = 1.0f;
@@ -414,74 +414,110 @@ namespace vk {
                 std::cos(angleX), std::sin(angleX),
                 std::cos(angleY), std::sin(angleY)
             );
-            sum += amp * glm::perlin(samplePos);  // sample 4D Perlin to wrap seamlessly
+            sum += amp * glm::perlin(samplePos);  // sample 4D Perlin to wrap seamlessly (expensive, but looks way better for tiling than 2d)
             freq *= lacunarity;
             amp *= gain;
         }
         return sum * 0.5f + 0.5f;  // [0,1]
     }
     
-    float TessellationMaterial::cellular(const glm::vec2& p, float cellSize) {
-        glm::vec2 baseCell = glm::floor(p / cellSize);
-        
-        float minDist = 1.0f;
-        
-        for (int y = -1; y <= 1; y++) {
-            for (int x = -1; x <= 1; x++) {
-                glm::vec2 cellPos = baseCell + glm::vec2(x, y);
-                
-                glm::vec2 cellOffset = glm::vec2(
-                    glm::fract(glm::sin(glm::dot(cellPos, glm::vec2(127.1f, 311.7f))) * 43758.5453f),
-                    glm::fract(glm::sin(glm::dot(cellPos, glm::vec2(269.5f, 183.3f))) * 43758.5453f)
-                );
-                
-                glm::vec2 featurePoint = cellPos + cellOffset;
-                
-                float dist = glm::length((p / cellSize) - featurePoint);
-                
-                minDist = glm::min(minDist, dist);
+    float TessellationMaterial::tileableCellular(glm::vec2 uv, float cellCount) {
+        glm::vec2 p = uv * cellCount;
+        glm::vec2 baseCell = glm::floor(p);
+        glm::vec2 frac = p - baseCell;
+
+        float minDist = 10.0f;
+
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                glm::vec2 neighborCell = baseCell + glm::vec2((float)dx, (float)dy);
+
+                glm::vec2 wrapped = glm::mod(neighborCell, cellCount);
+
+                float hx = glm::fract(glm::sin(glm::dot(wrapped, glm::vec2(127.1f, 311.7f))) * 43758.5453f);
+                float hy = glm::fract(glm::sin(glm::dot(wrapped, glm::vec2(269.5f, 183.3f))) * 43758.5453f);
+                glm::vec2 featurePoint = glm::vec2(hx, hy);
+
+                glm::vec2 diff = glm::vec2((float)dx, (float)dy) + featurePoint - frac;
+                float d = glm::length(diff);
+                minDist = glm::min(minDist, d);
             }
         }
-        
-        return minDist;
+
+        return glm::clamp(minDist / 1.41421356f, 0.0f, 1.0f);
+    }
+
+    float TessellationMaterial::tileableVoronoi(glm::vec2 uv, float cellCount) {
+        glm::vec2 p = uv * cellCount;
+        glm::vec2 iCell = glm::floor(p);
+        glm::vec2 fCell = glm::fract(p);
+
+        float d0 = 1.0f;
+        float d1 = 1.0f;
+
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                glm::vec2 neighbor = glm::vec2((float)dx, (float)dy);
+                glm::vec2 cellId = iCell + neighbor;
+                glm::vec2 wrapped = glm::mod(cellId, cellCount);
+
+                float hx = glm::fract(glm::sin(glm::dot(wrapped, glm::vec2(127.1f, 311.7f))) * 43758.5453f);
+                float hy = glm::fract(glm::sin(glm::dot(wrapped, glm::vec2(269.5f, 183.3f))) * 43758.5453f);
+                glm::vec2 feature = glm::vec2(hx, hy);
+
+                glm::vec2 diff = neighbor + feature - fCell;
+                float d = glm::length(diff);
+
+                if (d < d0) {
+                    d1 = d0;
+                    d0 = d;
+                }
+                else if (d < d1) {
+                    d1 = d;
+                }
+            }
+        }
+
+        float cellValue = (d1 - d0) / glm::sqrt(2);
+        return glm::clamp(cellValue, 0.0f, 1.0f);
     }
     
     void TessellationMaterial::generateRockTexture(int width, int height) {
         std::vector<unsigned char> textureData(width * height * 4);
-        
+
+        // Precompute two layers of fBm to warp the cellular lookup
+        const float fBmScale1 = 3.0f;  // coarse warp
+        const float fBmScale2 = 12.0f; // fine detail
+
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 float nx = static_cast<float>(x) / width;
                 float ny = static_cast<float>(y) / height;
-                
-                // rock cracks
-                float cellNoise1 = cellular(glm::vec2(nx * 1.5f, ny * 1.5f), 0.4f);
-                float cellNoise2 = cellular(glm::vec2(nx * 1.5f + 0.5f, ny * 1.5f + 0.5f), 0.5f);
-                
-                float crackPattern = (1.0f - cellNoise1) * (1.0f - cellNoise2) * 4.0f;
-                crackPattern = glm::clamp(crackPattern, 0.0f, 1.0f);
-                
-                float largeDetail = seamlessFbm(glm::vec2(nx, ny), 2.5f, 4, 2.0f, 0.5f);
-                float smallDetail = seamlessFbm(glm::vec2(nx, ny), 12.0f, 4, 2.0f, 0.4f);
-                
-                float rockPattern = largeDetail * 0.2f + smallDetail * 0.1f + crackPattern * 0.7f;
-                
-                glm::vec3 baseStone = glm::vec3(0.12f, 0.10f, 0.08f);
-                glm::vec3 colorVariation = glm::vec3(rockPattern * 0.6f, rockPattern * 0.55f, rockPattern * 0.5f);
-                glm::vec3 stoneRGB = baseStone + colorVariation;
-                unsigned char r = static_cast<unsigned char>(glm::clamp(stoneRGB.r, 0.0f, 1.0f) * 255);
-                unsigned char g = static_cast<unsigned char>(glm::clamp(stoneRGB.g, 0.0f, 1.0f) * 255);
-                unsigned char b = static_cast<unsigned char>(glm::clamp(stoneRGB.b, 0.0f, 1.0f) * 255);
+                glm::vec2 uv = glm::vec2(nx, ny);
+
+                float rawBase = tileableVoronoi(uv, 50);
+                float sharpVal = glm::smoothstep(0.3f, 0.7f, rawBase);
+                glm::vec3 baseColor = glm::mix(glm::vec3(0.20f, 0.18f, 0.17f),
+                    glm::vec3(0.35f, 0.33f, 0.3f), sharpVal);
+
+                float detailFBM = seamlessFbm(uv * 4.0f, 4, 2, 1.2f, 0.5f) * 0.15f;
+
+                glm::vec3 rockRGB = baseColor;
+                rockRGB += glm::vec3(detailFBM);
+
+                unsigned char r = static_cast<unsigned char>(glm::clamp(rockRGB.r, 0.0f, 1.0f) * 255);
+                unsigned char g = static_cast<unsigned char>(glm::clamp(rockRGB.g, 0.0f, 1.0f) * 255);
+                unsigned char b = static_cast<unsigned char>(glm::clamp(rockRGB.b, 0.0f, 1.0f) * 255);
                 unsigned char a = 255;
-                
+
                 int index = (y * width + x) * 4;
-                textureData[index] = r;
+                textureData[index + 0] = r;
                 textureData[index + 1] = g;
                 textureData[index + 2] = b;
                 textureData[index + 3] = a;
             }
         }
-        
+
         uint32_t mipLevels = createTextureFromImageData(textureData, width, height, 4, rockTextureImage, rockTextureImageMemory);
         rockTextureImageView = createImageView(rockTextureImage);
         createTextureSampler(static_cast<float>(mipLevels), rockTextureSampler);
@@ -490,31 +526,35 @@ namespace vk {
     void TessellationMaterial::generateGrassTexture(int width, int height) {
         std::vector<unsigned char> textureData(width * height * 4);
         
-        const float noiseScale = 3.0f;
-        
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                float nx = static_cast<float>(x) / width * noiseScale;
-                float ny = static_cast<float>(y) / height * noiseScale;
+                glm::vec2 guv = glm::vec2(static_cast<float>(x) / width, static_cast<float>(y) / height);
+
+                float largeDetail = seamlessFbm(guv * 16.0f, 3, 3, 2.0f, 0.5f);
+                float mediumDetail = seamlessFbm(guv * 32.0f, 2, 3, 2.0f, 0.4f);
                 
-                float largeDetail = seamlessFbm(glm::vec2(nx, ny), 2.0f, 4, 2.0f, 0.5f);
-                float mediumDetail = seamlessFbm(glm::vec2(nx, ny), 6.0f, 3, 2.0f, 0.4f);
-                
-                // directional streaks for grass blades using cellular noise
-                float cellPattern1 = cellular(glm::vec2(nx * 12.0f, ny * 12.0f + largeDetail), 0.08f);
-                float cellPattern2 = cellular(glm::vec2(nx * 12.0f + 0.3f, ny * 12.0f), 0.08f);
-                
-                float streaks = (1.0f - cellPattern1) * (1.0f - cellPattern2);
-                streaks = glm::pow(streaks, 3.0f); // Adjust contrast
-                
-                float grassPattern = largeDetail * 0.15f + mediumDetail * 0.05f + streaks * 0.8f;
-                
-                float baseGreen = 0.4f;
-                float variation = grassPattern * 0.4f;
-                
-                unsigned char r = static_cast<unsigned char>((0.05f + variation * 0.2f) * 255);
-                unsigned char g = static_cast<unsigned char>((baseGreen + variation * 0.6f) * 255);
-                unsigned char b = static_cast<unsigned char>((0.05f + variation * 0.1f) * 255);
+                glm::vec2 grassWarp;
+                grassWarp.x = tileableCellular(guv * 2.0f, 8.0f) * 0.08f;
+                grassWarp.y = tileableCellular(guv * 2.0f + glm::vec2(0.5f), 8.0f) * 0.08f;
+                glm::vec2 gUVw = glm::fract(guv + grassWarp);
+
+                float grassCell = tileableCellular(gUVw, 256.0f);
+                float grassMask = glm::smoothstep(0.25f, 0.55f, grassCell);
+
+                glm::vec2 gUVw2 = glm::fract(guv + grassWarp * 1.5f + glm::vec2(0.25f));
+                float insideNoise = tileableCellular(gUVw2, 64.0f) * 0.15f;
+
+                float grassPattern = grassMask * (0.6f + insideNoise * 0.4f);
+
+                glm::vec3 baseGreen = glm::vec3(0.1f, 0.35f, 0.025f);
+                glm::vec3 colorVariation = glm::vec3(grassPattern * 0.15f,
+                    grassPattern * 0.25f,
+                    grassPattern * 0.1f);
+                glm::vec3 grassRGB = baseGreen + colorVariation;
+
+                unsigned char r = static_cast<unsigned char>(glm::clamp(grassRGB.r, 0.0f, 1.0f) * 255);
+                unsigned char g = static_cast<unsigned char>(glm::clamp(grassRGB.g, 0.0f, 1.0f) * 255);
+                unsigned char b = static_cast<unsigned char>(glm::clamp(grassRGB.b, 0.0f, 1.0f) * 255);
                 unsigned char a = 255;
                 
                 int index = (y * width + x) * 4;
@@ -540,26 +580,14 @@ namespace vk {
                 float nx = static_cast<float>(x) / width * noiseScale;
                 float ny = static_cast<float>(y) / height * noiseScale;
                 
-                float largeDetail = seamlessFbm(glm::vec2(nx, ny), 1.5f, 3, 2.0f, 0.5f);
-                float smallDetail = seamlessFbm(glm::vec2(nx, ny), 4.0f, 2, 2.0f, 0.3f);
-                
-                float snowPattern = largeDetail * 0.7f + smallDetail * 0.3f;
-                
-                // occasional sparkles using cellular noise
-                float cellValue = cellular(glm::vec2(nx * 16.0f, ny * 16.0f), 0.12f);
-                float sparkle = 0.0f;
-                
-                // only create sparkles at cell edges (where distance is around 0.5)
-                if (cellValue > 0.3f && cellValue < 0.7f) {
-                    sparkle = 0.7f * (1.0f - std::abs(cellValue - 0.5f) * 2.0f);
-                }
-                
-                float baseSnowR = 0.85f, baseSnowG = 0.88f, baseSnowB = 0.95f;
-                float variation = snowPattern * 0.08f;
-                float sparkleTint = sparkle * 0.9f;
-                unsigned char r = static_cast<unsigned char>(glm::clamp(baseSnowR, 0.0f, 1.0f) * 255);
-                unsigned char g = static_cast<unsigned char>(glm::clamp(baseSnowG, 0.0f, 1.0f) * 255);
-                unsigned char b = static_cast<unsigned char>(glm::clamp(baseSnowB + variation + sparkleTint, 0.0f, 1.0f) * 255);
+                float snowMask = seamlessFbm(glm::vec2(nx, ny) * 2.0f, 6, 3, 2.0f, 0.6f);
+
+                float baseR = 0.90f, baseG = 0.92f, baseB = 1.00f;
+                float blueTint = glm::smoothstep(0.4f, 0.7f, snowMask) * 0.05f;
+
+                unsigned char r = static_cast<unsigned char>(glm::clamp(baseR - blueTint, 0.0f, 1.0f) * 255);
+                unsigned char g = static_cast<unsigned char>(glm::clamp(baseG - blueTint, 0.0f, 1.0f) * 255);
+                unsigned char b = static_cast<unsigned char>(glm::clamp(baseB, 0.0f, 1.0f) * 255);
                 unsigned char a = 255;
                 
                 int index = (y * width + x) * 4;

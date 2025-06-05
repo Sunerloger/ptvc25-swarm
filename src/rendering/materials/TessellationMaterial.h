@@ -87,9 +87,9 @@ namespace vk {
         static void createDescriptorSetLayoutIfNeeded(Device& device);
         
         // fractal Brownian motion noise
-        float TessellationMaterial::seamlessFbm(const glm::vec2& uv, float scale, int octaves, float lacunarity, float gain);
-        
-        float cellular(const glm::vec2& p, float cellSize);
+        float seamlessFbm(glm::vec2 uv, float scale, int octaves, float lacunarity, float gain);
+        float tileableVoronoi(glm::vec2 uv, float cellCount);
+        float tileableCellular(glm::vec2 uv, float cellCount);
         
         // Generate procedural textures
         void generateRockTexture(int width, int height);
