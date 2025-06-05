@@ -7,12 +7,13 @@
 #include "vk/vk_window.h"
 #include "vk/vk_descriptors.h"
 #include "vk/vk_buffer.h"
+#include "vk/vk_destruction_queue.h"
 
 #include "simulation/PhysicsSimulation.h"
 
 #include "rendering/render_systems/texture_render_system.h"
 #include "rendering/render_systems/ui_render_system.h"
-#include "rendering/render_systems/tessellation_render_system.h"
+#include "rendering/render_systems/terrain_render_system.h"
 #include "rendering/render_systems/water_render_system.h"
 
 #include "scene/SceneManager.h"
@@ -24,6 +25,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <algorithm>
 
 namespace vk {
 
@@ -32,7 +34,7 @@ namespace vk {
 		float maxFrameTime = 0.2f; // 5 fps
 		bool debugTime = false;
 		bool debugPlayer = false;
-		bool debugEnemies = false;
+		bool debugEnemies = false; // be careful with this flag, it heavily impacts performance
 	};
 
 	class Engine {
@@ -44,8 +46,12 @@ namespace vk {
 		Engine& operator=(const Engine&) = delete;
 
 		void run();
+		
+		static DestructionQueue* getDestructionQueue() { return destructionQueue.get(); }
+		
+		static void scheduleResourceDestruction(VkBuffer buffer, VkDeviceMemory memory);
 
-	   private:
+		  private:
 
 		IGame& game;
 		physics::PhysicsSimulation& physicsSimulation;
@@ -54,9 +60,11 @@ namespace vk {
 		vk::Window& window;
 		vk::Device& device;
 		
-		std::unique_ptr<Renderer> renderer;
+		Renderer renderer;
 
 		std::unique_ptr<DescriptorPool> globalPool{};
+		
+		static std::unique_ptr<DestructionQueue> destructionQueue;
 
 		chrono::steady_clock::time_point startTime;
 		

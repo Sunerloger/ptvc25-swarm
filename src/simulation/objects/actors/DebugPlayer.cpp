@@ -13,7 +13,7 @@ void DebugPlayer::handleRotation(float deltaYaw, float deltaPitch) {
 }
 
 void DebugPlayer::handleSpeedChange(float scrollOffset, float changeSpeed) {
-	movementSpeed += changeSpeed * scrollOffset;
+	movementSpeed *= 1 + changeSpeed * scrollOffset;
 	movementSpeed = std::clamp(movementSpeed, 0.001f, 100000.0f);
 }
 
@@ -21,6 +21,7 @@ void DebugPlayer::updatePosition(float dt, glm::vec3 dir) {
 	if (glm::length(dir) > 0.0f) {
 		// Get the camera's orientation vectors
 		glm::vec3 front = camera.getFront();
+		front.y = 0.0f;
 		glm::vec3 right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
 		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 		

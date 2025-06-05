@@ -1,6 +1,7 @@
 #include "CubemapMaterial.h"
 #include "../../asset_utils/AssetLoader.h"
 #include "../../vk/vk_utils.hpp"
+#include "../../Engine.h"
 #include "stb_image.h"
 #include <stdexcept>
 #include <iostream>
@@ -8,6 +9,10 @@
 #include <algorithm>
 
 namespace vk {
+
+	std::unique_ptr<DescriptorPool> CubemapMaterial::descriptorPool = nullptr;
+	std::unique_ptr<DescriptorSetLayout> CubemapMaterial::descriptorSetLayout = nullptr;
+	int CubemapMaterial::instanceCount = 0;
 
 	CubemapMaterial::CubemapMaterial(Device& device, const std::array<std::string, 6>& facePaths)
 		: Material(device) {
@@ -18,11 +23,11 @@ namespace vk {
 		createCubemapFromFaces(facePaths);
 		createCubemapImageView();
 		createCubemapSampler();
-		createDescriptorSet();
+		createDescriptorSets();
 
-		pipelineConfig.depthWriteEnable = false;
-		pipelineConfig.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		pipelineConfig.cullMode = VK_CULL_MODE_NONE;
+		pipelineConfig.depthStencilInfo.depthWriteEnable = false;
+		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 		pipelineConfig.vertShaderPath = "skybox_shader.vert";
 		pipelineConfig.fragShaderPath = "skybox_shader.frag";
 	}
@@ -36,48 +41,68 @@ namespace vk {
 		createCubemapFromSingleImage(singleImagePath, isHorizontalStrip);
 		createCubemapImageView();
 		createCubemapSampler();
-		createDescriptorSet();
+		createDescriptorSets();
 
-		pipelineConfig.depthWriteEnable = false;
-		pipelineConfig.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		pipelineConfig.cullMode = VK_CULL_MODE_NONE;
+		pipelineConfig.depthStencilInfo.depthWriteEnable = false;
+		pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 		pipelineConfig.vertShaderPath = "skybox_shader.vert";
 		pipelineConfig.fragShaderPath = "skybox_shader.frag";
 	}
 
 	CubemapMaterial::~CubemapMaterial() {
-		// Wait for GPU to finish using resources before destroying them
-		vkDeviceWaitIdle(device.device());
+		auto destructionQueue = Engine::getDestructionQueue();
 		
-		// Clean up Vulkan resources
-		if (cubemapSampler != VK_NULL_HANDLE) {
-			vkDestroySampler(device.device(), cubemapSampler, nullptr);
+		if (destructionQueue) {
+			// schedule resources for safe destruction
+			for (int i = 0; i < cubemapDescriptorSets.size(); i++) {
+				if (cubemapDescriptorSets[i] != VK_NULL_HANDLE && descriptorPool) {
+					destructionQueue->pushDescriptorSet(cubemapDescriptorSets[i], descriptorPool->getPool());
+					cubemapDescriptorSets[i] = VK_NULL_HANDLE;
+				}
+			}
+			
+			if (cubemapSampler != VK_NULL_HANDLE) {
+				destructionQueue->pushSampler(cubemapSampler);
+				cubemapSampler = VK_NULL_HANDLE;
+			}
+			
+			if (cubemapImageView != VK_NULL_HANDLE) {
+				destructionQueue->pushImageView(cubemapImageView);
+				cubemapImageView = VK_NULL_HANDLE;
+			}
+			
+			if (cubemapImage != VK_NULL_HANDLE && cubemapImageMemory != VK_NULL_HANDLE) {
+				destructionQueue->pushImage(cubemapImage, cubemapImageMemory);
+				cubemapImage = VK_NULL_HANDLE;
+				cubemapImageMemory = VK_NULL_HANDLE;
+			}
+		} else {
+			// fallback to immediate destruction if queue is not available
+			if (cubemapSampler != VK_NULL_HANDLE) {
+				vkDestroySampler(device.device(), cubemapSampler, nullptr);
+			}
+			
+			if (cubemapImageView != VK_NULL_HANDLE) {
+				vkDestroyImageView(device.device(), cubemapImageView, nullptr);
+			}
+			
+			if (cubemapImage != VK_NULL_HANDLE) {
+				vkDestroyImage(device.device(), cubemapImage, nullptr);
+			}
+			
+			if (cubemapImageMemory != VK_NULL_HANDLE) {
+				vkFreeMemory(device.device(), cubemapImageMemory, nullptr);
+			}
 		}
-
-		if (cubemapImageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(device.device(), cubemapImageView, nullptr);
-		}
-
-		if (cubemapImage != VK_NULL_HANDLE) {
-			vkDestroyImage(device.device(), cubemapImage, nullptr);
-		}
-
-		if (cubemapImageMemory != VK_NULL_HANDLE) {
-			vkFreeMemory(device.device(), cubemapImageMemory, nullptr);
-		}
-
+		
 		// Decrement instance count and clean up static resources if this is the last instance
 		instanceCount--;
 		if (instanceCount == 0) {
 			std::cout << "Cleaning up CubemapMaterial static resources" << std::endl;
-			cleanupResources(device);
+			cleanupResources();
 		}
 	}
-
-	// Initialize static members
-	std::unique_ptr<DescriptorPool> CubemapMaterial::descriptorPool;
-	std::unique_ptr<DescriptorSetLayout> CubemapMaterial::descriptorSetLayout;
-	int CubemapMaterial::instanceCount = 0;
 
 	void CubemapMaterial::createDescriptorSetLayoutIfNeeded(Device& device) {
 		if (!descriptorSetLayout) {
@@ -88,8 +113,8 @@ namespace vk {
 			descriptorSetLayout = layoutBuilder.build();
 
 			descriptorPool = DescriptorPool::Builder(device)
-								 .setMaxSets(10)
-								 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10)
+								 .setMaxSets(10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+								 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
 								 .build();
 		}
 	}
@@ -108,7 +133,7 @@ namespace vk {
 		}
 
 		VkDeviceSize imageSize = width * height * 4 * 6;  // 4 bytes per pixel (RGBA) * 6 faces
-		this->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+		this->mipLevels = 1; // Cubemap materials don't need mipmaps
 
 		// Create staging buffer
 		VkBuffer stagingBuffer;
@@ -140,7 +165,7 @@ namespace vk {
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = this->mipLevels;
+		imageInfo.mipLevels = 1; // Cubemap materials don't need mipmaps
 		imageInfo.arrayLayers = 6;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -157,7 +182,7 @@ namespace vk {
 			cubemapImageMemory);
 
 		// Transition image layout for all 6 faces from UNDEFINED to TRANSFER_DST_OPTIMAL
-		VkCommandBuffer initialLayoutCmd = device.beginSingleTimeCommands();
+		VkCommandBuffer initialLayoutCmd = device.beginImmediateCommands();
 
 		VkImageMemoryBarrier initialBarrier{};
 		initialBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -183,10 +208,10 @@ namespace vk {
 			0, nullptr,
 			1, &initialBarrier);
 
-		device.endSingleTimeCommands(initialLayoutCmd);
+		device.endImmediateCommands(initialLayoutCmd);
 
 		// Copy buffer to image
-		VkCommandBuffer commandBuffer = device.beginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = device.beginImmediateCommands();
 
 		VkBufferImageCopy regions[6];
 		for (int i = 0; i < 6; i++) {
@@ -212,13 +237,18 @@ namespace vk {
 			6,
 			regions);
 
-		device.endSingleTimeCommands(commandBuffer);
+		device.endImmediateCommands(commandBuffer);
 
 		// Clean up staging buffer
-		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		auto destructionQueue = Engine::getDestructionQueue();
+		if (destructionQueue) {
+			destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+		} else {
+			vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+			vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		}
 
-		device.transitionImageLayout(cubemapImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->mipLevels, 6);
+		device.transitionImageLayout(cubemapImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 6);
 	}
 
 	void CubemapMaterial::createCubemapFromSingleImage(const std::string& imagePath, bool isHorizontalStrip) {
@@ -357,7 +387,7 @@ namespace vk {
 		imageInfo.extent.width = faceWidth;
 		imageInfo.extent.height = faceHeight;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = this->mipLevels;
+		imageInfo.mipLevels = 1; // Cubemap materials don't need mipmaps
 		imageInfo.arrayLayers = 6;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -374,7 +404,7 @@ namespace vk {
 			cubemapImageMemory);
 
 		// Transition image layout for all 6 faces from UNDEFINED to TRANSFER_DST_OPTIMAL
-		VkCommandBuffer singleImageInitialCmd = device.beginSingleTimeCommands();
+		VkCommandBuffer singleImageInitialCmd = device.beginImmediateCommands();
 
 		VkImageMemoryBarrier singleImageBarrier{};
 		singleImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -400,10 +430,10 @@ namespace vk {
 			0, nullptr,
 			1, &singleImageBarrier);
 
-		device.endSingleTimeCommands(singleImageInitialCmd);
+		device.endImmediateCommands(singleImageInitialCmd);
 
 		// Copy buffer to image
-		VkCommandBuffer commandBuffer = device.beginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = device.beginImmediateCommands();
 
 		VkBufferImageCopy regions[6];
 		for (int i = 0; i < 6; i++) {
@@ -429,13 +459,18 @@ namespace vk {
 			6,
 			regions);
 
-		device.endSingleTimeCommands(commandBuffer);
+		device.endImmediateCommands(commandBuffer);
 
 		// Clean up staging buffer
-		vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-		vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		auto destructionQueue = Engine::getDestructionQueue();
+		if (destructionQueue) {
+			destructionQueue->pushBuffer(stagingBuffer, stagingBufferMemory);
+		} else {
+			vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
+			vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+		}
 
-		device.transitionImageLayout(cubemapImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->mipLevels, 6);
+		device.transitionImageLayout(cubemapImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 6);
 	}
 
 	void CubemapMaterial::createCubemapImageView() {
@@ -446,7 +481,7 @@ namespace vk {
 		viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = this->mipLevels;
+		viewInfo.subresourceRange.levelCount = 1; // Cubemap materials don't need mipmaps
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 6;
 
@@ -479,44 +514,40 @@ namespace vk {
 		}
 	}
 
-	void CubemapMaterial::createDescriptorSet() {
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool->getPool();
-		allocInfo.descriptorSetCount = 1;
-
-		VkDescriptorSetLayout layout = descriptorSetLayout->getDescriptorSetLayout();
-		allocInfo.pSetLayouts = &layout;
-
-		if (vkAllocateDescriptorSets(device.device(), &allocInfo, &cubemapDescriptorSet) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to allocate cubemap descriptor set!");
-		}
-
+	void CubemapMaterial::createDescriptorSets() {
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = cubemapImageView;
 		imageInfo.sampler = cubemapSampler;
 
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = cubemapDescriptorSet;
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
+		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+			DescriptorWriter(*descriptorSetLayout, *descriptorPool)
+				.writeImage(0, &imageInfo)
+				.build(cubemapDescriptorSets[i]);
+		}
 	}
 
-	void CubemapMaterial::cleanupResources(Device& device) {
+	void CubemapMaterial::cleanupResources() {
+		auto destructionQueue = Engine::getDestructionQueue();
+		
 		if (descriptorPool) {
-			descriptorPool->resetPool();
-			descriptorPool.reset();
+			if (destructionQueue) {
+				destructionQueue->pushDescriptorPool(descriptorPool->getPool());
+				descriptorPool.reset();
+			} else {
+				descriptorPool->resetPool();
+				descriptorPool.reset();
+			}
 		}
-
+		
 		if (descriptorSetLayout && descriptorSetLayout->getDescriptorSetLayout() != VK_NULL_HANDLE) {
-			descriptorSetLayout.reset();
+			if (destructionQueue) {
+				VkDescriptorSetLayout layoutHandle = descriptorSetLayout->getDescriptorSetLayout();
+				destructionQueue->pushDescriptorSetLayout(layoutHandle);
+				descriptorSetLayout.reset();
+			} else {
+				descriptorSetLayout.reset();
+			}
 		}
 	}
 }

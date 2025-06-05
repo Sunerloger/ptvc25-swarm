@@ -2,6 +2,7 @@
 
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
+#include "../../vk/vk_swap_chain.h"
 #include <cstdint>	// Required for uint32_t
 
 namespace vk {
@@ -20,9 +21,10 @@ namespace vk {
 			const std::string& vertShaderPath, const std::string& fragShaderPath);
 		~UIMaterial() override;
 
-		VkDescriptorSet getDescriptorSet() const override {
-			return textureDescriptorSet;
+		VkDescriptorSet getDescriptorSet(int frameIndex) const override { 
+			return textureDescriptorSets[frameIndex]; 
 		}
+		
 		VkDescriptorSetLayout getDescriptorSetLayout() const override {
 			return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
 		}
@@ -31,7 +33,7 @@ namespace vk {
 		static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
 		static int instanceCount;
 
-		static void cleanupResources(Device& device);
+		static void cleanupResources();
 
 	   private:
 		void createTextureImage(const std::string& texturePath);
@@ -39,7 +41,7 @@ namespace vk {
 			int width, int height, int channels);
 		void createTextureImageView();
 		void createTextureSampler();
-		void createDescriptorSet();
+		void createDescriptorSets();
 
 		static void createDescriptorSetLayoutIfNeeded(Device& device);
 
@@ -47,7 +49,7 @@ namespace vk {
 		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
 		VkImageView textureImageView = VK_NULL_HANDLE;
 		VkSampler textureSampler = VK_NULL_HANDLE;
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSet> textureDescriptorSets = std::vector<VkDescriptorSet>(SwapChain::MAX_FRAMES_IN_FLIGHT);
 		uint32_t mipLevels = 1;
 	};
 }

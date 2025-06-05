@@ -337,7 +337,7 @@ namespace procedural {
 
 				// Add actual leaf geometry at the end of very thin branches
 				if (endRadius < 0.03f) {
-					std::cout << "Thin branch detected (radius " << endRadius << ") - adding leaf geometry" << std::endl;
+					// std::cout << "Thin branch detected (radius " << endRadius << ") - adding leaf geometry" << std::endl;
 					float leafSize = endRadius * 4.0f;
 					generateLeafGeometry(newPosition, state.heading, leafSize,
 						treeGeometry.leaves, 5);  // Increased leaf count
@@ -424,7 +424,7 @@ namespace procedural {
 
 			case 'L':  // Leaf/branch end - use leaf geometry instead of cylinder
 			{
-				std::cout << "Processing 'L' symbol - generating leaf geometry" << std::endl;
+				// std::cout << "Processing 'L' symbol - generating leaf geometry" << std::endl;
 				// Generate actual leaf quads at the branch end
 				float leafSize = state.radius * 3.0f;  // Scale leaf size with branch radius
 				generateLeafGeometry(state.position, state.heading, leafSize,
@@ -515,8 +515,7 @@ namespace procedural {
 	void LSystem::generateLeafGeometry(const glm::vec3& position, const glm::vec3& direction,
 		float size, MaterialGeometry& geometry,
 		int leafCount) const {
-		std::cout << "Generating " << leafCount << " leaf quads at position ("
-				  << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
+		// std::cout << "Generating " << leafCount << " leaf quads at position (" << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
 
 		// Generate multiple leaf quads around the branch end
 		for (int leafIndex = 0; leafIndex < leafCount; ++leafIndex) {

@@ -9,15 +9,23 @@
 #include <set>
 #include <stdexcept>
 
+#include "../Engine.h"
+
 namespace vk {
 
 	SwapChain::SwapChain(Device &deviceRef, VkExtent2D extent)
-		: device{deviceRef}, windowExtent{extent} {
+		: device{deviceRef}, windowExtent{extent}, currentFrame{0} {
+		std::cout << "SwapChain: Creating new swap chain with currentFrame = 0" << std::endl;
 		init();
 	}
 
 	SwapChain::SwapChain(Device &deviceRef, VkExtent2D extent, std::shared_ptr<SwapChain> previous)
 		: device{deviceRef}, windowExtent{extent}, oldSwapChain{previous} {
+			
+		if (previous) {
+			currentFrame = previous->currentFrame;
+		}
+		
 		init();
 
 		oldSwapChain = nullptr;
@@ -33,6 +41,8 @@ namespace vk {
 	}
 
 	SwapChain::~SwapChain() {
+		waitForAllFences();
+
 		for (auto imageView : swapChainImageViews) {
 			vkDestroyImageView(device.device(), imageView, nullptr);
 		}
@@ -55,12 +65,25 @@ namespace vk {
 
 		vkDestroyRenderPass(device.device(), renderPass, nullptr);
 
-		// cleanup synchronization objects
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
 			vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
 			vkDestroyFence(device.device(), inFlightFences[i], nullptr);
 		}
+	}
+
+	void SwapChain::waitForAllFences() const {
+		vkWaitForFences(
+			device.device(),
+			static_cast<uint32_t>(inFlightFences.size()),
+			inFlightFences.data(),
+			VK_TRUE,
+			std::numeric_limits<uint64_t>::max()
+		);
+	}
+
+	size_t SwapChain::getCurrentFrame() const {
+		return currentFrame;
 	}
 
 	VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) {
@@ -69,13 +92,17 @@ namespace vk {
 			1,
 			&inFlightFences[currentFrame],
 			VK_TRUE,
-			std::numeric_limits<uint64_t>::max());
+			UINT64_MAX);
+
+		if (auto destructionQueue = Engine::getDestructionQueue()) {
+			destructionQueue->flush();
+		}
 
 		VkResult result = vkAcquireNextImageKHR(
 			device.device(),
 			swapChain,
-			std::numeric_limits<uint64_t>::max(),
-			imageAvailableSemaphores[currentFrame],	 // must be a not signaled semaphore
+			UINT64_MAX,
+			imageAvailableSemaphores[currentFrame],
 			VK_NULL_HANDLE,
 			imageIndex);
 

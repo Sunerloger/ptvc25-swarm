@@ -24,7 +24,7 @@ public:
 
 	void printInfo(int iterationStep) const override;
 
-	inline void takeDamage(float damage) override {}
+	inline void takeDamage(float healthToSubtract, glm::vec3 direction = glm::vec3{ 0 }, float knockbackSpeed = 0.0f) override {}
 
 	inline float getCurrentHealth() const override { return std::numeric_limits<float>::max();}
 
@@ -43,7 +43,7 @@ public:
 	inline JPH::BodyID getBodyID() const override { return JPH::BodyID(JPH::BodyID::cInvalidBodyID); }
 	inline void addPhysicsBody() override {}
 
-	void handleSpeedChange(float scrollOffset, float changeSpeed = 1.0f);
+	void handleSpeedChange(float scrollOffset, float changeSpeed = 0.1f);
 	void updatePosition(float dt, glm::vec3 dir);
 
 	inline float getMovementSpeed() const override { return movementSpeed; }
@@ -52,6 +52,11 @@ public:
 	inline glm::mat4 computeNormalMatrix() const override { return glm::mat4{1.0f}; }
 	inline glm::vec3 getPosition() const override { return camera.getPosition(); }
 	inline std::shared_ptr<vk::Model> getModel() const override { return nullptr; }
+
+	glm::vec3 getCameraPosition() const override { return camera.getPosition(); };
+
+	glm::vec3 getFront() const override { return camera.getFront(); }
+	glm::vec3 getUp() const override { return glm::vec3{ 0.0f, 1.0f, 0.0f }; }
 
 private:
 

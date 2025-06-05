@@ -1,8 +1,10 @@
 #include "Sprinter.h"
 
 #include "../../../../scene/SceneManager.h"
+#include "../../../../AudioSystem.h"
 
 #include <iostream>
+#include <string>
 
 namespace physics {
 
@@ -12,8 +14,22 @@ namespace physics {
 		this->currentHealth = sprinterSettings.maxHealth;
 	}
 
+	void Sprinter::awake() {
+		audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+		audio::SoundSettings soundSettings{};
+		soundSettings.looping = true;
+		soundSettings.volume = 0.5;
+		soundSettings.attenuationModel = audio::AttenuationModel::INVERSE_DISTANCE;
+		soundSettings.minDistance = 2.0f;
+		soundSettings.maxDistance = 100.0f;
+		soundSettings.rolloffFactor = 0.5f;
+		audioSystem.playSoundAt("growl", getPosition(), soundSettings, std::to_string(getId()));
+	}
+
 	Sprinter::~Sprinter() {
 		removePhysicsBody();
+		audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+		audioSystem.stopSound(std::to_string(getId()));
 	}
 
 	// doesn't move if the enemy doesn't approximately face the player
@@ -152,6 +168,9 @@ namespace physics {
 
 	void Sprinter::postSimulation() {
 		character->PostSimulation(sprinterSettings.maxFloorSeparationDistance);
+
+		audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+		audioSystem.set3dSourceParameters(std::to_string(getId()), getPosition(), getVelocity());
 	}
 
 	glm::mat4 Sprinter::computeModelMatrix() const {
@@ -199,6 +218,10 @@ namespace physics {
 
 	glm::vec3 Sprinter::getPosition() const {
 		return RVec3ToGLM(this->character->GetPosition());
+	}
+
+	glm::vec3 Sprinter::getVelocity() const {
+		return RVec3ToGLM(this->character->GetLinearVelocity());
 	}
 
 	JPH::BodyID Sprinter::getBodyID() const {

@@ -1,67 +1,75 @@
 #version 450
 
-layout(location = 0) in vec3  position;
-layout(location = 1) in vec3  color;
-layout(location = 2) in vec3  normal;  // unused now
-layout(location = 3) in vec2  uv;
-
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     mat4 uiOrthographicProjection;
+    
     vec4 sunDirection;
+    // rgb + a unused
     vec4 sunColor;
-} ubo;
+    
+    // camera position in world space
+    vec4 cameraPosition;
+} globalUbo;
+
+layout(set = 1, binding = 1) uniform Ubo {
+    // x = maxTessLevel, max tessellation subdivisions
+    // y = minTessDistance, within minTessDistance the tessellation has maxTessLevels
+    // z = maxTessDistance, tessellation decreases linearly until maxTessDistance (minimum tessellation level, here: no subdivisions)
+    // w = unused
+    vec4 tessParams;
+
+    // xy = textureRepetition, how often the texture repeats across the whole tessellation object
+    // zw = unused
+    vec4 textureParams;
+
+    // x = ka, y = kd, z = ks, w = alpha
+    vec4 materialProperties;
+
+    // xyz = default color, w = transparency
+    vec4 color;
+
+    // x = hasTexture, y = wave count, zw = unused
+    vec4 flags;
+
+    // xy = direction, z = steepness in [0,1], w = wavelength
+    vec4 waves[];
+} modelUbo;
 
 layout(push_constant) uniform Push {
+    // x = time, yzw = unused
+    vec4 timeData;
+
     mat4 modelMatrix;
     mat4 normalMatrix;
-    vec2 uvOffset;
-    float time;
-    int  hasTexture;
+    // x = patchCount, yzw = unused
+    vec4 gridInfo;
 } push;
 
-layout(location = 0) out vec2  fragUV;
-layout(location = 1) out vec3  fragColor;
-layout(location = 2) out vec3  posWorld;
-layout(location = 3) out vec3  normWorld;
+layout(location = 0) out vec2 uv;
 
 void main() {
-    // 1) Base world‐space position
-    vec3 worldPos0 = (push.modelMatrix * vec4(position, 1.0)).xyz;
+    int cornerID = gl_VertexIndex % 4;
+    int patchID = int(gl_VertexIndex / 4);
+    int gridSize = int(sqrt(push.gridInfo.x));
 
-    float waveFrequency = 100.0;
-    float waveHeight    = 5.0;
-    float timeScale1    = 2.0;
-    float timeScale2    = 1.5;
-    float timeScale3    = 1.0;
+    // patch coordinates
+    int px = patchID % gridSize;
+    int py = int(patchID / gridSize);
 
-    // 2) Three superposed wave components
-    float w1 = sin(worldPos0.x * waveFrequency + push.time * timeScale1) * 0.3;
-    float w2 = sin(worldPos0.z * waveFrequency + push.time * timeScale2) * 0.2;
-    float w3 = sin((worldPos0.x + worldPos0.z) * 15.0 + push.time * timeScale3) * 0.1;
+    // offset within patch -> (0,0), (1,0), (0,1), (1,1)
+    int ox = (cornerID == 1 || cornerID == 3) ? 1 : 0;
+    int oy = (cornerID == 2 || cornerID == 3) ? 1 : 0;
 
-    // 3) Combine and scale vertically
-    float baseWave = (w1 + w2 + w3) * 0.5;
-    vec3 displaced = worldPos0 + vec3(0.0, baseWave * waveHeight, 0.0);
+    float step = 2.0 / gridSize;
+    float localX = -1.0 + float(px) * step + float(ox) * step;
+    float localZ = -1.0 + float(py) * step + float(oy) * step;
 
-    // 4) Compute derivatives for analytic normal
-    float amp = waveHeight * 0.5;
-    float dYdx = ( cos(worldPos0.x * waveFrequency + push.time * timeScale1) * waveFrequency * 0.3
-                 + cos((worldPos0.x + worldPos0.z) * 15.0 + push.time * timeScale3) * 15.0 * 0.1 )
-                 * amp;
-    float dYdz = ( cos(worldPos0.z * waveFrequency + push.time * timeScale2) * waveFrequency * 0.2
-                 + cos((worldPos0.x + worldPos0.z) * 15.0 + push.time * timeScale3) * 15.0 * 0.1 )
-                 * amp;
-    vec3 nW = normalize(vec3(-dYdx, 1.0, -dYdz));
+    // [-1, 1] -> [0, 1]
+    vec2 normalizedXZ = (vec2(localX, localZ) + vec2(1.0)) * 0.5;
 
-    // 5) Pass to fragment shader
-    posWorld  = displaced;
-    normWorld = nW;
-    fragUV    = uv * 1.0 + push.uvOffset;
-    fragColor = color;
+    uv = normalizedXZ * modelUbo.textureParams.xy;
 
-    // 6) Final clip-space position
-    vec4 viewPos = ubo.view * vec4(displaced, 1.0);
-    gl_Position  = ubo.projection * viewPos;
+    gl_Position = push.modelMatrix * vec4(localX, 0.0, localZ, 1.0);
 }

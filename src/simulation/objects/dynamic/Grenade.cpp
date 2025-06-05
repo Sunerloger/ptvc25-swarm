@@ -1,13 +1,17 @@
 #include "Grenade.h"
+
 #include "../../../scene/SceneManager.h"
 #include "../actors/enemies/Enemy.h"
 #include "../../PhysicsConversions.h"
+#include "../../../AudioSystem.h"
 #include "../../CollisionSettings.h"
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Collision/CollisionDispatch.h>
+
+#include <glm/glm.hpp>
 
 #include <iostream>
 
@@ -99,6 +103,10 @@ namespace physics {
 
 		JPH::RVec3 explosionCenter = physics_system.GetBodyInterface().GetPosition(bodyID);
 
+		audio::SoundSettings soundSettings{};
+		soundSettings.volume = 5.0f;
+		audio::AudioSystem::getInstance().playSoundAt("explosion", RVec3ToGLM(explosionCenter), soundSettings);
+
 		if (settings.enableDebugOutput) {
 			std::cout << "Grenade exploded at position ("
 					  << explosionCenter.GetX() << ", "
@@ -106,8 +114,39 @@ namespace physics {
 					  << explosionCenter.GetZ() << ")" << std::endl;
 		}
 
-		// Get all enemies in range and damage them
+		// player takes damage if in range
 		SceneManager& sceneManager = SceneManager::getInstance();
+		auto player = sceneManager.getPlayer();
+
+		glm::vec3 playerPos = player->getPosition();
+		glm::vec3 grenadePos = RVec3ToGLM(explosionCenter);
+
+		float playerDist = glm::length(playerPos - grenadePos);
+
+		if (playerDist <= settings.explosionRadius) {
+			// Calculate damage falloff based on distance
+			float damageMultiplier = 1.0f - (playerDist / settings.explosionRadius);
+			damageMultiplier = glm::max<float>(0.1f, damageMultiplier);
+
+			float actualDamage = settings.explosionDamage * damageMultiplier;
+
+			// Calculate knockback direction
+			glm::vec3 knockbackDir = glm::normalize(playerPos - grenadePos);
+			if (glm::length(knockbackDir) < 0.01f) {
+				knockbackDir = glm::vec3(0, 1, 0);	// Default upward if too close
+			}
+
+			float knockbackStrength = 200.0f * damageMultiplier;
+
+			player->takeDamage(actualDamage, knockbackDir, knockbackStrength);
+
+			if (settings.enableDebugOutput) {
+				std::cout << "Player hit by grenade explosion. Distance: " << playerDist
+					<< ", Damage: " << actualDamage << std::endl;
+			}
+		}
+
+		// Get all enemies in range and damage them
 		auto enemies = sceneManager.getActiveEnemies();
 
 		int enemiesHit = 0;
@@ -121,7 +160,7 @@ namespace physics {
 				if (distance <= settings.explosionRadius) {
 					// Calculate damage falloff based on distance
 					float damageMultiplier = 1.0f - (distance / settings.explosionRadius);
-					damageMultiplier = glm::max(0.1f, damageMultiplier);  // Minimum 10% damage
+					damageMultiplier = glm::max<float>(0.1f, damageMultiplier);
 
 					float actualDamage = settings.explosionDamage * damageMultiplier;
 
@@ -131,7 +170,7 @@ namespace physics {
 						knockbackDir = glm::vec3(0, 1, 0);	// Default upward if too close
 					}
 
-					float knockbackStrength = 20.0f * damageMultiplier;
+					float knockbackStrength = 15.0f * damageMultiplier;
 
 					bool isDead = enemy->takeDamage(actualDamage, knockbackDir, knockbackStrength);
 					enemiesHit++;

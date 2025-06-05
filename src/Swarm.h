@@ -12,6 +12,7 @@
 #include "simulation/PhysicsSimulation.h"
 
 #include "asset_utils/AssetManager.h"
+#include "AudioSystem.h"
 #include "SwarmInputController.h"
 
 #include "ui/Font.h"
@@ -70,7 +71,6 @@ class Swarm : public GameBase {
 
 	id_t gameTimeTextID;
 	id_t gameHealthTextID;
-	float elapsedTime = 0;
 	int oldSecond = 0;
 	int lastSpawnSecond = 0;
 

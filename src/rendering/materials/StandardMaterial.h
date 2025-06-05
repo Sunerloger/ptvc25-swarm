@@ -2,50 +2,77 @@
 
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
-#include <cstdint>	// Required for uint32_t
+#include "../../vk/vk_buffer.h"
+#include "../../vk/vk_swap_chain.h"
+#include "../../Engine.h"
+
+#include <glm/glm.hpp>
+#include <cstdint>
 
 namespace vk {
 
 	class StandardMaterial : public Material {
 	   public:
-		StandardMaterial(Device& device, const std::string& texturePath);
-		StandardMaterial(Device& device, const std::string& texturePath,
-			const std::string& vertShaderPath, const std::string& fragShaderPath);
-		StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
-			int width, int height, int channels);
-		StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
-			int width, int height, int channels,
-			const std::string& vertShaderPath, const std::string& fragShaderPath);
-		~StandardMaterial() override;
+        struct MaterialData {
+            // x = ka, y = kd, z = ks, w = alpha
+            glm::vec4 lightingProperties = glm::vec4{ 0.15f, 0.6f, 0.25f, 10.0f };
+            // x = hasTexture, yzw = unused
+            glm::vec4 flags = glm::vec4{ 1.0f };
+        };
 
-		VkDescriptorSet getDescriptorSet() const override {
-			return textureDescriptorSet;
-		}
-		VkDescriptorSetLayout getDescriptorSetLayout() const override {
-			return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
-		}
+        struct MaterialCreationData {
+            float ka = 0.15f;
+            float kd = 0.6f;
+            float ks = 0.25f;
+            float shininess = 10.0f;
+        };
 
-		static std::unique_ptr<DescriptorPool> descriptorPool;
-		static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
-		static int instanceCount;
+        StandardMaterial(Device& device, const std::string& texturePath);
+        StandardMaterial(Device& device, const std::string& texturePath,
+                        const std::string& vertShaderPath, const std::string& fragShaderPath);
+        // constructor for embedded textures
+        StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
+                        int width, int height, int channels);
+        // constructor for embedded textures with custom shaders
+        StandardMaterial(Device& device, const std::vector<unsigned char>& imageData,
+                        int width, int height, int channels,
+                        const std::string& vertShaderPath, const std::string& fragShaderPath);
+        ~StandardMaterial() override;
 
-		static void cleanupResources(Device& device);
+        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return textureDescriptorSets[frameIndex]; }
+        VkDescriptorSetLayout getDescriptorSetLayout() const override {
+            return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
+        }
 
-	   private:
-		void createTextureImage(const std::string& texturePath);
-		void createTextureFromImageData(const std::vector<unsigned char>& imageData,
-			int width, int height, int channels);
-		void createTextureImageView();
-		void createTextureSampler();
-		void createDescriptorSet();
+        void setMaterialData(MaterialCreationData creationData = {});
 
-		static void createDescriptorSetLayoutIfNeeded(Device& device);
+        void updateDescriptorSet(int frameIndex) override;
 
-		VkImage textureImage = VK_NULL_HANDLE;
-		VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
-		VkImageView textureImageView = VK_NULL_HANDLE;
-		VkSampler textureSampler = VK_NULL_HANDLE;
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-		uint32_t mipLevels = 1;
-	};
+        static std::unique_ptr<DescriptorPool> descriptorPool;
+        static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
+        static int instanceCount;
+
+        static void cleanupResources();
+
+    private:
+        void createTextureImage(const std::string& texturePath, VkImage& image, VkDeviceMemory& imageMemory);
+        void createTextureFromImageData(const std::vector<unsigned char>& imageData,
+                                       int width, int height, int channels, VkImage& image, VkDeviceMemory& imageMemory);
+        VkImageView createTextureImageView(VkImage& image);
+        void createTextureSampler(VkSampler& sampler);
+        void createDescriptorSets();
+
+        static void createDescriptorSetLayoutIfNeeded(Device& device);
+
+        VkImage textureImage = VK_NULL_HANDLE;
+        VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+        VkImageView textureImageView = VK_NULL_HANDLE;
+        VkSampler textureSampler = VK_NULL_HANDLE;
+        uint32_t mipLevels = 1;
+
+        std::vector<VkDescriptorSet> textureDescriptorSets = std::vector<VkDescriptorSet>(SwapChain::MAX_FRAMES_IN_FLIGHT);
+        std::vector<std::unique_ptr<Buffer>> paramsBuffers{ SwapChain::MAX_FRAMES_IN_FLIGHT };
+
+        MaterialData materialData;
+    };
 }

@@ -15,7 +15,9 @@
 #define TINYGLTF_IMPLEMENTATION
 #include "tiny_gltf.h"
 #define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtc/noise.hpp>
 
 #include <cassert>
 #include <unordered_map>
@@ -51,7 +53,19 @@ namespace vk {
 		}
 	}
 
-	Model::~Model() {}
+	Model::~Model() {
+	    auto destructionQueue = Engine::getDestructionQueue();
+	    if (destructionQueue) {
+	        if (vertexBuffer) {
+	            vertexBuffer->scheduleDestroy(*destructionQueue);
+	            vertexBuffer.reset();
+	        }
+	        if (indexBuffer) {
+	            indexBuffer->scheduleDestroy(*destructionQueue);
+	            indexBuffer.reset();
+	        }
+	    }
+	}
 
 	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename, bool isUI) {
 		Builder builder{};
@@ -62,6 +76,10 @@ namespace vk {
 
 	void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
 		vertexCount = static_cast<uint32_t>(vertices.size());
+		hasVertexBuffer = vertexCount > 0;
+		if (!hasVertexBuffer) {
+			return;
+		}
 		assert(vertexCount >= 3 && "Vertex count must be at least 3");
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertexCount;
 		uint32_t vertexSize = sizeof(vertices[0]);
@@ -125,9 +143,12 @@ namespace vk {
 	}
 
 	void Model::bind(VkCommandBuffer commandBuffer) {
-		VkBuffer buffers[] = {vertexBuffer->getBuffer()};
-		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+
+		if (hasVertexBuffer) {
+			VkBuffer buffers[] = { vertexBuffer->getBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+		}
 
 		if (hasIndexBuffer) {
 			// If model has more than 2^32 vertices, change the index type to uint64_t and the indexType to VK_INDEX_TYPE_UINT64
@@ -520,76 +541,23 @@ namespace vk {
 		return std::make_unique<Model>(device, builder);
 	}
 
-	// Helper function for Perlin noise generation
-	float fade(float t) {
-		return t * t * t * (t * (t * 6 - 15) + 10);
-	}
-
-	float lerp(float a, float b, float t) {
-		return a + t * (b - a);
-	}
-
-	float grad(int hash, float x, float y, float z) {
-		// Convert lower 4 bits of hash code into 12 gradient directions
-		int h = hash & 15;
-		float u = h < 8 ? x : y;
-		float v = h < 4 ? y : h == 12 || h == 14 ? x
-												 : z;
-		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
-	}
-
-	float perlinNoise(float x, float y, const std::vector<int>& p) {
-		// Find unit grid cell containing point
-		int X = static_cast<int>(std::floor(x)) & 255;
-		int Y = static_cast<int>(std::floor(y)) & 255;
-
-		// Get relative xy coordinates of point within cell
-		x -= std::floor(x);
-		y -= std::floor(y);
-
-		// Compute fade curves for each coordinate
-		float u = fade(x);
-		float v = fade(y);
-
-		// Hash coordinates of the 4 square corners
-		int A = p[X] + Y;
-		int AA = p[A];
-		int AB = p[A + 1];
-		int B = p[X + 1] + Y;
-		int BA = p[B];
-		int BB = p[B + 1];
-
-		// Add blended results from 4 corners of square
-		return lerp(
-			lerp(grad(p[AA], x, y, 0), grad(p[BA], x - 1, y, 0), u),
-			lerp(grad(p[AB], x, y - 1, 0), grad(p[BB], x - 1, y - 1, 0), u),
-			v);
-	}
-
 	std::pair<std::unique_ptr<Model>, std::vector<float>> Model::createTerrainModel(
 		Device& device,
 		int gridSize,
 		const std::string& tileTexturePath,
 		float noiseScale,
-		float heightScale) {
+		bool loadHeightTexture,
+		const std::string& heightTexturePath,
+		int seed,
+		bool useTessellation,
+		TessellationMaterial::MaterialCreationData creationData) {
 		// Create a vector to store the heightmap data
 		std::vector<float> heightData(gridSize * gridSize);
 		std::vector<unsigned char> imageData(gridSize * gridSize * 4);	// RGBA format (this only enables png for now)
 
-		// Initialize permutation table for Perlin noise
-		std::vector<int> p(512);
-		for (int i = 0; i < 256; i++) {
-			p[i] = i;
-		}
-
-		// Use a random seed for the shuffle
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(p.begin(), p.begin() + 256, g);
-
-		// Duplicate the permutation to avoid overflow
-		for (int i = 0; i < 256; i++) {
-			p[i + 256] = p[i];
+		if (seed == -1) {
+			std::random_device rd;
+			seed = rd();
 		}
 
 		// Generate heightmap using Perlin noise
@@ -605,7 +573,7 @@ namespace vk {
 				float maxValue = 0.0f;
 
 				for (int i = 0; i < 4; i++) {  // Use 4 octaves
-					h += perlinNoise(nx * frequency, nz * frequency, p) * amplitude;
+					h += glm::perlin(glm::vec3(nx * frequency, nz * frequency, static_cast<float>(seed))) * amplitude;
 					maxValue += amplitude;
 					amplitude *= 0.5f;
 					frequency *= 2.0f;
@@ -627,7 +595,7 @@ namespace vk {
 			}
 		}
 
-		// Save the heightmap using the AssetManager
+		// save the heightmap
 		std::string heightmapPath = "terrain/temp_heightmap.png";
 		std::string texturePath = AssetLoader::getInstance().saveTexture(
 			heightmapPath,
@@ -650,21 +618,19 @@ namespace vk {
 		if (gridSize < 2)
 			gridSize = 2;
 
-		// Calculate the number of vertices and indices
+		// calculate the number of vertices and indices
 		int numVertices = gridSize * gridSize;
-		int numIndices = (gridSize - 1) * (gridSize - 1) * 6;  // 2 triangles per grid cell
+		int numIndices = (gridSize - 1) * (gridSize - 1) * 4;  // 4 control points per grid cell
 
-		// Create vertices
 		std::vector<Model::Vertex> vertices;
 		vertices.reserve(numVertices);
 
-		// Size of the grid (from -1 to 1 in both x and z)
+		// size of the grid (from -1 to 1 in both x and z)
 		const float size = 1.0f;
 
-		// Calculate the step size
 		float step = (2.0f * size) / (gridSize - 1);
 
-		// Generate vertices
+		// generate vertices
 		for (int z = 0; z < gridSize; z++) {
 			for (int x = 0; x < gridSize; x++) {
 				float xPos = -size + x * step;
@@ -678,52 +644,32 @@ namespace vk {
 				// Calculate normal based on neighboring heights
 				glm::vec3 normal = {0.0f, 1.0f, 0.0f};	// Default to up
 
-				// If not on the edge, calculate normal from neighboring vertices
-				if (x > 0 && x < gridSize - 1 && z > 0 && z < gridSize - 1) {
-					float hL = heightData[z * gridSize + (x - 1)];	// Left
-					float hR = heightData[z * gridSize + (x + 1)];	// Right
-					float hD = heightData[(z - 1) * gridSize + x];	// Down
-					float hU = heightData[(z + 1) * gridSize + x];	// Up
-
-					// Calculate normal using central differences
-					glm::vec3 tangent = glm::normalize(glm::vec3(2.0f * step, hR - hL, 0.0f));
-					glm::vec3 bitangent = glm::normalize(glm::vec3(0.0f, hU - hD, 2.0f * step));
-					normal = glm::normalize(glm::cross(tangent, bitangent));
-				}
-
 				// UV coordinates (tiled)
 				// Map UV from 0 to gridSize to create tiling effect
 				glm::vec2 uv = {
-					static_cast<float>(x) / (gridSize - 1) * 4.0f,	// Tile 4 times
-					static_cast<float>(z) / (gridSize - 1) * 4.0f	// Tile 4 times
+					static_cast<float>(x) / (gridSize - 1),
+					static_cast<float>(z) / (gridSize - 1)
 				};
 
 				vertices.push_back({position, color, normal, uv});
 			}
 		}
 
-		// Create indices
 		std::vector<uint32_t> indices;
 		indices.reserve(numIndices);
 
-		// Generate indices for triangles
+		// Generate indices for grid cells
 		for (int z = 0; z < gridSize - 1; z++) {
 			for (int x = 0; x < gridSize - 1; x++) {
-				// Calculate the indices of the four corners of the current grid cell
 				uint32_t topLeft = z * gridSize + x;
 				uint32_t topRight = topLeft + 1;
 				uint32_t bottomLeft = (z + 1) * gridSize + x;
 				uint32_t bottomRight = bottomLeft + 1;
 
-				// counter-clockwise
-				indices.push_back(topLeft);
-				indices.push_back(bottomRight);
 				indices.push_back(bottomLeft);
-
-				// counter-clockwise
-				indices.push_back(topLeft);
-				indices.push_back(topRight);
 				indices.push_back(bottomRight);
+				indices.push_back(topRight);
+				indices.push_back(topLeft);
 			}
 		}
 
@@ -733,28 +679,22 @@ namespace vk {
 		builder.vertices = std::move(vertices);
 		builder.indices = std::move(indices);
 
-		// Create the model
 		auto model = std::make_unique<Model>(device, builder);
 
-		// Create a material with the tile texture and heightmap
 		auto material = std::make_shared<TessellationMaterial>(
 			device,
 			tileTexturePath,
-			texturePath,  // Use the path returned by the AssetLoader
+			texturePath,
 			"terrain_shader.vert",
 			"terrain_shader.frag",
 			"terrain_tess_control.tesc",
 			"terrain_tess_eval.tese");
 
-		// Set tessellation parameters
-		material->setTileScale(0.25f, 0.25f);  // Control texture tiling
-		material->setTessellationParams(16.0f, 20.0f, 100.0f, heightScale);
+		material->setParams(creationData);
 
-		// Enable tessellation
 		auto& config = material->getPipelineConfig();
-		config.useTessellation = true;
+		config.useTessellation = useTessellation;
 
-		// Apply the material to the model
 		model->setMaterial(material);
 
 		return {std::move(model), heightData};
@@ -838,5 +778,22 @@ namespace vk {
 		builder.indices = std::move(indices);
 
 		return std::make_unique<Model>(device, builder);
+	}
+
+	std::unique_ptr<Model> Model::createGridModelWithoutGeometry(Device& device, int samplesPerSide) {
+		Builder builder{};
+
+		if (samplesPerSide < 2) {
+			samplesPerSide = 2;
+		}
+
+		int numPatches = (samplesPerSide-1) * (samplesPerSide-1);
+
+		auto model = std::make_unique<Model>(device, builder);
+		model->pointsPerPatch = 4;
+		model->patchCount = numPatches;
+		model->vertexCount = model->pointsPerPatch * model->patchCount;
+
+		return model;
 	}
 }

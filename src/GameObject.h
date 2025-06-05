@@ -27,6 +27,9 @@ namespace vk {
 			return id;
 		}
 
+		// second initialization stage if info about other game objects is needed
+		virtual void awake() {}
+
 		virtual glm::mat4 computeModelMatrix() const = 0;
 
 		virtual glm::mat4 computeNormalMatrix() const = 0;
@@ -36,6 +39,8 @@ namespace vk {
 		// returns a nullptr if object has no model (e.g. light)
 		virtual std::shared_ptr<Model> getModel() const = 0;
 
+		virtual void toggleWireframeModeIfSupported() {};
+
 		/**
 		 * The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
 		 * Doesn't destroy player or sun.
@@ -43,8 +48,6 @@ namespace vk {
 		 * @return false otherwise (e.g. object not in scene manager)
 		 */
 		bool markForDeletion() const;
-
-		glm::vec3 color{};
 
 	   protected:
 		GameObject() : id(nextID++) {}

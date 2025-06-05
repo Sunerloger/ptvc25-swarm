@@ -15,7 +15,7 @@ public:
 
 	virtual void printInfo(int iterationStep) const = 0;
 
-	virtual void takeDamage(float damage) = 0;
+	virtual void takeDamage(float healthToSubtract, glm::vec3 direction = glm::vec3{ 0 }, float knockbackSpeed = 0.0f) = 0;
 	
 	virtual float getCurrentHealth() const = 0;
 
@@ -31,4 +31,9 @@ public:
 	virtual CharacterCameraSettings getCameraSettings() const = 0;
 	
 	virtual bool isPhysicsPlayer() const { return false; }
+
+	virtual glm::vec3 getCameraPosition() const = 0;
+
+	virtual glm::vec3 getFront() const = 0;
+	virtual glm::vec3 getUp() const = 0;
 };

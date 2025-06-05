@@ -8,8 +8,14 @@ layout(location = 3) in vec2 uv;
 layout(set = 0, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
-    mat4 inverseView;
-    vec4 ambientLightColor;
+    mat4 uiOrthographicProjection;
+    
+    vec4 sunDirection;
+    // rgb + intensity in .w
+    vec4 sunColor;
+    
+    // camera position in world space
+    vec4 cameraPosition;
 } ubo;
 
 layout(location = 0) out vec3 fragTexCoords;

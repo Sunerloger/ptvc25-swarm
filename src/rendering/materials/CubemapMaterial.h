@@ -2,6 +2,7 @@
 
 #include "Material.h"
 #include "../../vk/vk_descriptors.h"
+#include "../../vk/vk_swap_chain.h"
 #include <array>
 #include <cstdint>
 
@@ -14,9 +15,10 @@ namespace vk {
 
 		~CubemapMaterial() override;
 
-		VkDescriptorSet getDescriptorSet() const override {
-			return cubemapDescriptorSet;
+		VkDescriptorSet getDescriptorSet(int frameIndex) const override { 
+			return cubemapDescriptorSets[frameIndex]; 
 		}
+		
 		VkDescriptorSetLayout getDescriptorSetLayout() const override {
 			return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
 		}
@@ -25,15 +27,14 @@ namespace vk {
 		static std::unique_ptr<DescriptorSetLayout> descriptorSetLayout;
 		static int instanceCount;
 
-		static void cleanupResources(Device& device);
+		static void cleanupResources();
 
 	   private:
 		void createCubemapFromFaces(const std::array<std::string, 6>& facePaths);
 		void createCubemapFromSingleImage(const std::string& imagePath, bool isHorizontalStrip);
-
 		void createCubemapImageView();
 		void createCubemapSampler();
-		void createDescriptorSet();
+		void createDescriptorSets();
 
 		static void createDescriptorSetLayoutIfNeeded(Device& device);
 
@@ -41,7 +42,7 @@ namespace vk {
 		VkDeviceMemory cubemapImageMemory = VK_NULL_HANDLE;
 		VkImageView cubemapImageView = VK_NULL_HANDLE;
 		VkSampler cubemapSampler = VK_NULL_HANDLE;
-		VkDescriptorSet cubemapDescriptorSet = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSet> cubemapDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
 		uint32_t mipLevels = 1;
 	};
 }

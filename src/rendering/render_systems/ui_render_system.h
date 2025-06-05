@@ -3,6 +3,7 @@
 #include "../../vk/vk_pipeline.h"
 #include "../../vk/vk_frame_info.h"
 #include "../../vk/vk_device.h"
+#include "../../vk/vk_renderer.h"
 #include "../../rendering/materials/Material.h"
 
 #include <stdexcept>
@@ -23,7 +24,7 @@ namespace vk {
 
 	class UIRenderSystem {
 	   public:
-		UIRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
+		UIRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
 		~UIRenderSystem();
 
 		void renderGameObjects(FrameInfo& frameInfo);
@@ -31,49 +32,18 @@ namespace vk {
 	   private:
 		struct PipelineInfo {
 			std::unique_ptr<Pipeline> pipeline;
-			VkPipelineLayout pipelineLayout;
+			VkPipelineLayout pipelineLayout; // store handle to pipeline layout but manage in own map to be able to share layout among pipelines with the same descriptor sets
 		};
 
 		PipelineInfo& getPipeline(const Material& material);
-		void createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
-
-		struct PipelineKey {
-			std::string vertShaderPath;
-			std::string fragShaderPath;
-			bool depthTestEnable;
-			bool depthWriteEnable;
-			VkCompareOp depthCompareOp;
-			VkCullModeFlags cullMode;
-
-			bool operator==(const PipelineKey& other) const {
-				return vertShaderPath == other.vertShaderPath &&
-					   fragShaderPath == other.fragShaderPath &&
-					   depthTestEnable == other.depthTestEnable &&
-					   depthWriteEnable == other.depthWriteEnable &&
-					   depthCompareOp == other.depthCompareOp &&
-					   cullMode == other.cullMode;
-			}
-		};
-
-		struct PipelineKeyHash {
-			std::size_t operator()(const PipelineKey& key) const {
-				// Simple hash function
-				std::size_t h1 = std::hash<std::string>{}(key.vertShaderPath);
-				std::size_t h2 = std::hash<std::string>{}(key.fragShaderPath);
-				std::size_t h3 = std::hash<bool>{}(key.depthTestEnable);
-				std::size_t h4 = std::hash<bool>{}(key.depthWriteEnable);
-				std::size_t h5 = std::hash<int>{}(static_cast<int>(key.depthCompareOp));
-				std::size_t h6 = std::hash<int>{}(static_cast<int>(key.cullMode));
-				return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4) ^ (h6 << 5);
-			}
-		};
+		void getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
 
 		Device& device;
-		VkRenderPass renderPass;
+		Renderer& renderer;
 		VkDescriptorSetLayout globalSetLayout;
 
-		std::unordered_map<PipelineKey, PipelineInfo, PipelineKeyHash> pipelineCache;
+		std::unordered_map<PipelineConfigInfo, PipelineInfo> pipelineCache;
 		std::unordered_map<VkDescriptorSetLayout, VkPipelineLayout> pipelineLayoutCache;
 	};
 
-}  // namespace vk
+}

@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <stdexcept>
+#include <iostream>
 
 namespace vk {
 
@@ -98,6 +99,7 @@ namespace vk {
 	}
 
 	DescriptorPool::~DescriptorPool() {
+		std::cout << "DescriptorPool: Destroying pool " << std::hex << (uint64_t)descriptorPool << std::dec << std::endl;
 		vkDestroyDescriptorPool(device.device(), descriptorPool, nullptr);
 	}
 
@@ -108,16 +110,28 @@ namespace vk {
 		allocInfo.descriptorPool = descriptorPool;
 		allocInfo.pSetLayouts = &descriptorSetLayout;
 		allocInfo.descriptorSetCount = 1;
-
+	
 		// Might want to create a "DescriptorPoolManager" class that handles this case, and builds
 		// a new pool whenever an old pool fills up. But this is beyond our current scope
-		if (vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptor) != VK_SUCCESS) {
-			return false;
+		VkResult result = vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptor);
+		if (result != VK_SUCCESS) {
+			std::cout << "DescriptorPool: Failed to allocate descriptor set, error code: " << result << std::endl;
+			throw std::runtime_error("Failed to allocate descriptor set!");
 		}
+		
+		std::cout << "DescriptorPool: Allocated descriptor set " << std::hex << (uint64_t)descriptor
+			<< " from pool " << (uint64_t)descriptorPool << std::dec << std::endl;
 		return true;
 	}
 
 	void DescriptorPool::freeDescriptors(std::vector<VkDescriptorSet> &descriptors) const {
+		std::cout << "DescriptorPool: Freeing " << descriptors.size() << " descriptor sets from pool "
+			<< std::hex << (uint64_t)descriptorPool << std::dec << std::endl;
+		
+		for (auto& set : descriptors) {
+			std::cout << "  Freeing descriptor set: " << std::hex << (uint64_t)set << std::dec << std::endl;
+		}
+		
 		vkFreeDescriptorSets(
 			device.device(),
 			descriptorPool,
@@ -126,6 +140,7 @@ namespace vk {
 	}
 
 	void DescriptorPool::resetPool() {
+		std::cout << "DescriptorPool: Resetting pool " << std::hex << (uint64_t)descriptorPool << std::dec << std::endl;
 		vkResetDescriptorPool(device.device(), descriptorPool, 0);
 	}
 

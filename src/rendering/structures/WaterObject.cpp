@@ -11,4 +11,14 @@ namespace vk {
 	glm::mat4 WaterObject::computeNormalMatrix() const {
 		return glm::transpose(glm::inverse(transformMat));
 	}
+
+	void WaterObject::toggleWireframeModeIfSupported() {
+		vk::PipelineConfigInfo& configInfo = this->modelPtr->getMaterial()->getPipelineConfigRef();
+		if (configInfo.rasterizationInfo.polygonMode == VK_POLYGON_MODE_FILL) {
+			configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+		}
+		else if (configInfo.rasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE) {
+			configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+		}
+	}
 }

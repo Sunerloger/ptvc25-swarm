@@ -48,6 +48,7 @@ namespace physics {
 
 		// We simulate the physics world in discrete time steps. e.g. 60 Hz is a good rate to update the physics system.
 		const float cPhysicsDeltaTime = 1.0f / 60.0f;
+		const uint maxPhysicsSubSteps = 5;
 
 	private:
 

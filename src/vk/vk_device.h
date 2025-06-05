@@ -46,19 +46,23 @@ namespace vk {
 			return commandPool;
 		}
 		VkDevice device() {
-			return device_;
+			return m_device;
 		}
 		VkPhysicalDevice physicalDevice() {
 			return physicalDevice_;
 		}
 		VkSurfaceKHR surface() {
-			return surface_;
+			return m_surface;
 		}
 		VkQueue graphicsQueue() {
-			return graphicsQueue_;
+			return m_graphicsQueue;
 		}
 		VkQueue presentQueue() {
-			return presentQueue_;
+			return m_presentQueue;
+		}
+		
+		Window& getWindow() {
+			return window;
 		}
 
 		SwapChainSupportDetails getSwapChainSupport() {
@@ -71,12 +75,12 @@ namespace vk {
 		VkFormat findSupportedFormat(
 			const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-		VkCommandBuffer beginSingleTimeCommands();
-		void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+		VkCommandBuffer beginImmediateCommands();
+		void endImmediateCommands(VkCommandBuffer commandBuffer);
 		void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 		void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, uint32_t layerCount = 1, uint32_t baseArrayLayer = 0);	 // Overloaded version
 		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels = 1);
-
+	
 		// Mipmapping
 		void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels, uint32_t layerCount = 1);
 
@@ -87,6 +91,8 @@ namespace vk {
 
 		VkPhysicalDeviceProperties properties;	// Add properties member
 
+		void createCommandPool(VkCommandPool& out_pool);
+
 	   private:
 		bool hasStencilComponent(VkFormat format);	// Add declaration for hasStencilComponent
 		VkSampler createTextureSampler();			// Add declaration for createTextureSampler
@@ -96,7 +102,7 @@ namespace vk {
 		void createSurface();
 		void pickPhysicalDevice();
 		void createLogicalDevice();
-		void createCommandPool();
+		void createImmediateCommandPool();
 
 		// helper functions
 		bool isDeviceSuitable(VkPhysicalDevice device);
@@ -114,10 +120,10 @@ namespace vk {
 		Window &window;
 		VkCommandPool commandPool;
 
-		VkDevice device_;
-		VkSurfaceKHR surface_;
-		VkQueue graphicsQueue_;
-		VkQueue presentQueue_;
+		VkDevice m_device;
+		VkSurfaceKHR m_surface;
+		VkQueue m_graphicsQueue;
+		VkQueue m_presentQueue;
 
 		const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 		std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};

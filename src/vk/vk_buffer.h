@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vk_device.h"
+#include "vk_destruction_queue.h"
 
 namespace vk {
 
@@ -14,6 +15,8 @@ namespace vk {
 			VkMemoryPropertyFlags memoryPropertyFlags,
 			VkDeviceSize minOffsetAlignment = 1);
 		~Buffer();
+		
+		void scheduleDestroy(DestructionQueue& destructionQueue);
 
 		Buffer(const Buffer&) = delete;
 		Buffer& operator=(const Buffer&) = delete;

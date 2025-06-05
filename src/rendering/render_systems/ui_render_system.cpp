@@ -5,8 +5,8 @@
 
 namespace vk {
 
-	UIRenderSystem::UIRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-		: device{device}, renderPass{renderPass}, globalSetLayout{globalSetLayout} {
+	UIRenderSystem::UIRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout)
+		: device{device}, renderer{renderer}, globalSetLayout{globalSetLayout} {
 	}
 
 	UIRenderSystem::~UIRenderSystem() {
@@ -15,7 +15,7 @@ namespace vk {
 		}
 	}
 
-	void UIRenderSystem::createPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
+	void UIRenderSystem::getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout) {
 		// Check if we already have a pipeline layout for this material layout
 		auto it = pipelineLayoutCache.find(materialSetLayout);
 		if (it != pipelineLayoutCache.end()) {
@@ -47,56 +47,35 @@ namespace vk {
 
 	UIRenderSystem::PipelineInfo& UIRenderSystem::getPipeline(const Material& material) {
 		// Get the material's pipeline configuration
-		const auto& config = material.getPipelineConfig();
-
-		// Create a key for the pipeline cache
-		PipelineKey key{
-			config.vertShaderPath,
-			config.fragShaderPath,
-			config.depthStencilInfo.depthTestEnable == VK_TRUE,
-			config.depthStencilInfo.depthWriteEnable == VK_TRUE,
-			config.depthStencilInfo.depthCompareOp,
-			config.rasterizationInfo.cullMode};
-
-		// Check if we already have a pipeline for this configuration
-		auto it = pipelineCache.find(key);
-		if (it != pipelineCache.end()) {
-			return it->second;
-		}
+		PipelineConfigInfo config = material.getPipelineConfig();
 
 		// Get the descriptor set layout directly from the material
 		VkDescriptorSetLayout materialSetLayout = material.getDescriptorSetLayout();
 
-		// Create pipeline layout
+		// Create or retrieve pipeline layout
 		VkPipelineLayout pipelineLayout;
-		createPipelineLayout(materialSetLayout, pipelineLayout);
+		getPipelineLayout(materialSetLayout, pipelineLayout);
 
-		// Create pipeline config
-		PipelineConfigInfo pipelineConfig{};
-		Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+		config.renderPass = renderer.getSwapChainRenderPass();
+		config.pipelineLayout = pipelineLayout;
 
-		// Apply material properties
-		pipelineConfig.depthStencilInfo.depthTestEnable = config.depthStencilInfo.depthTestEnable;
-		pipelineConfig.depthStencilInfo.depthWriteEnable = config.depthStencilInfo.depthWriteEnable;
-		pipelineConfig.depthStencilInfo.depthCompareOp = config.depthStencilInfo.depthCompareOp;
-		pipelineConfig.rasterizationInfo.cullMode = config.rasterizationInfo.cullMode;
+		// Check if we already have a pipeline for this configuration
+		auto it = pipelineCache.find(config);
+		if (it != pipelineCache.end()) {
+			return it->second;
+		}
 
-		pipelineConfig.renderPass = renderPass;
-		pipelineConfig.pipelineLayout = pipelineLayout;
-
-		// Create pipeline
+		// Create pipeline because it doesn't exist yet
 		PipelineInfo pipelineInfo{};
 		pipelineInfo.pipelineLayout = pipelineLayout;
 
-		// Create standard pipeline
 		pipelineInfo.pipeline = std::make_unique<Pipeline>(
 			device,
-			config.vertShaderPath,
-			config.fragShaderPath,
-			pipelineConfig);
+			config
+		);
 
 		// Cache and return
-		return pipelineCache[key] = std::move(pipelineInfo);
+		return pipelineCache[config] = std::move(pipelineInfo);
 	}
 
 	void UIRenderSystem::renderGameObjects(FrameInfo& frameInfo) {
@@ -124,6 +103,9 @@ namespace vk {
 			if (!material)
 				continue;
 
+			// writes current state into gpu buffer (ubo), implemented if material needs it
+			material->updateDescriptorSet(renderer.getFrameIndex());
+
 			// Get pipeline for this material
 			auto& pipelineInfo = getPipeline(*material);
 
@@ -146,9 +128,9 @@ namespace vk {
 			// Use the game object's model matrix and normal matrix
 			push.modelMatrix = gameObject->computeModelMatrix();
 			push.normalMatrix = gameObject->computeNormalMatrix();
-			push.hasTexture = material->getDescriptorSet() != VK_NULL_HANDLE ? 1 : 0;
 
-			// No type checking - trust the implementation
+			// TODO put in texture ubo and not dependent on descriptor set
+			push.hasTexture = material->getDescriptorSet(renderer.getFrameIndex()) != VK_NULL_HANDLE ? 1 : 0;
 
 			// Determine shader stages to push constants to
 			VkShaderStageFlags stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -162,7 +144,7 @@ namespace vk {
 				&push);
 
 			// Bind material descriptor set
-			VkDescriptorSet materialDS = material->getDescriptorSet();
+			VkDescriptorSet materialDS = material->getDescriptorSet(renderer.getFrameIndex());
 			if (materialDS != VK_NULL_HANDLE) {
 				vkCmdBindDescriptorSets(
 					frameInfo.commandBuffer,
@@ -174,10 +156,9 @@ namespace vk {
 					0, nullptr);
 			}
 
-			// Draw
 			gameObject->getModel()->bind(frameInfo.commandBuffer);
 			gameObject->getModel()->draw(frameInfo.commandBuffer);
 		}
 	}
 
-}  // namespace vk
+}

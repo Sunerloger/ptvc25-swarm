@@ -8,6 +8,13 @@ SceneManager& SceneManager::getInstance() {
 	return instance;
 }
 
+void SceneManager::awakeAll() {
+	// TODO -> only enemies for now
+	for (auto& it : this->scene->enemies) {
+		it.second->awake();
+	}
+}
+
 void SceneManager::updateUIPosition(float deltaTime, glm::vec3 dir) {
 	for (auto& uiObject : this->getUIObjects()) {
 		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
@@ -167,20 +174,20 @@ vk::id_t SceneManager::addManagedPhysicsEntity(std::unique_ptr<physics::ManagedP
 	return vk::INVALID_OBJECT_ID;
 }
 
-vk::id_t SceneManager::addTessellationObject(std::unique_ptr<physics::ManagedPhysicsEntity> tessellationObject) {
-	vk::id_t id = tessellationObject->getId();
-	JPH::BodyID bodyID = tessellationObject->getBodyID();
+vk::id_t SceneManager::addTerrainObject(std::unique_ptr<physics::ManagedPhysicsEntity> terrainObject) {
+	vk::id_t id = terrainObject->getId();
+	JPH::BodyID bodyID = terrainObject->getBodyID();
 
 	// Check if the object already exists
 	if (scene->passivePhysicsObjects.find(id) != scene->passivePhysicsObjects.end()) {
 		return vk::INVALID_OBJECT_ID;
 	}
 
-	std::pair result = this->scene->tessellationObjects.emplace(id, std::move(tessellationObject));
+	std::pair result = this->scene->terrainObjects.emplace(id, std::move(terrainObject));
 
 	if (result.second) {
 		result.first->second->addPhysicsBody();
-		this->idToClass.emplace(id, TESSELLATION_OBJECT);
+		this->idToClass.emplace(id, TERRAIN_OBJECT);
 		this->bodyIDToObjectId.emplace(bodyID, id);
 		this->physicsSceneIsChanged = true;
 		return id;
@@ -275,10 +282,10 @@ void SceneManager::removeStaleObjects() {
 				this->physicsSceneIsChanged = true;
 				continue;
 
-			case TESSELLATION_OBJECT:
-				// Handle tessellation objects
-				bodyID = scene->tessellationObjects.at(id)->getBodyID();
-				scene->tessellationObjects.erase(id);
+			case TERRAIN_OBJECT:
+				// Handle terrain objects
+				bodyID = scene->terrainObjects.at(id)->getBodyID();
+				scene->terrainObjects.erase(id);
 
 				this->idToClass.erase(id);
 				this->bodyIDToObjectId.erase(bodyID);
@@ -401,19 +408,19 @@ std::unique_ptr<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>> SceneMan
 
 			return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, physicsObject));
 		}
-	} else if (sceneClass == TESSELLATION_OBJECT) {
+	} else if (sceneClass == TERRAIN_OBJECT) {
 		this->idToClass.erase(id);
-		JPH::BodyID bodyID = scene->tessellationObjects.at(id)->getBodyID();
+		JPH::BodyID bodyID = scene->terrainObjects.at(id)->getBodyID();
 		this->bodyIDToObjectId.erase(bodyID);
 
-		auto itTessellationObjects = scene->tessellationObjects.find(id);
-		itTessellationObjects->second->removePhysicsBody();
-		std::shared_ptr<vk::GameObject> tessellationObject = std::move(itTessellationObjects->second);
+		auto itTerrainObjects = scene->terrainObjects.find(id);
+		itTerrainObjects->second->removePhysicsBody();
+		std::shared_ptr<vk::GameObject> terrainObject = std::move(itTerrainObjects->second);
 
-		scene->tessellationObjects.erase(id);
+		scene->terrainObjects.erase(id);
 		this->physicsSceneIsChanged = true;
 
-		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, tessellationObject));
+		return std::make_unique<std::pair<SceneClass, std::shared_ptr<vk::GameObject>>>(make_pair(sceneClass, terrainObject));
 	} else if (sceneClass == WATER) {
 		this->idToClass.erase(id);
 
@@ -578,8 +585,8 @@ std::pair<SceneClass, vk::GameObject*> SceneManager::getObject(vk::id_t id) {
 		return std::pair<SceneClass, vk::GameObject*>(std::make_pair(sceneClass, this->scene->physicsObjects.at(id).get()));
 	} else if (sceneClass == SPECTRAL_OBJECT) {
 		return std::pair<SceneClass, vk::GameObject*>(std::make_pair(sceneClass, this->scene->spectralObjects.at(id).get()));
-	} else if (sceneClass == TESSELLATION_OBJECT) {
-		return std::pair<SceneClass, vk::GameObject*>(std::make_pair(sceneClass, this->scene->tessellationObjects.at(id).get()));
+	} else if (sceneClass == TERRAIN_OBJECT) {
+		return std::pair<SceneClass, vk::GameObject*>(std::make_pair(sceneClass, this->scene->terrainObjects.at(id).get()));
 	} else if (sceneClass == WATER) {
 		return std::pair<SceneClass, vk::GameObject*>(std::make_pair(sceneClass, this->scene->waterObjects.at(id).get()));
 	} else {
@@ -629,20 +636,39 @@ std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getStandardRenderObject
 	return renderObjects;
 }
 
-std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTessellationRenderObjects() {
-	std::vector<std::weak_ptr<vk::GameObject>> tessellationObjects = {};
+std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getTerrainRenderObjects() {
+	std::vector<std::weak_ptr<vk::GameObject>> terrainObjects = {};
 
-	for (auto& it : this->scene->tessellationObjects) {
-		std::weak_ptr<vk::GameObject> object = it.second;
-		tessellationObjects.push_back(object);
+	for (auto& it : this->scene->terrainObjects) {
+		std::shared_ptr<vk::GameObject> object = it.second;
+		terrainObjects.push_back(object);
 	}
 
-	return tessellationObjects;
+	return terrainObjects;
 }
 
 void SceneManager::clearUIObjects() {
+	// remove each UI object's entry from the idToClass map
+	for (auto& uiPair : this->scene->uiObjects) {
+		this->idToClass.erase(uiPair.first);
+	}
+	
+	// clear the UI objects map
 	this->scene->uiObjects.clear();
-	this->idToClass.clear();
+}
+
+void SceneManager::toggleWireframeOnTerrainObjects() {
+	for (auto& it : this->scene->terrainObjects) {
+		std::shared_ptr<vk::GameObject> object = it.second;
+		object->toggleWireframeModeIfSupported();
+	}
+}
+
+void SceneManager::toggleWireframeOnWaterObjects() {
+	for (auto& it : this->scene->waterObjects) {
+		std::shared_ptr<vk::GameObject> object = it.second;
+		object->toggleWireframeModeIfSupported();
+	}
 }
 
 void SceneManager::clearVegetationObjects() {

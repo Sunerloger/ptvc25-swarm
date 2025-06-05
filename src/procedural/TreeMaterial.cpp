@@ -27,7 +27,7 @@ namespace procedural {
 			barkMaterial = std::make_shared<vk::StandardMaterial>(device, barkTexturePath);
 
 			// Configure material for bark - enable backface culling for performance
-			barkMaterial->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+			barkMaterial->getPipelineConfigRef().rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 
 			std::cout << "Created bark texture material from: " << barkTexturePath << std::endl;
 		} catch (const std::exception& e) {
@@ -42,7 +42,7 @@ namespace procedural {
 			leafMaterial = std::make_shared<vk::StandardMaterial>(device, leafTexturePath);
 
 			// Configure material for leaves - disable backface culling to see both sides
-			leafMaterial->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+			leafMaterial->getPipelineConfigRef().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 
 			std::cout << "Created leaf texture material from: " << leafTexturePath << std::endl;
 		} catch (const std::exception& e) {
@@ -62,7 +62,7 @@ namespace procedural {
 		};
 
 		barkMaterial = std::make_shared<vk::StandardMaterial>(device, barkPixel, 1, 1, 4);
-		barkMaterial->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		barkMaterial->getPipelineConfigRef().rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 	}
 
 	void TreeMaterial::createLeafMaterialSolid(const glm::vec3& leafColor) {
@@ -75,7 +75,7 @@ namespace procedural {
 		};
 
 		leafMaterial = std::make_shared<vk::StandardMaterial>(device, leafPixel, 1, 1, 4);
-		leafMaterial->getPipelineConfig().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+		leafMaterial->getPipelineConfigRef().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 	}
 
 }  // namespace procedural

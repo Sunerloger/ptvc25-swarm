@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "Swarm.h"
+#include "AudioSystem.h"
 #include "asset_utils/AssetLoader.h"
 #include "asset_utils/AssetManager.h"
 

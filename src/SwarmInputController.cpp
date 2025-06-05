@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+#include "AudioSystem.h"
+
 namespace input {
 
 	SwarmInputController::SwarmInputController(vk::Window& w, InputManager& im)
@@ -20,6 +22,7 @@ namespace input {
 			[this]() {
 				lastActiveContext = ContextID::Gameplay;
 				setContext(ContextID::MainMenu);
+				audio::AudioSystem::getInstance().togglePauseAllSounds();
 			},
 			this,
 			ContextID::Gameplay);
@@ -28,6 +31,7 @@ namespace input {
 			GLFW_KEY_ESCAPE,
 			[this]() {
 				setContext(lastActiveContext);
+				audio::AudioSystem::getInstance().togglePauseAllSounds();
 			},
 			this,
 			ContextID::MainMenu);
@@ -38,6 +42,7 @@ namespace input {
 				[this]() {
 					lastActiveContext = ContextID::Debug;
 					setContext(ContextID::MainMenu);
+					audio::AudioSystem::getInstance().togglePauseAllSounds();
 				},
 				this,
 				ContextID::Debug);
@@ -190,7 +195,6 @@ namespace input {
 				},
 				this,
 				ContextID::Debug);
-
 			inputManager.registerKeyCallback(
 				GLFW_KEY_F1,
 				[this]() {
@@ -198,9 +202,16 @@ namespace input {
 				},
 				this,
 				ContextID::Debug);
+			inputManager.registerKeyCallback(
+				GLFW_KEY_F9,
+				[this]() {
+					onToggleWireframeMode();
+				},
+				this,
+				ContextID::Debug);
 
 			inputManager.registerKeyCallback(
-				GLFW_KEY_F12,
+				GLFW_KEY_F10,
 				[this]() {
 					setContext(ContextID::Gameplay);
 					onToggleDebug();
@@ -208,7 +219,7 @@ namespace input {
 				this,
 				ContextID::Debug);
 			inputManager.registerKeyCallback(
-				GLFW_KEY_F12,
+				GLFW_KEY_F10,
 				[this]() {
 					setContext(ContextID::Debug);
 					onToggleDebug();

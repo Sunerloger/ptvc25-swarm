@@ -73,6 +73,11 @@ void Swarm::bindInput() {
 		sceneManager.toggleUIVisibility();
 	};
 
+	swarmInput.onToggleWireframeMode = [this, &sceneManager]() {
+		sceneManager.toggleWireframeOnTerrainObjects();
+		sceneManager.toggleWireframeOnWaterObjects();
+	};
+
 	if (debugMode) {
 		swarmInput.onToggleDebug = [this, &sceneManager]() { toggleDebug(); };
 	} else {
@@ -143,6 +148,12 @@ void Swarm::toggleDebug() {
 }
 
 void Swarm::onPlayerDeath() {
+
+	audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+	audio::SoundSettings soundSettings{};
+	soundSettings.volume = 5.0;
+	audioSystem.playSound("death", soundSettings);
+
 	input::SwarmInputController& swarmInput = static_cast<input::SwarmInputController&>(inputController);
 	swarmInput.setContext(input::SwarmInputController::ContextID::Death);
 	SceneManager& sceneManager = SceneManager::getInstance();
@@ -211,9 +222,27 @@ void Swarm::onPlayerDeath() {
 }
 
 void Swarm::init() {
+
+	audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+
+	audioSystem.loadSound("gun", "audio:gun_shot.mp3");
+	audioSystem.loadSound("ambience", "audio:forest_background.mp3");
+	audioSystem.loadSound("death", "audio:death.mp3");
+	audioSystem.loadSound("hurt", "audio:hurt.mp3");
+	audioSystem.loadSound("growl", "audio:growl.mp3");
+	audioSystem.loadSound("explosion", "audio:explosion.mp3");
+	audioSystem.loadSound("grenade_pin", "audio:grenade_pin.mp3");
+	audio::SoundSettings soundSettings{};
+	soundSettings.looping = true;
+	soundSettings.volume = 0.1f;
+	audioSystem.playSound("ambience", soundSettings, "background_ambience");
+	audioSystem.setProtected("background_ambience", true);
+
 	SceneManager& sceneManager = SceneManager::getInstance();
 
 	// register assets that are reused later with asset manager so they don't fall out of scope and can still be referenced
+
+	float maxTerrainHeight = 25.0f;
 
 	// Player
 	{
@@ -239,18 +268,21 @@ void Swarm::init() {
 		playerCreationSettings.characterSettings = characterSettings;
 		playerCreationSettings.cameraSettings = cameraSettings;
 		playerCreationSettings.playerSettings = playerSettings;
-		playerCreationSettings.position = JPH::RVec3(0.0f, 15.0f, 0.0f);  // Increased Y position to start higher above terrain
+		playerCreationSettings.position = JPH::RVec3(0.0f, maxTerrainHeight + 1, 0.0f);  // Increased Y position to start higher above terrain
 
 		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
-		sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f));
+		sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f)));
 	}
 
 	// Terrain
-	float maxTerrainHeight = 15.0f;	 // Controls the height of the terrain
-	int samplesPerSide = 100;		 // Resolution of the heightmap - moved out for vegetation use
+	int samplesPerSide = 100;
 	{
 		float noiseScale = 5.0f;  // Controls the "frequency" of the noise
+
+		TessellationMaterial::MaterialCreationData terrainCreationData = {};
+		terrainCreationData.textureRepetition = glm::vec2(samplesPerSide / 20.0f, samplesPerSide / 20.0f);
+		terrainCreationData.heightScale = maxTerrainHeight;
 
 		// Generate terrain model with heightmap
 		auto result = vk::Model::createTerrainModel(
@@ -258,73 +290,80 @@ void Swarm::init() {
 			samplesPerSide,
 			"textures:ground/dirt.png",	 // Tile texture path
 			noiseScale,
-			maxTerrainHeight);
+			/* loadHeightTexture */ false,
+			/* heightTexturePath */ "none",
+			/* seed */ -1, // if -1: use random
+			/* useTessellation */ true,
+			terrainCreationData
+		);
 
 		// Store heightfield data for vegetation and parameter tuning
 		if (result.second.size() >= samplesPerSide * samplesPerSide) {
 			heightfieldData = result.second;  // Copy the heightfield data
-		} else {
+		}
+		else {
 			// Create flat heightfield if result doesn't have enough data
 			heightfieldData.resize(samplesPerSide * samplesPerSide, 0.0f);
 		}
 
 		// Store terrain parameters for regeneration
 		terrainSamplesPerSide = samplesPerSide;
-		terrainScale = glm::vec3{100.0f, maxTerrainHeight, 100.0f};
-		terrainPosition = glm::vec3{0.0, -2.0, 0.0};
+		terrainScale = glm::vec3{ 100.0f, maxTerrainHeight, 100.0f };
+		terrainPosition = glm::vec3{ 0.0, -2.0, 0.0 };
 
 		// create terrain with procedural heightmap using perlin noise
 		// create terrain with the generated heightmap data
 		auto terrain = std::make_unique<physics::Terrain>(
 			physicsSimulation.getPhysicsSystem(),
-			glm::vec3{0.569, 0.29, 0},
 			std::move(result.first),
-			glm::vec3{0.0, -2.0, 0.0},	// position slightly below origin to prevent falling through
-			glm::vec3{100.0f, maxTerrainHeight, 100.0f},
+			glm::vec3{ 0.0, -2.0, 0.0 },	// position slightly below origin to prevent falling through
+			glm::vec3{ 100.0f, maxTerrainHeight, 100.0f },
 			std::move(result.second));
-		sceneManager.addTessellationObject(std::move(terrain));
+
+		sceneManager.addTerrainObject(std::move(terrain));
 
 		// Create shared vegetation resources to avoid descriptor pool exhaustion
 		auto sharedResources = std::make_shared<procedural::VegetationSharedResources>(device);
+	}
 
-		// Vegetation (L-Systems) - moved inside terrain block to access heightfield data
-		{
-			procedural::VegetationIntegrator vegetationIntegrator(device);
+	// Vegetation (L-Systems) - moved inside terrain block to access heightfield data
+	{
+		procedural::VegetationIntegrator vegetationIntegrator(device);
 
-			procedural::VegetationIntegrator::VegetationSettings vegSettings;
-			vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
-			vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
+		procedural::VegetationIntegrator::VegetationSettings vegSettings;
+		vegSettings.terrainMin = glm::vec2(-70.0f, -70.0f);
+		vegSettings.terrainMax = glm::vec2(70.0f, 70.0f);
 
-			vegSettings.treeDensity = 0.002f;
+		vegSettings.treeDensity = 0.002f;
 
-			// Slope constraints for realistic placement
-			vegSettings.maxTreeSlope = 30.0f;
+		// Slope constraints for realistic placement
+		vegSettings.maxTreeSlope = 30.0f;
 
-			// Scale variation for much larger, more impressive trees
-			vegSettings.treeScaleRange = glm::vec2(1.2f, 2.5f);
+		// Scale variation for much larger, more impressive trees
+		vegSettings.treeScaleRange = glm::vec2(1.2f, 2.5f);
 
-			// Use random seed for deterministic vegetation
-			vegSettings.placementSeed = 12345;
+		// Use random seed for deterministic vegetation
+		vegSettings.placementSeed = 12345;
 
-			try {
-				// Generate enhanced vegetation on terrain using the heightfield data
-				vegetationIntegrator.generateEnhancedVegetationOnTerrain(
-					vegSettings,
-					heightfieldData,
-					samplesPerSide,
-					glm::vec3(100.0f, maxTerrainHeight, 100.0f),
-					glm::vec3(0.0, -2.0, 0.0));
+		try {
+			// Generate enhanced vegetation on terrain using the heightfield data
+			vegetationIntegrator.generateEnhancedVegetationOnTerrain(
+				vegSettings,
+				heightfieldData,
+				samplesPerSide,
+				glm::vec3(100.0f, maxTerrainHeight, 100.0f),
+				glm::vec3(0.0, -2.0, 0.0));
 
-				// Add generated enhanced vegetation to scene
-				vegetationIntegrator.addEnhancedVegetationToScene(sceneManager);
+			// Add generated enhanced vegetation to scene
+			vegetationIntegrator.addEnhancedVegetationToScene(sceneManager);
 
-				// Report statistics
-				auto stats = vegetationIntegrator.getVegetationStats();
-				printf("Added enhanced L-System vegetation: %d trees\n", stats.treeCount);
+			// Report statistics
+			auto stats = vegetationIntegrator.getVegetationStats();
+			printf("Added enhanced L-System vegetation: %d trees\n", stats.treeCount);
 
-			} catch (const std::exception& e) {
-				printf("Error generating vegetation: %s\n", e.what());
-			}
+		}
+		catch (const std::exception& e) {
+			printf("Error generating vegetation: %s\n", e.what());
 		}
 	}
 
@@ -376,7 +415,9 @@ void Swarm::init() {
 		for (int i = 0; i < 10; ++i) {
 			float angle = angleDist(gen);
 			float radius = std::sqrt(radiusSqDist(gen));
-			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, maxTerrainHeight, playerPos.z + std::sin(angle) * radius);
+			auto playerPos = sceneManager.getPlayer()->getPosition();
+
+			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, maxTerrainHeight+1, playerPos.z + std::sin(angle) * radius);
 
 			sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
 		}
@@ -384,12 +425,33 @@ void Swarm::init() {
 
 	// Water
 	{
-		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModel(device, 1000));
+		int samplesPerSide = 2000;
+		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModelWithoutGeometry(device, samplesPerSide));
 
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
+
+		CreateWaterData waterData{};
+		waterData.minTessDistance = 50.0f;
+		waterData.maxTessDistance = 500.0f;
+		waterData.textureRepetition = glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f);
+		waterMaterial->setWaterData(waterData);
+
+		std::vector<glm::vec4> waves;
+		// waves.push_back(glm::vec4{ 1.0f, 0.0f, 0.18f, 12.0f });
+		// waves.push_back(glm::vec4{ 0.92f, 0.38f, 0.15f, 8.0f });
+		// waves.push_back(glm::vec4{ -0.75f, 0.66f, 0.20f, 20.0f });
+		// waves.push_back(glm::vec4{ 0.34f, -0.94f, 0.06f, 16.0f });
+
+		waves.push_back(glm::vec4{ 1.0f, 1.0f, 0.25f, 60.0f });
+		waves.push_back(glm::vec4{ 1.0f, 0.6f, 0.25f, 31.0f });
+		waves.push_back(glm::vec4{ 1.0f, 1.3f, 0.25f, 18.0f });
+		waterMaterial->setWaves(waves);
+		
 		waterModel->setMaterial(waterMaterial);
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};
+		waterCreationSettings.position = glm::vec3{ 0.0f, -20.0f, 0.0f };
+		waterCreationSettings.waterScale = samplesPerSide - 1;
 		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
 	}
 
@@ -438,12 +500,12 @@ void Swarm::init() {
 			window.getGLFWWindow());
 		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f1));
 
-		// F11: Toggle Fullscreen
-		TextComponent* debug_text_f11 = new TextComponent(
+		// F9: Toggle Wireframe terrain
+		TextComponent* debug_text_f9 = new TextComponent(
 			device,
 			font,
-			"F11: Toggle \n Fullscreen",
-			"debug_text_toggle_fullscreen",
+			"F9: Toggle \n Wireframe Terrain",
+			"debug_text_toggle_menu",
 			/* controllable: */ false,
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
@@ -453,13 +515,13 @@ void Swarm::init() {
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ true,
 			window.getGLFWWindow());
-		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f11));
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f9));
 
-		// F12: Toggle Debug Mode
-		TextComponent* debug_text_f12 = new TextComponent(
+		// F10: Toggle Debug Mode
+		TextComponent* debug_text_f10 = new TextComponent(
 			device,
 			font,
-			"F12: Toggle \n Debug Mode",
+			"F10: Toggle \n Debug Mode",
 			"debug_text_toggle_menu",
 			/* controllable: */ false,
 			/* centerHorizontal: */ false,
@@ -470,7 +532,24 @@ void Swarm::init() {
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ false,
 			window.getGLFWWindow());
-		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f12));
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f10));
+
+		// F11: Toggle Fullscreen
+		TextComponent* debug_text_f11 = new TextComponent(
+			device,
+			font,
+			"F11: Toggle \n Fullscreen",
+			"debug_text_toggle_fullscreen",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ true,
+			/* verticalOffset: */ -100.0f,
+			/* anchorRight: */ true,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
+			window.getGLFWWindow());
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f11));
 
 		// Clock quad
 		hudSettings.model = Model::createModelFromFile(device, "models:quad.glb", true);
@@ -555,9 +634,7 @@ void Swarm::init() {
 void Swarm::gameActiveUpdate(float deltaTime) {
 	SceneManager& sceneManager = SceneManager::getInstance();
 
-	// TODO refactor into timer class
-	elapsedTime += deltaTime;
-	int newSecond = static_cast<int>(elapsedTime);
+	int newSecond = static_cast<int>(sceneManager.realTime);
 
 	if (newSecond > oldSecond) {
 		auto objPair = sceneManager.getObject(gameTimeTextID);
@@ -572,7 +649,7 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 		oldSecond = newSecond;
 	}
 
-	if (elapsedTime >= 10.0f && newSecond % 10 == 0 && newSecond != lastSpawnSecond) {
+	if (sceneManager.realTime >= 10.0f && newSecond % 10 == 0 && newSecond != lastSpawnSecond) {
 		printf("Spawning new enemy wave at %d seconds\n", newSecond);
 		lastSpawnSecond = newSecond;
 		float enemyHullHeight = 1.5f;
@@ -614,7 +691,10 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 			float radius = std::sqrt(radiusSqDist(gen));
 			sprinterCreationSettings.position = RVec3(playerPos.x + std::cos(angle) * radius, 15.0, playerPos.z + std::sin(angle) * radius);
 
-			sceneManager.addEnemy(std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem()));
+			std::unique_ptr<physics::Enemy> enemy = std::make_unique<physics::Sprinter>(sprinterCreationSettings, physicsSimulation.getPhysicsSystem());
+			enemy->awake(); // for sound effects
+
+			sceneManager.addEnemy(std::move(enemy));
 		}
 	}
 

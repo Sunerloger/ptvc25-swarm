@@ -11,6 +11,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "../../../AudioSystem.h"
+
 namespace physics {
 
 	PhysicsPlayer::PhysicsPlayer(PlayerCreationSettings playerCreationSettings, JPH::PhysicsSystem& physics_system) : settings(playerCreationSettings.playerSettings), characterSettings(playerCreationSettings.characterSettings), physics_system(physics_system), camera(playerCreationSettings.cameraSettings) {
@@ -136,6 +138,9 @@ namespace physics {
 		// Add grenade to scene manager for rendering and physics updates
 		sceneManager.addManagedPhysicsEntity(std::move(grenade));
 
+		audio::SoundSettings soundSettings{};
+		audio::AudioSystem::getInstance().playSound("grenade_pin", soundSettings);
+
 		// Update grenade cooldown state
 		lastGrenadeThrowTime = std::chrono::steady_clock::now();
 		hasGrenadeAvailable = false;
@@ -162,6 +167,10 @@ namespace physics {
 			JPH::BroadPhaseLayerFilter(),
 			JPH::ObjectLayerFilter(),
 			filter);
+
+		audio::SoundSettings soundSettings{};
+		soundSettings.volume = 0.5f;
+		audio::AudioSystem::getInstance().playSound("gun", soundSettings);
 
 		if (hit) {
 			JPH::BodyID hitBodyID = result.mBodyID;
@@ -208,8 +217,19 @@ namespace physics {
 	}
 
 	// @returns true if dead
-	void PhysicsPlayer::takeDamage(float damage) {
-		currentHealth -= damage;
+	void PhysicsPlayer::takeDamage(float healthToSubtract, glm::vec3 direction, float knockbackSpeed) {
+		this->currentHealth -= healthToSubtract;
+
+		if (direction != glm::vec3(0.0f)) {
+			JPH::Vec3 dir = GLMToRVec3(glm::normalize(direction));
+
+			// apply short lived velocity
+			character->SetLinearVelocity(dir * knockbackSpeed);
+		}
+
+		audio::AudioSystem& audioSystem = audio::AudioSystem::getInstance();
+		audio::SoundSettings soundSettings{};
+		audioSystem.playSound("hurt", soundSettings);
 
 		if (currentHealth <= 0)
 			settings.deathCallback();
@@ -231,7 +251,7 @@ namespace physics {
 		}
 	}
 
-	const glm::vec3 PhysicsPlayer::getCameraPosition() const {
+	glm::vec3 PhysicsPlayer::getCameraPosition() const {
 		return camera.getPosition();
 	}
 
@@ -288,7 +308,7 @@ namespace physics {
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastGrenadeThrowTime);
 		float elapsedSeconds = elapsed.count() / 1000.0f;
 		float remaining = settings.grenadeCooldownTime - elapsedSeconds;
-		return std::max(0.0f, remaining);
+		return remaining > 0.0f ? remaining : 0.0f;
 	}
 
 	void PhysicsPlayer::updateGrenadeCooldown(float deltaTime) {

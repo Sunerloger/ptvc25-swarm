@@ -61,7 +61,18 @@ namespace vk {
 				   swapChain.swapChainImageFormat == swapChainImageFormat;
 		}
 
-	   private:
+		void waitForAllFences() const;
+	
+		size_t getCurrentFrame() const;
+		
+		VkFence getInFlightFence(size_t frameIndex) const {
+			if (frameIndex < inFlightFences.size()) {
+				return inFlightFences[frameIndex];
+			}
+			return VK_NULL_HANDLE;
+		}
+
+		  private:
 		void createSwapChain();
 		void createImageViews();
 		void createDepthResources();
