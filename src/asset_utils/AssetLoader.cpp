@@ -50,8 +50,7 @@ namespace vk {
 			if (fs::exists(path)) {
 				if (debugText)
 					std::cout << "  Directory exists" << std::endl;
-			}
-			else {
+			} else {
 				if (debugText)
 					std::cout << "  Directory does not exist" << std::endl;
 			}
@@ -92,7 +91,6 @@ namespace vk {
 			// if we have this path registered, use it
 			auto it = m_pathRegistry.find(pathKey);
 			if (it != m_pathRegistry.end()) {
-				
 				std::string fullPath = normalizePath(it->second + "/" + filename);
 
 				if (forSaving || fs::exists(fullPath)) {
@@ -144,7 +142,6 @@ namespace vk {
 			throw std::runtime_error(errorMsg);
 		}
 
-		// read the file
 		size_t fileSize = static_cast<size_t>(file.tellg());
 		std::vector<char> buffer(fileSize);
 
@@ -175,8 +172,7 @@ namespace vk {
 		for (const auto& attempt : attempts) {
 			try {
 				return readFile(attempt);
-			}
-			catch (const std::exception&) {
+			} catch (const std::exception&) {
 				continue;
 			}
 		}
@@ -210,8 +206,8 @@ namespace vk {
 		if (ret) {
 			if (debugText)
 				std::cout << "AssetLoader: Successfully loaded OBJ model with "
-				<< shapes.size() << " shapes and "
-				<< materials.size() << " materials" << std::endl;
+						  << shapes.size() << " shapes and "
+						  << materials.size() << " materials" << std::endl;
 		}
 
 		return ret;
@@ -221,7 +217,6 @@ namespace vk {
 		TextureData result;
 		std::string resolvedPath = resolvePath(filepath);
 
-		// load the image
 		unsigned char* data = stbi_load(resolvedPath.c_str(), &result.width, &result.height, &result.channels, 0);
 
 		if (!data) {
@@ -232,14 +227,12 @@ namespace vk {
 		result.pixels.resize(dataSize);
 		std::memcpy(result.pixels.data(), data, dataSize);
 
-		// free the original data
 		stbi_image_free(data);
 
 		return result;
 	}
 
 	std::string AssetLoader::saveTexture(const std::string& filename, const unsigned char* data, int width, int height, int channels) {
-
 		std::string texturePath = "generated:" + filename;
 		std::string resolvedPath = resolvePath(texturePath, true);
 
@@ -254,8 +247,7 @@ namespace vk {
 				std::cout << "AssetLoader: Creating directory: " << dirPath << std::endl;
 			try {
 				fs::create_directories(dirPath);
-			}
-			catch (const std::exception& e) {
+			} catch (const std::exception& e) {
 				std::cerr << "AssetLoader: Error creating directory: " << e.what() << std::endl;
 				return "";
 			}
@@ -291,8 +283,7 @@ namespace vk {
 			buffer << file.rdbuf();
 			content = buffer.str();
 			file.close();
-		}
-		catch (const std::exception& e) {
+		} catch (const std::exception& e) {
 			std::cerr << "AssetLoader: Error reading text file: " << e.what() << std::endl;
 			return "";
 		}
@@ -304,7 +295,6 @@ namespace vk {
 	}
 
 	std::string AssetLoader::saveTxtFile(const std::string& filename, const std::string& content) {
-
 		std::string filePath = "generated:" + filename;
 		std::string resolvedPath = resolvePath(filePath, true);
 
@@ -314,8 +304,7 @@ namespace vk {
 				std::cout << "AssetLoader: Creating directory: " << dirPath << std::endl;
 			try {
 				fs::create_directories(dirPath);
-			}
-			catch (const std::exception& e) {
+			} catch (const std::exception& e) {
 				std::cerr << "AssetLoader: Error creating directory: " << e.what() << std::endl;
 				return "";
 			}
@@ -332,8 +321,7 @@ namespace vk {
 				file.close();
 				success = true;
 			}
-		}
-		catch (const std::exception& e) {
+		} catch (const std::exception& e) {
 			std::cerr << "AssetLoader: Exception while saving text file: " << e.what() << std::endl;
 			return "";
 		}
