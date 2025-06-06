@@ -167,17 +167,84 @@ namespace vk {
 				int frameIndex = renderer.getFrameIndex();
 				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex]};
 
+				if (!shadowMap) {
+					ShadowMap::ShadowMapSettings shadowSettings{};
+					shadowMap = std::make_unique<ShadowMap>(device, shadowSettings);
+				}
+				
+				shadowMap->updateShadowUbo(frameIndex);
+
 				GlobalUbo ubo{};
-				ubo.projection = sceneManager.getPlayer()->getProjMat();
-				ubo.view = sceneManager.getPlayer()->calculateViewMat();
 				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
 				ubo.sunDirection = glm::vec4(sceneManager.getSun()->getDirection(), 1.0f);
 				ubo.sunColor = glm::vec4(sceneManager.getSun()->getColor(), 1.0f);
 				ubo.cameraPosition = glm::vec4(sceneManager.getPlayer()->getCameraPosition(), 1.0f);
-				uboBuffers[frameIndex]->writeToBuffer(&ubo);
-				uboBuffers[frameIndex]->flush();
-
-				renderer.beginSwapChainRenderPass(commandBuffer);
+				
+				// shadow map rendering pass
+				{
+					// TODO maybe later use an enum for also e.g. post-processing
+					frameInfo.isShadowPass = true;
+					
+					// temporarily set projection and view with light's perspective
+					const ShadowMap::ShadowUbo& shadowUbo = shadowMap->getShadowUbo();
+					ubo.projection = shadowUbo.lightProjectionMatrix;
+					ubo.view = shadowUbo.lightViewMatrix;
+					
+					uboBuffers[frameIndex]->writeToBuffer(&ubo);
+					uboBuffers[frameIndex]->flush();
+					
+					// begin shadow pass
+					std::vector<VkClearValue> clearValues = shadowMap->getClearValues();
+					renderer.beginRenderPass(
+						commandBuffer,
+						shadowMap->getRenderPass(),
+						shadowMap->getFramebuffer(),
+						shadowMap->getExtent(),
+						clearValues
+					);
+					
+					textureRenderSystem.renderGameObjects(frameInfo);
+					terrainRenderSystem.renderGameObjects(frameInfo);
+					
+					// end shadow pass
+					renderer.endRenderPass(commandBuffer);
+					
+					frameInfo.isShadowPass = false;
+					
+					ubo.projection = sceneManager.getPlayer()->getProjMat();
+					ubo.view = sceneManager.getPlayer()->calculateViewMat();
+					uboBuffers[frameIndex]->writeToBuffer(&ubo);
+					uboBuffers[frameIndex]->flush();
+				}
+				
+				// begin main render pass
+				std::vector<VkClearValue> clearValues = {
+					{0.01f, 0.01f, 0.01f, 1.0f},
+					{1.0f, 0}
+				};
+				renderer.beginRenderPass(
+					commandBuffer,
+					renderer.getSwapChainRenderPass(),
+					renderer.getSwapChain().getFrameBuffer(frameIndex),
+					renderer.getSwapChain().getSwapChainExtent(),
+					clearValues
+				);
+				
+				// bind shadow map descriptor set to texture render system
+				shadowMap->bindDescriptorSet(
+					commandBuffer,
+					textureRenderSystem.getPipelineLayout(),
+					frameIndex
+				);
+				
+				// bind shadow map descriptor set to terrain render system
+				shadowMap->bindDescriptorSet(
+					commandBuffer,
+					terrainRenderSystem.getPipelineLayout(),
+					frameIndex
+				);
+				
+				// render main scene
 				textureRenderSystem.renderGameObjects(frameInfo);
 				terrainRenderSystem.renderGameObjects(frameInfo);
 				waterRenderSystem.renderGameObjects(frameInfo);
@@ -202,7 +269,7 @@ namespace vk {
 					&clearRect);
 
 				uiRenderSystem.renderGameObjects(frameInfo);
-				renderer.endSwapChainRenderPass(commandBuffer);
+				renderer.endRenderPass(commandBuffer);
 				renderer.endFrame();
 			}
 		}

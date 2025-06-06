@@ -86,10 +86,14 @@ class Swarm : public GameBase {
 
 	physics::PhysicsPlayer::PlayerCreationSettings originalPlayerSettings;
 
-	std::vector<float> heightfieldData;				// Store heightfield for regeneration
-	int terrainSamplesPerSide = 100;				// Store terrain resolution
-	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};	// Store terrain scale
-	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};	// Store terrain position
+	std::vector<float> heightfieldData; // heightfield for regeneration
+	int terrainSamplesPerSide = 100;
+	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};
+	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};
+
+	float sunRotationAngle = 0.0f;
+	glm::vec3 baseSunDirection = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));
+	float sunDistance = 100.0f;
 
 	std::shared_ptr<Model> enemyModel;
 	std::shared_ptr<Model> grenadeModel;

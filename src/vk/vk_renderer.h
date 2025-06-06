@@ -28,11 +28,21 @@ namespace vk {
 			assert(isFrameStarted && "Cannot get command buffer when frame not in progress.");
 			return m_commandBuffers[currentRenderFrameIndex];
 		}
+		
+		VkRenderPass getCurrentRenderPass() const {
+			return currentRenderPass;
+		}
 
 		VkCommandBuffer beginFrame();
 		void endFrame();
-		void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
-		void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
+
+		void beginRenderPass(
+			VkCommandBuffer commandBuffer,
+			VkRenderPass renderPass,
+			VkFramebuffer framebuffer,
+			VkExtent2D extent,
+			const std::vector<VkClearValue>& clearValues);
+		void endRenderPass(VkCommandBuffer commandBuffer);
 
 		int getFrameIndex() const {
 			assert(isFrameStarted && "Cannot get frame index when frame not in progress.");
@@ -58,5 +68,6 @@ namespace vk {
 		uint32_t currentImageIndex;
 		int currentRenderFrameIndex{0};
 		bool isFrameStarted{false};
+		VkRenderPass currentRenderPass{VK_NULL_HANDLE};
 	};
 }

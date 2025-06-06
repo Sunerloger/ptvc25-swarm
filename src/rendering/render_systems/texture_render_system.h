@@ -24,6 +24,9 @@ namespace vk {
 		~TextureRenderSystem();
 
 		void renderGameObjects(FrameInfo& frameInfo);
+		
+		// for binding other descriptor sets
+		VkPipelineLayout getPipelineLayout() const;
 
     private:
         struct PipelineInfo {
@@ -32,6 +35,7 @@ namespace vk {
         };
 
         PipelineInfo& getPipeline(const Material& material);
+        PipelineInfo& getPipeline(PipelineConfigInfo& config, VkDescriptorSetLayout& materialSetLayout);
         void getPipelineLayout(VkDescriptorSetLayout materialSetLayout, VkPipelineLayout& pipelineLayout);
 
         Device& device;

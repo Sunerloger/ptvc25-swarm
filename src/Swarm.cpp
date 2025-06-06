@@ -2,6 +2,7 @@
 
 #include "scene/SceneManager.h"
 #include "procedural/VegetationIntegrator.h"
+#include <glm/gtc/matrix_transform.hpp>
 #include "procedural/VegetationSharedResources.h"
 
 #include <fmt/format.h>
@@ -272,7 +273,10 @@ void Swarm::init() {
 
 		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
-		sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f)));
+		glm::vec3 playerPos = sceneManager.getPlayer()->getPosition();
+		glm::vec3 sunPos = playerPos - baseSunDirection * sunDistance;
+		
+		sceneManager.setSun(make_unique<lighting::Sun>(sunPos, baseSunDirection, glm::vec3(1.0f, 1.0f, 1.0f)));
 	}
 
 	// Terrain
@@ -699,13 +703,36 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	}
 
 	sceneManager.updateEnemyVisuals(deltaTime);
+	
+	auto player = sceneManager.getPlayer();
+	auto sun = sceneManager.getSun();
+	if (player && sun) {
+		// rotate sun direction around Y axis
+		const float rotationSpeed = 0.1f; // radians per second
+		sunRotationAngle += rotationSpeed * deltaTime;
+		
+		if (sunRotationAngle > 2.0f * glm::pi<float>()) {
+			sunRotationAngle -= 2.0f * glm::pi<float>();
+		}
+		
+		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), sunRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::vec4 rotatedDir = rotationMatrix * glm::vec4(baseSunDirection, 0.0f);
+		glm::vec3 newDir = glm::normalize(glm::vec3(rotatedDir));
+		
+		sun->setDirection(newDir);
+		
+		const float sunDistance = 100.0f;
+		glm::vec3 playerPos = player->getPosition();
+		glm::vec3 sunPos = playerPos - newDir * sunDistance;
+		sun->setPosition(sunPos);
+	}
 
 	// Update health text
 	if (isDebugActive) {
 		// In debug mode, we don't update the health text
 		return;
 	}
-	auto player = sceneManager.getPlayer();
+
 	if (player) {
 		auto objPair = sceneManager.getObject(gameHealthTextID);
 		if (objPair.first != SceneClass::INVALID) {

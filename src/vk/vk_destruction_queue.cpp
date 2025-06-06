@@ -125,6 +125,30 @@ void DestructionQueue::pushDescriptorSet(VkDescriptorSet descriptorSet, VkDescri
     }
 }
 
+void DestructionQueue::pushFramebuffer(VkFramebuffer framebuffer) {
+    if (framebuffer != VK_NULL_HANDLE) {
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.framebuffers.push_back(framebuffer);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].framebuffers.push_back(framebuffer);
+        }
+    }
+}
+
+void DestructionQueue::pushRenderPass(VkRenderPass renderPass) {
+    if (renderPass != VK_NULL_HANDLE) {
+        // during resize operations, add to immediate deletion queue
+        if (device.getWindow().framebufferResized) {
+            immediateDeletionQueue.renderPasses.push_back(renderPass);
+        } else {
+            uint32_t frameIndex = swapChain->getCurrentFrame();
+            frameDeletionQueues[frameIndex].renderPasses.push_back(renderPass);
+        }
+    }
+}
+
 void DestructionQueue::cleanupDeletionQueue(DeletionQueue& queue) {
 	// destroy all resources in the queue in the correct order
 	// (reverse order of creation to handle dependencies)
@@ -250,6 +274,26 @@ void DestructionQueue::cleanupDeletionQueue(DeletionQueue& queue) {
 		}
 	}
 	queue.buffers.clear();
+	
+	if (queue.framebuffers.size() > 0) {
+		std::cout << "DestructionQueue: Destroying " << queue.framebuffers.size() << " framebuffers" << std::endl;
+		for (auto framebuffer : queue.framebuffers) {
+			if (framebuffer != VK_NULL_HANDLE) {
+				vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
+			}
+		}
+	}
+	queue.framebuffers.clear();
+	
+	if (queue.renderPasses.size() > 0) {
+		std::cout << "DestructionQueue: Destroying " << queue.renderPasses.size() << " render passes" << std::endl;
+		for (auto renderPass : queue.renderPasses) {
+			if (renderPass != VK_NULL_HANDLE) {
+				vkDestroyRenderPass(device.device(), renderPass, nullptr);
+			}
+		}
+	}
+	queue.renderPasses.clear();
 }
 
 void DestructionQueue::flush() {
@@ -334,6 +378,8 @@ void DestructionQueue::logResourceCounts() {
 	size_t totalDescriptorSetLayouts = 0;
 	size_t totalDescriptorPools = 0;
 	size_t totalDescriptorSets = 0;
+	size_t totalFramebuffers = 0;
+	size_t totalRenderPasses = 0;
 	
 	// count resources in frame deletion queues
 	for (size_t i = 0; i < frameDeletionQueues.size(); i++) {
@@ -347,6 +393,8 @@ void DestructionQueue::logResourceCounts() {
 		totalDescriptorSetLayouts += queue.descriptorSetLayouts.size();
 		totalDescriptorPools += queue.descriptorPools.size();
 		totalDescriptorSets += queue.descriptorSets.size();
+		totalFramebuffers += queue.framebuffers.size();
+		totalRenderPasses += queue.renderPasses.size();
 	}
 	
 	// count resources in immediate deletion queue
@@ -359,10 +407,13 @@ void DestructionQueue::logResourceCounts() {
 	totalDescriptorSetLayouts += immediateDeletionQueue.descriptorSetLayouts.size();
 	totalDescriptorPools += immediateDeletionQueue.descriptorPools.size();
 	totalDescriptorSets += immediateDeletionQueue.descriptorSets.size();
+	totalFramebuffers += immediateDeletionQueue.framebuffers.size();
+	totalRenderPasses += immediateDeletionQueue.renderPasses.size();
 	
 	if (totalBuffers > 0 || totalImages > 0 || totalImageViews > 0 || totalSamplers > 0 ||
 		totalPipelines > 0 || totalPipelineLayouts > 0 || totalDescriptorSetLayouts > 0 ||
-		totalDescriptorPools > 0 || totalDescriptorSets > 0) {
+		totalDescriptorPools > 0 || totalDescriptorSets > 0 || totalFramebuffers > 0 ||
+		totalRenderPasses > 0) {
 		
 		std::cout << "DestructionQueue: Total resources to clean up - "
 			<< "Buffers: " << totalBuffers
@@ -374,6 +425,8 @@ void DestructionQueue::logResourceCounts() {
 			<< ", DescriptorSetLayouts: " << totalDescriptorSetLayouts
 			<< ", DescriptorPools: " << totalDescriptorPools
 			<< ", DescriptorSets: " << totalDescriptorSets
+			<< ", Framebuffers: " << totalFramebuffers
+			<< ", RenderPasses: " << totalRenderPasses
 			<< std::endl;
 	}
 }

@@ -16,6 +16,8 @@
 #include "rendering/render_systems/terrain_render_system.h"
 #include "rendering/render_systems/water_render_system.h"
 
+#include "rendering/ShadowMap.h"
+
 #include "scene/SceneManager.h"
 #include "logical_systems/input/InputManager.h"
 
@@ -70,5 +72,7 @@ namespace vk {
 		
 		// TODO read via ini file
 		EngineSettings engineSettings = {};
+		
+		std::unique_ptr<ShadowMap> shadowMap;
 	};
 }

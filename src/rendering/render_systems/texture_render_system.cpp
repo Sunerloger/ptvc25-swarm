@@ -49,26 +49,29 @@ namespace vk {
 
 
 	TextureRenderSystem::PipelineInfo& TextureRenderSystem::getPipeline(const Material& material) {
-		// Get the material's pipeline configuration
+		// get the material's pipeline configuration
 		PipelineConfigInfo config = material.getPipelineConfig();
 
-		// Get the descriptor set layout directly from the material
+		// get the descriptor set layout directly from the material
 		VkDescriptorSetLayout materialSetLayout = material.getDescriptorSetLayout();
 
-		// Create or retrieve pipeline layout
+		return getPipeline(config, materialSetLayout);
+	}
+	
+	TextureRenderSystem::PipelineInfo& TextureRenderSystem::getPipeline(PipelineConfigInfo& config, VkDescriptorSetLayout& materialSetLayout) {
+		// create or retrieve pipeline layout
 		VkPipelineLayout pipelineLayout;
 		getPipelineLayout(materialSetLayout, pipelineLayout);
-
-		config.renderPass = renderer.getSwapChainRenderPass();
+		
 		config.pipelineLayout = pipelineLayout;
-
-		// Check if we already have a pipeline for this configuration
+		
+		// check if we already have a pipeline for this configuration
 		auto it = pipelineCache.find(config);
 		if (it != pipelineCache.end()) {
 			return it->second;
 		}
-
-		// Create pipeline because it doesn't exist yet
+		
+		// create pipeline because it doesn't exist yet
 		PipelineInfo pipelineInfo{};
 		pipelineInfo.pipelineLayout = pipelineLayout;
 		
@@ -76,8 +79,8 @@ namespace vk {
 			device,
 			config
 		);
-
-		// Cache and return
+		
+		// cache and return
 		return pipelineCache[config] = std::move(pipelineInfo);
 	}
 
@@ -96,15 +99,28 @@ namespace vk {
 			// writes current state into gpu buffer (ubo), implemented if material needs it
 			material->updateDescriptorSet(renderer.getFrameIndex());
 
-			auto& pipelineInfo = getPipeline(*material);
-
-			pipelineInfo.pipeline->bind(frameInfo.commandBuffer);
+			PipelineInfo* pipelineInfoPtr = nullptr;
+			
+			if (frameInfo.isShadowPass) {
+				PipelineConfigInfo shadowConfig = material->getPipelineConfig();
+				VkRenderPass shadowRenderPass = renderer.getCurrentRenderPass();
+				Pipeline::shadowPipelineConfigInfo(shadowConfig, shadowRenderPass);
+				
+				VkDescriptorSetLayout materialSetLayout = material->getDescriptorSetLayout();
+				pipelineInfoPtr = &getPipeline(shadowConfig, materialSetLayout);
+			} else {
+				// normal pipeline for main pass
+				auto& pipelineInfo = getPipeline(*material);
+				pipelineInfoPtr = &pipelineInfo;
+			}
+			
+			pipelineInfoPtr->pipeline->bind(frameInfo.commandBuffer);
 
 			// bind global descriptor set
 			vkCmdBindDescriptorSets(
 				frameInfo.commandBuffer,
 				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineInfo.pipelineLayout,
+				pipelineInfoPtr->pipelineLayout,
 				0,
 				1,
 				&frameInfo.globalDescriptorSet,
@@ -127,7 +143,7 @@ namespace vk {
 
 			vkCmdPushConstants(
 				frameInfo.commandBuffer,
-				pipelineInfo.pipelineLayout,
+				pipelineInfoPtr->pipelineLayout,
 				stageFlags,
 				0,
 				sizeof(SimplePushConstantData),
@@ -140,7 +156,7 @@ namespace vk {
 				vkCmdBindDescriptorSets(
 					frameInfo.commandBuffer,
 					VK_PIPELINE_BIND_POINT_GRAPHICS,
-					pipelineInfo.pipelineLayout,
+					pipelineInfoPtr->pipelineLayout,
 					1,
 					1,
 					&materialDS,
@@ -151,6 +167,16 @@ namespace vk {
 			gameObject->getModel()->bind(frameInfo.commandBuffer);
 			gameObject->getModel()->draw(frameInfo.commandBuffer);
 		}
+	}
+	
+	VkPipelineLayout TextureRenderSystem::getPipelineLayout() const {
+		// this assumes that all pipeline layouts have the same descriptor set layouts
+		if (!pipelineCache.empty()) {
+			return pipelineCache.begin()->second.pipelineLayout;
+		}
+		
+		// no pipeline layout exists yet
+		return VK_NULL_HANDLE;
 	}
 
 }

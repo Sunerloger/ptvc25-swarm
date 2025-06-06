@@ -67,10 +67,12 @@ namespace vk {
         Pipeline &operator=(const Pipeline&) = delete;
 
         void bind(VkCommandBuffer commandBuffer);
-
         static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
         static void defaultTessellationPipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t patchControlPoints = 4);
 
+        // modify an existing config
+        static void shadowPipelineConfigInfo(PipelineConfigInfo& configInfo, VkRenderPass renderPass);
+        static void terrainShadowPipelineConfigInfo(PipelineConfigInfo& configInfo, VkRenderPass renderPass);
 
     private:
 
