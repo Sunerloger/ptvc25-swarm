@@ -12,21 +12,23 @@
 
 namespace vk {
 
-    struct TerrainPushConstantData {
-        glm::mat4 modelMatrix{1.0f};
-        glm::mat4 normalMatrix{1.0f};
-    };
+	struct TerrainPushConstantData {
+		glm::mat4 modelMatrix{1.0f};
+		glm::mat4 normalMatrix{1.0f};
+	};
 
-    class TerrainRenderSystem {
+	class TerrainRenderSystem {
     
     public:
-        TerrainRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
-        ~TerrainRenderSystem();
+		TerrainRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
+		~TerrainRenderSystem();
 
-        void renderGameObjects(FrameInfo& frameInfo);
-        
-        // for binding other descriptor sets
-        VkPipelineLayout getPipelineLayout() const;
+		void renderGameObjects(FrameInfo& frameInfo);
+		
+		void setShadowMapLayout(VkDescriptorSetLayout shadowMapLayout) { this->shadowMapLayout = shadowMapLayout; }
+		
+		// for binding other descriptor sets
+		VkPipelineLayout getPipelineLayout() const;
 
     private:
         struct PipelineInfo {
@@ -41,9 +43,10 @@ namespace vk {
         Device& device;
         Renderer& renderer;
         VkDescriptorSetLayout globalSetLayout;
+        VkDescriptorSetLayout shadowMapLayout = VK_NULL_HANDLE;
 
         std::unordered_map<PipelineConfigInfo, PipelineInfo> pipelineCache;
         std::unordered_map<VkDescriptorSetLayout, VkPipelineLayout> pipelineLayoutCache;
-    };
+	};
 
 }

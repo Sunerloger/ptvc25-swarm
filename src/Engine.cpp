@@ -192,6 +192,10 @@ namespace vk {
 					
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
+
+					VkDescriptorSetLayout shadowMapLayout = shadowMap->getDescriptorSetLayout();
+					textureRenderSystem.setShadowMapLayout(shadowMapLayout);
+					terrainRenderSystem.setShadowMapLayout(shadowMapLayout);
 					
 					// begin shadow pass
 					std::vector<VkClearValue> clearValues = shadowMap->getClearValues();
@@ -215,6 +219,9 @@ namespace vk {
 					ubo.view = sceneManager.getPlayer()->calculateViewMat();
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
+
+					textureRenderSystem.setShadowMapLayout(VK_NULL_HANDLE);
+					terrainRenderSystem.setShadowMapLayout(VK_NULL_HANDLE);
 				}
 				
 				// begin main render pass

@@ -33,7 +33,13 @@ namespace vk {
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(TerrainPushConstantData);
 
-		std::vector<VkDescriptorSetLayout> setLayouts = { globalSetLayout, materialSetLayout };
+		std::vector<VkDescriptorSetLayout> setLayouts;
+		setLayouts.push_back(globalSetLayout);
+		setLayouts.push_back(materialSetLayout);
+		
+		if (shadowMapLayout != VK_NULL_HANDLE) {
+			setLayouts.push_back(shadowMapLayout);
+		}
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

@@ -20,13 +20,15 @@ namespace vk {
 	class TextureRenderSystem {
     
     public:
-		TextureRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
-		~TextureRenderSystem();
-
-		void renderGameObjects(FrameInfo& frameInfo);
-		
-		// for binding other descriptor sets
-		VkPipelineLayout getPipelineLayout() const;
+    	TextureRenderSystem(Device& device, Renderer& renderer, VkDescriptorSetLayout globalSetLayout);
+    	~TextureRenderSystem();
+   
+    	void renderGameObjects(FrameInfo& frameInfo);
+    	
+    	void setShadowMapLayout(VkDescriptorSetLayout shadowMapLayout) { this->shadowMapLayout = shadowMapLayout; }
+    	
+    	// for binding other descriptor sets
+    	VkPipelineLayout getPipelineLayout() const;
 
     private:
         struct PipelineInfo {
@@ -41,7 +43,8 @@ namespace vk {
         Device& device;
         Renderer& renderer;
         VkDescriptorSetLayout globalSetLayout;
-
+        VkDescriptorSetLayout shadowMapLayout = VK_NULL_HANDLE;
+      
         std::unordered_map<PipelineConfigInfo, PipelineInfo> pipelineCache;
         std::unordered_map<VkDescriptorSetLayout, VkPipelineLayout> pipelineLayoutCache;
 	};
