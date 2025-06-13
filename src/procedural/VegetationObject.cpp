@@ -78,7 +78,7 @@ namespace procedural {
 		// Create the vegetation object
 		auto treeObject = std::make_unique<VegetationObject>(device, geometry, position, scale);
 
-		return treeObject;	// Renamed from fernObject
+		return treeObject;
 	}
 
 	std::unique_ptr<VegetationObject> VegetationObject::createEnhancedTree(

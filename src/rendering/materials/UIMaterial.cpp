@@ -24,8 +24,8 @@ namespace vk {
 		createTextureSampler();
 		createDescriptorSets();
 
-		pipelineConfig.depthStencilInfo.depthWriteEnable = false;
-		pipelineConfig.depthStencilInfo.depthTestEnable = false;
+		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
+		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
 		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
 		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -48,8 +48,8 @@ namespace vk {
 		createTextureSampler();
 		createDescriptorSets();
 
-		pipelineConfig.depthStencilInfo.depthWriteEnable = false;
-		pipelineConfig.depthStencilInfo.depthTestEnable = false;
+		pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
+		pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
 		pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
 		pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -72,8 +72,8 @@ namespace vk {
     createTextureSampler();
     createDescriptorSets();
 
-    pipelineConfig.depthStencilInfo.depthWriteEnable = false;
-    pipelineConfig.depthStencilInfo.depthTestEnable = false;
+    pipelineConfig.depthStencilInfo.depthWriteEnable = VK_TRUE;
+    pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
     pipelineConfig.colorBlendAttachment.blendEnable = VK_TRUE;
     pipelineConfig.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     pipelineConfig.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

@@ -6,7 +6,7 @@ namespace procedural {
 	TreeMaterial::TreeMaterial(vk::Device& device) : device(device) {
 		// Try to load textures, fallback to solid colors if textures don't exist
 		try {
-			createBarkMaterial("textures:ground/dirt.png");	 // Use dirt texture for bark
+			createBarkMaterial("textures:ground/dirt.png");
 			std::cout << "Loaded bark texture successfully" << std::endl;
 		} catch (const std::exception& e) {
 			std::cerr << "Failed to load bark texture, using solid color: " << e.what() << std::endl;
@@ -14,7 +14,7 @@ namespace procedural {
 		}
 
 		try {
-			createLeafMaterial("textures:leaf.png");  // Use proper leaf texture
+			createLeafMaterial("textures:leaf.png");
 			std::cout << "Loaded leaf texture successfully" << std::endl;
 		} catch (const std::exception& e) {
 			std::cerr << "Failed to load leaf texture, using solid color: " << e.what() << std::endl;
@@ -26,7 +26,6 @@ namespace procedural {
 		try {
 			barkMaterial = std::make_shared<vk::StandardMaterial>(device, barkTexturePath);
 
-			// Configure material for bark - enable backface culling for performance
 			barkMaterial->getPipelineConfigRef().rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 
 			std::cout << "Created bark texture material from: " << barkTexturePath << std::endl;
@@ -41,13 +40,11 @@ namespace procedural {
 		try {
 			leafMaterial = std::make_shared<vk::StandardMaterial>(device, leafTexturePath);
 
-			// Configure material for leaves - disable backface culling to see both sides
 			leafMaterial->getPipelineConfigRef().rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 
 			std::cout << "Created leaf texture material from: " << leafTexturePath << std::endl;
 		} catch (const std::exception& e) {
 			std::cerr << "Failed to load leaf texture: " << e.what() << std::endl;
-			// Fallback to solid color
 			createLeafMaterialSolid();
 		}
 	}

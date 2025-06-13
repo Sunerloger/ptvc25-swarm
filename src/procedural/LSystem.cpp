@@ -8,13 +8,13 @@
 namespace procedural {
 
 	LSystem::LSystem() : rng(std::random_device{}()) {
-		turtleParams.stepLength = 1.5f;							   // Default, will be changed by createTree
-		turtleParams.angleIncrement = 30.0f;					   // Default, will be changed by createTree
-		turtleParams.radiusDecay = 0.85f;						   // Default, will be changed by createTree
-		turtleParams.lengthDecay = 0.99f;						   // Default, will be changed by createTree
-		turtleParams.initialRadius = 0.5f;						   // Default, will be changed by createTree
-		turtleParams.initialColor = glm::vec3(0.5f, 0.3f, 0.15f);  // Default brown
-		turtleParams.leafColor = glm::vec3(0.1f, 0.5f, 0.1f);	   // Default green
+		turtleParams.stepLength = 1.5f;
+		turtleParams.angleIncrement = 30.0f;
+		turtleParams.radiusDecay = 0.85f;
+		turtleParams.lengthDecay = 0.99f;
+		turtleParams.initialRadius = 0.5f;
+		turtleParams.initialColor = glm::vec3(0.5f, 0.3f, 0.15f);
+		turtleParams.leafColor = glm::vec3(0.1f, 0.5f, 0.1f);
 	}
 
 	void LSystem::addRule(char symbol, const std::string& replacement, float probability) {
@@ -239,8 +239,8 @@ namespace procedural {
 		glm::vec3 cylinder_axis_right;
 		glm::vec3 cylinder_axis_up;
 
-		glm::vec3 temp_calc_right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));	 // Try Y-axis as helper
-		if (glm::dot(temp_calc_right, temp_calc_right) < 1e-12f) {						 // If direction is parallel to Y-axis
+		glm::vec3 temp_calc_right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));
+		if (glm::dot(temp_calc_right, temp_calc_right) < 1e-12f) {	// If direction is parallel to Y-axis
 			temp_calc_right = glm::cross(direction, glm::vec3(1.0f, 0.0f, 0.0f));
 		}
 		cylinder_axis_right = glm::normalize(temp_calc_right);
@@ -258,15 +258,15 @@ namespace procedural {
 			glm::vec3 offsetStart = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusStart;
 
 			geometry.vertices.push_back({start + offsetStart,
-				color,						  // Use color directly
+				color,
 				glm::normalize(offsetStart),  // Normal for cylinder side is just the offset direction from center
 				glm::vec2(static_cast<float>(i) / segments, 0.0f)});
 
 			// End circle
 			glm::vec3 offsetEnd = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusEnd;
 			geometry.vertices.push_back({end + offsetEnd,
-				color,						// Use color directly
-				glm::normalize(offsetEnd),	// Normal for cylinder side
+				color,
+				glm::normalize(offsetEnd),
 				glm::vec2(static_cast<float>(i) / segments, 1.0f)});
 		}
 
@@ -487,15 +487,15 @@ namespace procedural {
 			glm::vec3 offsetStart = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusStart;
 
 			geometry.vertices.push_back({start + offsetStart,
-				color,						  // Use material-specific color
-				glm::normalize(offsetStart),  // Normal for cylinder side is just the offset direction from center
+				color,
+				glm::normalize(offsetStart),
 				glm::vec2(static_cast<float>(i) / segments, 0.0f)});
 
 			// End circle
 			glm::vec3 offsetEnd = (cylinder_axis_right * cosAngle + cylinder_axis_up * sinAngle) * actualRadiusEnd;
 			geometry.vertices.push_back({end + offsetEnd,
-				color,						// Use material-specific color
-				glm::normalize(offsetEnd),	// Normal for cylinder side
+				color,
+				glm::normalize(offsetEnd),
 				glm::vec2(static_cast<float>(i) / segments, 1.0f)});
 		}
 
@@ -515,13 +515,11 @@ namespace procedural {
 	void LSystem::generateLeafGeometry(const glm::vec3& position, const glm::vec3& direction,
 		float size, MaterialGeometry& geometry,
 		int leafCount) const {
-		// std::cout << "Generating " << leafCount << " leaf quads at position (" << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
-
 		// Generate multiple leaf quads around the branch end
 		for (int leafIndex = 0; leafIndex < leafCount; ++leafIndex) {
 			// Create rotation around the branch axis for each leaf
 			float rotationAngle = (2.0f * glm::pi<float>() * leafIndex) / leafCount;
-			float tiltAngle = 0.3f;	 // Slight random tilt for natural look
+			float tiltAngle = 0.3f;	 // Slight random tilt
 
 			// Create a coordinate system for the leaf
 			glm::vec3 leafUp = direction;
@@ -543,7 +541,7 @@ namespace procedural {
 			leafUp = glm::vec3(tilt * glm::vec4(leafUp, 0.0f));
 
 			// Create leaf quad vertices
-			glm::vec3 leafColor = glm::vec3(0.2f, 0.8f, 0.3f);	// Green
+			glm::vec3 leafColor = glm::vec3(0.2f, 0.8f, 0.3f);
 			glm::vec3 leafNormal = glm::normalize(leafForward);
 
 			uint32_t startIndex = geometry.vertices.size();
@@ -609,7 +607,7 @@ namespace procedural {
 
 		TurtleParameters params;
 		params.stepLength = 1.0f;
-		params.angleIncrement = 25.0f;	// Reduced angle for more subtle branching
+		params.angleIncrement = 25.0f;
 		params.radiusDecay = 0.85f;
 		params.lengthDecay = 0.99f;
 		params.initialRadius = 0.3f;

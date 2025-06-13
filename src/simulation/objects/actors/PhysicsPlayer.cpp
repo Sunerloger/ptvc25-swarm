@@ -244,7 +244,7 @@ namespace physics {
 		camera.setPhysicsPosition(character->GetPosition());
 
 		float playerY = character->GetPosition().GetY();
-		float deathHeight = -10.0f;
+		float deathHeight = -50.0f;
 
 		if (playerY < deathHeight && !isDead()) {
 			settings.deathCallback();

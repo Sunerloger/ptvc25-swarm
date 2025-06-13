@@ -12,7 +12,6 @@
 
 namespace procedural {
 
-	// Type aliases for cleaner code
 	using MaterialType = TreeMaterial::MaterialType;
 	using MaterialGeometry = TreeGeometry::MaterialGeometry;
 
@@ -26,15 +25,14 @@ namespace procedural {
 			: symbol(s), replacement(r), probability(p) {}
 	};
 
-	// Parameters for turtle graphics interpretation
 	struct TurtleParameters {
-		float stepLength = 1.0f;							   // Length of forward movement
-		float angleIncrement = 25.0f;						   // Angle change in degrees
-		float radiusDecay = 0.9f;							   // How much radius decreases per level
-		float lengthDecay = 0.8f;							   // How much length decreases per level
-		float initialRadius = 0.1f;							   // Starting radius for branches
-		glm::vec3 initialColor = glm::vec3(0.4f, 0.2f, 0.1f);  // Brown for branches
-		glm::vec3 leafColor = glm::vec3(0.2f, 0.8f, 0.3f);	   // Green for leaves
+		float stepLength = 1.0f;
+		float angleIncrement = 25.0f;
+		float radiusDecay = 0.9f;
+		float lengthDecay = 0.8f;
+		float initialRadius = 0.1f;
+		glm::vec3 initialColor = glm::vec3(0.4f, 0.2f, 0.1f);
+		glm::vec3 leafColor = glm::vec3(0.2f, 0.8f, 0.3f);
 	};
 
 	struct TurtleState {
@@ -80,7 +78,6 @@ namespace procedural {
 		// Generate string after n iterations
 		std::string generate(int iterations) const;
 
-		// Interpret L-system string into 3D geometry using turtle graphics
 		LSystemGeometry interpretToGeometry(const std::string& lSystemString,
 			const TurtleParameters& params,
 			const glm::vec3& startPosition = glm::vec3(0.0f),
@@ -92,7 +89,7 @@ namespace procedural {
 			const glm::vec3& startPosition = glm::vec3(0.0f),
 			unsigned int seed = 0) const;
 
-		static LSystem createTree(unsigned int seed = 0);  // Renamed from createFern
+		static LSystem createTree(unsigned int seed = 0);
 
 		void setTurtleParameters(const TurtleParameters& params) {
 			turtleParams = params;
