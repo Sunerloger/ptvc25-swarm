@@ -52,8 +52,8 @@ namespace vk {
 		void setMaterial(std::shared_ptr<Material> material) { this->material = material; }
 		std::shared_ptr<Material> getMaterial() const { return material; }
 
-		VkDescriptorSet getMaterialDescriptorSet(int frameIndex) const {
-			return material ? material->getDescriptorSet(frameIndex) : VK_NULL_HANDLE;
+		DescriptorSet getMaterialDescriptorSet(int frameIndex) const {
+			return material->getDescriptorSet(frameIndex);
 		}
 
 		static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filename, bool isUI = false);

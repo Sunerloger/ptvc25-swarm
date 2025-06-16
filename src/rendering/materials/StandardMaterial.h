@@ -39,10 +39,7 @@ namespace vk {
                         const std::string& vertShaderPath, const std::string& fragShaderPath);
         ~StandardMaterial() override;
 
-        VkDescriptorSet getDescriptorSet(int frameIndex) const override { return textureDescriptorSets[frameIndex]; }
-        VkDescriptorSetLayout getDescriptorSetLayout() const override {
-            return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
-        }
+        DescriptorSet getDescriptorSet(int frameIndex) const override;
 
         void setMaterialData(MaterialCreationData creationData = {});
 

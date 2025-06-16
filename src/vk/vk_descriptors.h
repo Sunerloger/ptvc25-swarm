@@ -8,6 +8,16 @@
 
 namespace vk {
 
+	struct DescriptorSetLayoutVectorHash {
+		size_t operator()(std::vector<VkDescriptorSetLayout> const& v) const {
+			size_t h = 0;
+			for (auto l : v) {
+				h ^= std::hash<uint64_t>()((uint64_t)l) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+			}
+			return h;
+		}
+	};
+
 	class DescriptorSetLayout {
 	   public:
 		class Builder {
@@ -103,5 +113,11 @@ namespace vk {
 		DescriptorSetLayout &setLayout;
 		DescriptorPool &pool;
 		std::vector<VkWriteDescriptorSet> writes;
+	};
+
+	struct DescriptorSet {
+		VkDescriptorSet        handle;
+		VkDescriptorSetLayout  layout;
+		uint32_t binding;
 	};
 }

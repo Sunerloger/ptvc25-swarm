@@ -399,4 +399,13 @@ UIMaterial::UIMaterial(Device& device, const std::vector<unsigned char>& imageDa
 			}
 		}
 	}
+
+	DescriptorSet UIMaterial::getDescriptorSet(int frameIndex) const {
+		DescriptorSet descriptorSet{};
+		descriptorSet.binding = 1;
+		descriptorSet.handle = textureDescriptorSets[frameIndex];
+		descriptorSet.layout = descriptorSetLayout->getDescriptorSetLayout();
+
+		return descriptorSet;
+	}
 }

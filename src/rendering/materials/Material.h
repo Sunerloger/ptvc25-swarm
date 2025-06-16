@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 #include "../../vk/vk_device.h"
 #include "../../vk/vk_pipeline.h"
+#include "../../vk/vk_descriptors.h"
 
 namespace vk {
 
@@ -24,8 +25,7 @@ namespace vk {
         virtual PipelineConfigInfo getPipelineConfig() const { return pipelineConfig; }
 
         // Descriptor set access
-        virtual VkDescriptorSet getDescriptorSet(int frameIndex) const = 0;
-        virtual VkDescriptorSetLayout getDescriptorSetLayout() const = 0;
+        virtual DescriptorSet getDescriptorSet(int frameIndex) const = 0;
         
         virtual void updateDescriptorSet(int frameIndex) {};
 

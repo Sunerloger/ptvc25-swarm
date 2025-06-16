@@ -82,12 +82,7 @@ namespace vk {
 			const std::string& vertShaderPath, const std::string& fragShaderPath);
 		~WaterMaterial() override;
 
-		VkDescriptorSet getDescriptorSet(int frameIndex) const override {
-			return textureDescriptorSets[frameIndex];
-		}
-		VkDescriptorSetLayout getDescriptorSetLayout() const override {
-			return descriptorSetLayout ? descriptorSetLayout->getDescriptorSetLayout() : VK_NULL_HANDLE;
-		}
+		DescriptorSet getDescriptorSet(int frameIndex) const override;
 
 		void setWaterData(CreateWaterData createWaterData = CreateWaterData{});
 		void setWaves(std::vector<glm::vec4> params);

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <memory>
 
 #include "vk_device.h"
 
@@ -71,8 +72,8 @@ namespace vk {
         static void defaultTessellationPipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t patchControlPoints = 4);
 
         // modify an existing config
-        static void shadowPipelineConfigInfo(PipelineConfigInfo& configInfo, VkRenderPass renderPass);
-        static void terrainShadowPipelineConfigInfo(PipelineConfigInfo& configInfo, VkRenderPass renderPass);
+        static void shadowPipelineConfigInfo(PipelineConfigInfo& configInfo);
+        static void terrainShadowPipelineConfigInfo(PipelineConfigInfo& configInfo);
 
     private:
 
@@ -88,6 +89,11 @@ namespace vk {
         VkShaderModule fragShaderModule;
         VkShaderModule tessControlShaderModule = VK_NULL_HANDLE;
         VkShaderModule tessEvalShaderModule = VK_NULL_HANDLE;
+    };
+
+    struct PipelineInfo {
+        std::unique_ptr<Pipeline> pipeline;
+        VkPipelineLayout pipelineLayout; // store handle to pipeline layout but manage in own map to be able to share layout among pipelines with the same descriptor sets without recreating it
     };
 }
 

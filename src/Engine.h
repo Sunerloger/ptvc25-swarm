@@ -11,10 +11,10 @@
 
 #include "simulation/PhysicsSimulation.h"
 
-#include "rendering/render_systems/texture_render_system.h"
-#include "rendering/render_systems/ui_render_system.h"
-#include "rendering/render_systems/terrain_render_system.h"
-#include "rendering/render_systems/water_render_system.h"
+#include "rendering/render_systems/TextureRenderSystem.h"
+#include "rendering/render_systems/UIRenderSystem.h"
+#include "rendering/render_systems/TerrainRenderSystem.h"
+#include "rendering/render_systems/WaterRenderSystem.h"
 
 #include "rendering/ShadowMap.h"
 

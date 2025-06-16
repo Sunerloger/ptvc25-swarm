@@ -474,4 +474,13 @@ namespace vk {
     	
     	std::cout << "StandardMaterial: Static resource cleanup complete" << std::endl;
     }
+
+    DescriptorSet StandardMaterial::getDescriptorSet(int frameIndex) const {
+        DescriptorSet descriptorSet{};
+        descriptorSet.binding = 1;
+        descriptorSet.handle = textureDescriptorSets[frameIndex];
+        descriptorSet.layout = descriptorSetLayout->getDescriptorSetLayout();
+
+        return descriptorSet;
+    }
 }

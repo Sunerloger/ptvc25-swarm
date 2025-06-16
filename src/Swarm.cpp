@@ -706,26 +706,25 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	
 	auto player = sceneManager.getPlayer();
 	auto sun = sceneManager.getSun();
-	if (player && sun) {
-		// rotate sun direction around Y axis
-		const float rotationSpeed = 0.1f; // radians per second
-		sunRotationAngle += rotationSpeed * deltaTime;
-		
-		if (sunRotationAngle > 2.0f * glm::pi<float>()) {
-			sunRotationAngle -= 2.0f * glm::pi<float>();
-		}
-		
-		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), sunRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::vec4 rotatedDir = rotationMatrix * glm::vec4(baseSunDirection, 0.0f);
-		glm::vec3 newDir = glm::normalize(glm::vec3(rotatedDir));
-		
-		sun->setDirection(newDir);
-		
-		const float sunDistance = 100.0f;
-		glm::vec3 playerPos = player->getPosition();
-		glm::vec3 sunPos = playerPos - newDir * sunDistance;
-		sun->setPosition(sunPos);
+
+	// rotate sun direction around Y axis
+	const float rotationSpeed = 0.01f; // radians per second
+	sunRotationAngle += rotationSpeed * deltaTime;
+	
+	if (sunRotationAngle > 2.0f * glm::pi<float>()) {
+		sunRotationAngle -= 2.0f * glm::pi<float>();
 	}
+	
+	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), sunRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec4 rotatedDir = rotationMatrix * glm::vec4(baseSunDirection, 0.0f);
+	glm::vec3 newDir = glm::normalize(glm::vec3(rotatedDir));
+	
+	sun->setDirection(newDir);
+	
+	const float sunDistance = 900.0f;
+	glm::vec3 playerPos = player->getPosition();
+	glm::vec3 sunPos = playerPos - newDir * sunDistance;
+	sun->setPosition(sunPos);
 
 	// Update health text
 	if (isDebugActive) {

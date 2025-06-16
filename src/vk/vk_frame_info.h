@@ -24,12 +24,17 @@ namespace vk {
 		glm::vec4 cameraPosition = glm::vec4{0.0f};
 	};
 
+	enum RenderPassType {
+		DEFAULT_PASS,
+		SHADOW_PASS
+	};
+
 	struct FrameInfo {
 		float frameTime;
 		VkCommandBuffer commandBuffer;
-		VkDescriptorSet globalDescriptorSet;
+		std::vector<DescriptorSet> systemDescriptorSets;
+		RenderPassType renderPassType = DEFAULT_PASS;
 		// TODO use this for debug rendering with jolt debug renderer (implement DebugRenderer.h)
 		bool isDebugPhysics = false;
-		bool isShadowPass = false;
 	};
 }

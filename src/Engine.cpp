@@ -19,9 +19,15 @@ namespace vk {
 			destructionQueue = std::make_unique<DestructionQueue>(device, &renderer.getSwapChain());
 		}
 
+		std::cout << "Engine: Creating shadow map" << std::endl;
+		ShadowMap::ShadowMapSettings shadowSettings{};
+		shadowMap = std::make_unique<ShadowMap>(device, shadowSettings);
+
+		std::cout << "Engine: Initializing game" << std::endl;
 		game.init();
 		game.setupInput();
 		
+		std::cout << "Engine: Initializing audio system" << std::endl;
 		audio::AudioSystem::getInstance().init();
 	}
 
@@ -167,11 +173,6 @@ namespace vk {
 				int frameIndex = renderer.getFrameIndex();
 				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex]};
 
-				if (!shadowMap) {
-					ShadowMap::ShadowMapSettings shadowSettings{};
-					shadowMap = std::make_unique<ShadowMap>(device, shadowSettings);
-				}
-				
 				shadowMap->updateShadowUbo(frameIndex);
 
 				GlobalUbo ubo{};

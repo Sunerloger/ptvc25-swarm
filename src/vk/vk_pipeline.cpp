@@ -250,11 +250,9 @@ namespace vk {
 		configInfo.tessEvalShaderPath = "terrain_tess_eval.tese";
 	}
 
-	void Pipeline::shadowPipelineConfigInfo(PipelineConfigInfo& configInfo, VkRenderPass renderPass) {
+	void Pipeline::shadowPipelineConfigInfo(PipelineConfigInfo& configInfo) {
 		// simple depth-only fragment shader
 		configInfo.fragShaderPath = "shadow_pass.frag";
-		
-		configInfo.renderPass = renderPass;
 		
 		// Enable front face culling to prevent shadow acne
 		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_FRONT_BIT;
@@ -269,11 +267,9 @@ namespace vk {
 		configInfo.rasterizationInfo.depthBiasSlopeFactor = 1.75f; // slope-based depth bias
 	}
 	
-	void Pipeline::terrainShadowPipelineConfigInfo(PipelineConfigInfo& configInfo, VkRenderPass renderPass) {
+	void Pipeline::terrainShadowPipelineConfigInfo(PipelineConfigInfo& configInfo) {
 		// simple depth-only fragment shader
 		configInfo.fragShaderPath = "shadow_pass.frag";
-		
-		configInfo.renderPass = renderPass;
 		
 		// disable culling for terrain because it is not a solid object
 		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;

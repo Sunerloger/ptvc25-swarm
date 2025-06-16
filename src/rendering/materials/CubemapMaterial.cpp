@@ -550,4 +550,13 @@ namespace vk {
 			}
 		}
 	}
+
+	DescriptorSet CubemapMaterial::getDescriptorSet(int frameIndex) const {
+		DescriptorSet descriptorSet{};
+		descriptorSet.binding = 1;
+		descriptorSet.handle = cubemapDescriptorSets[frameIndex];
+		descriptorSet.layout = descriptorSetLayout->getDescriptorSetLayout();
+
+		return descriptorSet;
+	}
 }

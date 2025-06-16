@@ -25,7 +25,7 @@ public:
         uint32_t height = 2048;
         float bias = 0.005f; // prevent shadow acne
         int pcfSamples = 3; // antialiasing for shadows (1 = no PCF, 2 = 2x2, 3 = 3x3, etc.)
-        float shadowStrength = 0.7f;  // [0,1]
+        float shadowStrength = 0.9f;  // [0,1]
         float orthoSize = 50.0f; // size of the orthographic projection (left/right/top/bottom)
         float nearPlane = 1.0f;
         float farPlane = 150.0f;
@@ -53,11 +53,7 @@ public:
     
     VkDescriptorBufferInfo getShadowUboBufferInfo(int frameIndex) const;
     
-    VkDescriptorSet getDescriptorSet(int frameIndex) const;
-    
-    void bindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, int frameIndex) const;
-    
-    VkDescriptorSetLayout getDescriptorSetLayout() const;
+    DescriptorSet getDescriptorSet(int frameIndex) const;
 
 private:
     void createDepthResources();
