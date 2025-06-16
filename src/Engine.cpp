@@ -57,7 +57,8 @@ namespace vk {
 
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
 		for (int i = 0; i < uboBuffers.size(); i++) {
-			uboBuffers[i] = std::make_unique<Buffer>(device,
+			uboBuffers[i] = std::make_unique<Buffer>(
+				device,
 				sizeof(GlobalUbo),
 				1,
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -76,32 +77,26 @@ namespace vk {
 				.writeBuffer(0, &bufferInfo)
 				.build(globalDescriptorSets[i]);
 		}
+		// TODO create an additional binding with a uniform buffer for lighting information stored in sceneManager (updated every frame)
 
-		// TODO create an additional uniform buffer for lighting information stored in sceneManager (updated every frame)
-
-		// Create render systems
 		TextureRenderSystem textureRenderSystem{
 			device,
-			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderer
 		};
 
 		TerrainRenderSystem terrainRenderSystem{
 			device,
-			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderer
 		};
 
 		WaterRenderSystem waterRenderSystem{
 			device,
-			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderer
 		};
 
 		UIRenderSystem uiRenderSystem{
 			device,
-			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderer
 		};
 
 		startTime = std::chrono::high_resolution_clock::now();
@@ -171,9 +166,10 @@ namespace vk {
 			if (auto commandBuffer = renderer.beginFrame()) {
 
 				int frameIndex = renderer.getFrameIndex();
-				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex]};
-
-				shadowMap->updateShadowUbo(frameIndex);
+				
+				FrameInfo frameInfo{};
+				frameInfo.frameTime = deltaTime;
+				frameInfo.commandBuffer = commandBuffer;
 
 				GlobalUbo ubo{};
 				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
@@ -181,10 +177,11 @@ namespace vk {
 				ubo.sunColor = glm::vec4(sceneManager.getSun()->getColor(), 1.0f);
 				ubo.cameraPosition = glm::vec4(sceneManager.getPlayer()->getCameraPosition(), 1.0f);
 				
-				// shadow map rendering pass
-				{
-					// TODO maybe later use an enum for also e.g. post-processing
-					frameInfo.isShadowPass = true;
+				// shadow map render pass
+				if (engineSettings.useShadowMap) { // TODO parse setting from shaders in the engine init step
+					frameInfo.renderPassType = RenderPassType::SHADOW_PASS;
+
+					shadowMap->updateShadowUbo(frameIndex);
 					
 					// temporarily set projection and view with light's perspective
 					const ShadowMap::ShadowUbo& shadowUbo = shadowMap->getShadowUbo();
@@ -194,11 +191,13 @@ namespace vk {
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
 
-					VkDescriptorSetLayout shadowMapLayout = shadowMap->getDescriptorSetLayout();
-					textureRenderSystem.setShadowMapLayout(shadowMapLayout);
-					terrainRenderSystem.setShadowMapLayout(shadowMapLayout);
+					frameInfo.systemDescriptorSets.clear();
+					frameInfo.systemDescriptorSets.push_back({
+						globalDescriptorSets[frameIndex],
+						globalSetLayout->getDescriptorSetLayout(),
+						0
+					});
 					
-					// begin shadow pass
 					std::vector<VkClearValue> clearValues = shadowMap->getClearValues();
 					renderer.beginRenderPass(
 						commandBuffer,
@@ -211,73 +210,65 @@ namespace vk {
 					textureRenderSystem.renderGameObjects(frameInfo);
 					terrainRenderSystem.renderGameObjects(frameInfo);
 					
-					// end shadow pass
 					renderer.endRenderPass(commandBuffer);
-					
-					frameInfo.isShadowPass = false;
-					
+				}
+				
+				// main render pass
+				{
+					frameInfo.renderPassType = RenderPassType::DEFAULT_PASS;
+
 					ubo.projection = sceneManager.getPlayer()->getProjMat();
 					ubo.view = sceneManager.getPlayer()->calculateViewMat();
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
 
-					textureRenderSystem.setShadowMapLayout(VK_NULL_HANDLE);
-					terrainRenderSystem.setShadowMapLayout(VK_NULL_HANDLE);
+					if (engineSettings.useShadowMap) {
+						// specified to be on set binding 2 in shadow map class
+						vk::DescriptorSet shadowSet = shadowMap->getDescriptorSet(frameIndex);
+						frameInfo.systemDescriptorSets.push_back(shadowSet);
+					}
+
+					std::vector<VkClearValue> clearValues = {
+						{0.01f, 0.01f, 0.01f, 1.0f},
+						{1.0f, 0}
+					};
+					renderer.beginRenderPass(
+						commandBuffer,
+						renderer.getSwapChainRenderPass(),
+						renderer.getSwapChain().getFrameBuffer(frameIndex),
+						renderer.getSwapChain().getSwapChainExtent(),
+						clearValues
+					);
+
+					// render main scene
+					textureRenderSystem.renderGameObjects(frameInfo);
+					terrainRenderSystem.renderGameObjects(frameInfo);
+					waterRenderSystem.renderGameObjects(frameInfo);
+
+					VkClearAttachment clearAttachment{};
+					clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+					clearAttachment.clearValue.depthStencil = {/* depth */ 1.0f, /* stencil */ 0 };
+					VkClearRect clearRect{};
+					clearRect.rect.offset = { 0, 0 };
+					clearRect.rect.extent = {
+						static_cast<uint32_t>(window.getWidth()),
+						static_cast<uint32_t>(window.getHeight()) };
+					clearRect.baseArrayLayer = 0;
+					clearRect.layerCount = 1;
+
+					// write values directly into color/depth attachments for ui drawing
+					vkCmdClearAttachments(
+						frameInfo.commandBuffer,
+						1,
+						&clearAttachment,
+						1,
+						&clearRect);
+
+					uiRenderSystem.renderGameObjects(frameInfo);
+
+					renderer.endRenderPass(commandBuffer);
 				}
-				
-				// begin main render pass
-				std::vector<VkClearValue> clearValues = {
-					{0.01f, 0.01f, 0.01f, 1.0f},
-					{1.0f, 0}
-				};
-				renderer.beginRenderPass(
-					commandBuffer,
-					renderer.getSwapChainRenderPass(),
-					renderer.getSwapChain().getFrameBuffer(frameIndex),
-					renderer.getSwapChain().getSwapChainExtent(),
-					clearValues
-				);
-				
-				// bind shadow map descriptor set to texture render system
-				shadowMap->bindDescriptorSet(
-					commandBuffer,
-					textureRenderSystem.getPipelineLayout(),
-					frameIndex
-				);
-				
-				// bind shadow map descriptor set to terrain render system
-				shadowMap->bindDescriptorSet(
-					commandBuffer,
-					terrainRenderSystem.getPipelineLayout(),
-					frameIndex
-				);
-				
-				// render main scene
-				textureRenderSystem.renderGameObjects(frameInfo);
-				terrainRenderSystem.renderGameObjects(frameInfo);
-				waterRenderSystem.renderGameObjects(frameInfo);
 
-				VkClearAttachment clearAttachment{};
-				clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-				clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0};
-				VkClearRect clearRect{};
-				clearRect.rect.offset = {0, 0};
-				clearRect.rect.extent = {
-					static_cast<uint32_t>(window.getWidth()),
-					static_cast<uint32_t>(window.getHeight())};
-				clearRect.baseArrayLayer = 0;
-				clearRect.layerCount = 1;
-
-				// write values directly into color/depth attachments for ui drawing
-				vkCmdClearAttachments(
-					frameInfo.commandBuffer,
-					1,
-					&clearAttachment,
-					1,
-					&clearRect);
-
-				uiRenderSystem.renderGameObjects(frameInfo);
-				renderer.endRenderPass(commandBuffer);
 				renderer.endFrame();
 			}
 		}

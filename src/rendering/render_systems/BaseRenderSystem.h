@@ -104,7 +104,7 @@ namespace vk {
                         continue;
                     }
 
-                    Material* material = obj->getModel()->getMaterial();
+                    auto material = obj->getModel()->getMaterial();
                     if (!material) continue;
 
                     material->updateDescriptorSet(renderer.getFrameIndex());

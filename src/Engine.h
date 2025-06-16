@@ -37,6 +37,7 @@ namespace vk {
 		bool debugTime = false;
 		bool debugPlayer = false;
 		bool debugEnemies = false; // be careful with this flag, it heavily impacts performance
+		bool useShadowMap = true; // broken if you use shadow mapping in the shaders and set this to false or the other way around
 	};
 
 	class Engine {
