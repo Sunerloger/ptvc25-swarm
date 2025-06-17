@@ -28,7 +28,6 @@ public:
         float shadowStrength = 0.9f;  // [0,1]
         float orthoSize = 50.0f; // size of the orthographic projection (left/right/top/bottom)
         float nearPlane = 1.0f;
-        float farPlane = 150.0f;
     };
 
     ShadowMap(Device& device, ShadowMapSettings settings = {});

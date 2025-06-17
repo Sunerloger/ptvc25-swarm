@@ -165,5 +165,22 @@ void main() {
     
     light += phongLight * shadowFactor;
 
-    outColor = vec4(light, 1.0f);
+    // outColor = vec4(light, 1.0f);
+
+    // debug shadows
+    vec4 posLightSpace = shadowUbo.lightProjectionMatrix * shadowUbo.lightViewMatrix * vec4(fragPosWorld, 1.0);
+    
+    vec3 projCoords = posLightSpace.xyz / posLightSpace.w;
+    
+    // original depth in NDC space (before [0,1] transform)
+    float ndcDepth = projCoords.z;
+    
+    // transform to [0,1]
+    float depth = (projCoords.z * 0.5 + 0.5);
+    
+    // calculate world distance to sun
+    float worldDistToSun = length(fragPosWorld - globalUbo.sunDirection.xyz * 1000.0);
+    
+    // RGB visualization: R = depth, G = NDC depth, B = world distance
+    outColor = vec4(depth, ndcDepth, worldDistToSun / 150.0, 1.0);
 }

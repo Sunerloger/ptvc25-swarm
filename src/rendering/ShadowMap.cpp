@@ -329,11 +329,14 @@ namespace vk {
         glm::vec3 playerPos = player->getPosition();
         
         shadowUbo.lightViewMatrix = sun->computeLightViewMatrix();
+
+        float sunToPlayerDistance = glm::length(sun->getPosition() - playerPos);
+        float effectiveFarPlane = sunToPlayerDistance * 1.5f;
         
         shadowUbo.lightProjectionMatrix = getOrthographicProjection(
             -settings.orthoSize, settings.orthoSize,
             -settings.orthoSize, settings.orthoSize,
-            settings.nearPlane, settings.farPlane
+            settings.nearPlane, effectiveFarPlane
         );
         
         shadowUboBuffers[frameIndex]->writeToBuffer(&shadowUbo);

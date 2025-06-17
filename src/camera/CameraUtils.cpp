@@ -1,5 +1,6 @@
 #include "CameraUtils.h"
 
+
 glm::mat4 getOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {
 	glm::mat4 proj = glm::mat4{ 1.0f };
 	proj[0][0] = 2.f / (right - left);
@@ -10,6 +11,7 @@ glm::mat4 getOrthographicProjection(float left, float right, float top, float bo
 	proj[3][2] = -near / (far - near);
 
 	return proj * getVulkanAxisInversionMatrix();
+	// TODO: something is off here - correct matrix: glm::ortho(left, right, bottom, top, near, far) * getVulkanAxisInversionMatrix() - but then the ui doesn't work
 }
 
 glm::mat4 getPerspectiveProjection(float fov, float aspect, float near, float far) {
