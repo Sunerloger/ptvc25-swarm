@@ -127,15 +127,15 @@ void main() {
     
     light += phongLight * shadowFactor;
 
-    // outColor = vec4(light, 1.0f);
+    outColor = vec4(light, 1.0f);
 
     // debug shadows
-    vec4 posLightSpace = shadowUbo.lightProjectionMatrix * shadowUbo.lightViewMatrix * vec4(fragPosWorld, 1.0);
+    // vec4 posLightSpace = shadowUbo.lightProjectionMatrix * shadowUbo.lightViewMatrix * vec4(fragPosWorld, 1.0);
     
-    vec3 projCoords = posLightSpace.xyz / posLightSpace.w;
+    // vec3 projCoords = posLightSpace.xyz / posLightSpace.w;
     
     // transform to [0,1]
-    float depth = (projCoords * 0.5 + 0.5).z;
+    // float depth = (projCoords * 0.5 + 0.5).z;
     
-    outColor = vec4(depth, depth, depth, 1.0);
+    // outColor = vec4(depth, depth, depth, 1.0);
 }

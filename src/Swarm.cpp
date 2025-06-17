@@ -721,7 +721,7 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	
 	sun->setDirection(newDir);
 	
-	const float sunDistance = 10.0f;
+	const float sunDistance = 100.0f;
 	glm::vec3 playerPos = player->getPosition();
 	glm::vec3 sunPos = playerPos - newDir * sunDistance;
 	sun->setPosition(sunPos);
