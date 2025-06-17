@@ -96,7 +96,20 @@ namespace vk {
         }
 
         void renderGameObjects(FrameInfo& frameInfo) {
+            struct RenderItem {
+                std::shared_ptr<GameObject> obj;
+                PipelineInfo* pipeline;
+                std::vector<VkDescriptorSet> sets;
+                VkPipelineLayout layout;
+
+                // Sort key
+                size_t pipelineId;
+                size_t descriptorHash;
+            };
+
             auto objects = static_cast<Derived*>(this)->gatherObjects(frameInfo);
+            std::vector<RenderItem> renderItems;
+
             for (auto& weakObj : objects) {
                 if (auto obj = weakObj.lock()) {
 
@@ -126,36 +139,75 @@ namespace vk {
 
                     PipelineConfigInfo cfg = material->getPipelineConfig();
                     static_cast<Derived*>(this)->tweakPipelineConfig(cfg, frameInfo);
+                    PipelineInfo& pi = getOrCreatePipeline(cfg, layouts);
 
-                    PipelineInfo& pi = getOrCreatePipeline(cfg, std::move(layouts));
-                    pi.pipeline->bind(frameInfo.commandBuffer);
+                    // XOR fold hash
+                    size_t hash = 0;
+                    for (auto h : handles) {
+                        hash ^= std::hash<VkDescriptorSet>{}(h)+0x9e3779b9 + (hash << 6) + (hash >> 2);
+                    }
 
-                    PushConst pc = static_cast<Derived*>(this)->buildPushConstant(obj, frameInfo, pi.pipelineLayout);
-                    
-                    vkCmdPushConstants(
-                        frameInfo.commandBuffer,
-                        pi.pipelineLayout,
-                        Derived::PushConstStages,
-                        0,
-                        sizeof(PushConst),
-                        &pc
+                    renderItems.push_back(
+                        RenderItem{
+                            obj,
+                            &pi,
+                            std::move(handles),
+                            pi.pipelineLayout,
+                            reinterpret_cast<size_t>(pi.pipeline.get()), // TODO maybe add a getId() in pipeline
+                            hash
+                        }
                     );
+                }
+            }
 
+            std::sort(renderItems.begin(), renderItems.end(),
+                [](const RenderItem& a, const RenderItem& b) {
+                    if (a.pipelineId != b.pipelineId) {
+                        return a.pipelineId < b.pipelineId;
+                    }
+                    return a.descriptorHash < b.descriptorHash;
+                }
+            );
+
+            vk::Pipeline* lastPipeline = nullptr;
+            size_t lastDescriptorHash = ~0ull;
+
+            for (const auto& item : renderItems) {
+                vk::Pipeline* currentPipeline = item.pipeline->pipeline.get();
+
+                if (currentPipeline != lastPipeline) {
+                    item.pipeline->pipeline->bind(frameInfo.commandBuffer);
+                    lastPipeline = currentPipeline;
+                }
+
+                if (item.descriptorHash != lastDescriptorHash) {
                     vkCmdBindDescriptorSets(
                         frameInfo.commandBuffer,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pi.pipelineLayout,
+                        item.layout,
                         0,
-                        uint32_t(handles.size()),
-                        handles.data(),
+                        uint32_t(item.sets.size()),
+                        item.sets.data(),
                         0, nullptr
                     );
-
-                    obj->getModel()->bind(frameInfo.commandBuffer);
-                    obj->getModel()->draw(frameInfo.commandBuffer);
+                    lastDescriptorHash = item.descriptorHash;
                 }
+
+                PushConst pc = static_cast<Derived*>(this)->buildPushConstant(item.obj, frameInfo, item.layout);
+                vkCmdPushConstants(
+                    frameInfo.commandBuffer,
+                    item.layout,
+                    Derived::PushConstStages,
+                    0,
+                    sizeof(PushConst),
+                    &pc
+                );
+
+                item.obj->getModel()->bind(frameInfo.commandBuffer);
+                item.obj->getModel()->draw(frameInfo.commandBuffer);
             }
         }
+
     };
 
 }
