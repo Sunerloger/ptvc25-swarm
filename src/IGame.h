@@ -2,6 +2,9 @@
 
 #include <string>
 
+struct EngineStats {
+	int renderedGameObjects = 0;
+};
 
 class IGame {
 
@@ -15,6 +18,8 @@ public:
 
 	virtual void gameActiveUpdate(float deltaTime) = 0;
 	virtual void gamePauseUpdate(float deltaTime) = 0;
+
+	virtual void postRenderingUpdate(EngineStats engineStats, float deltaTime) = 0;
 
 	virtual void setupInput() = 0;
 

@@ -85,6 +85,7 @@ namespace vk {
 		DescriptorSet getDescriptorSet(int frameIndex) const override;
 
 		void setWaterData(CreateWaterData createWaterData = CreateWaterData{});
+		// xy = direction, z = steepness in [0,1], w = wavelength
 		void setWaves(std::vector<glm::vec4> params);
 		void updateDescriptorSet(int frameIndex) override;
 

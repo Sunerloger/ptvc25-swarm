@@ -41,6 +41,8 @@ namespace vk {
 
 		virtual void toggleWireframeModeIfSupported() {};
 
+		virtual bool enableFrustumCulling() const { return true; }
+
 		/**
 		 * The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
 		 * Doesn't destroy player or sun.

@@ -41,9 +41,12 @@ namespace vk {
 		Font &font;
 		std::string textStr;
 		std::shared_ptr<Material> material;
+		std::shared_ptr<Model> mdl;
 		glm::vec2 textSize{0.0f, 0.0f};
 		float horizontalOffset = 0.0f;
 		float verticalOffset = 0.0f;
+
+		bool isTextDynamic = true; // TODO more nuance and settings
 	};
 
 }  // namespace vk

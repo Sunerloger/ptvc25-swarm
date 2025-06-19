@@ -16,7 +16,7 @@
 namespace vk {
 
 	class Model {
-	   public:
+	public:
 		struct Vertex {
 			glm::vec3 position;
 			glm::vec3 color;
@@ -26,9 +26,9 @@ namespace vk {
 			static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 			bool operator==(const Vertex& other) const {
 				return position == other.position &&
-					   color == other.color &&
-					   normal == other.normal &&
-					   uv == other.uv;
+					color == other.color &&
+					normal == other.normal &&
+					uv == other.uv;
 			}
 		};
 
@@ -39,6 +39,11 @@ namespace vk {
 			// For texture loading from glTF:
 			tinygltf::Model gltfModelData;
 			int textureMaterialIndex = -1;
+
+			bool dynamic = false;
+
+			glm::vec3 boundsMin{ std::numeric_limits<float>::max() };
+			glm::vec3 boundsMax{ -std::numeric_limits<float>::max() };
 
 			bool isUI = false;
 			void loadModel(const std::string& filename);
@@ -60,7 +65,9 @@ namespace vk {
 		static std::unique_ptr<Model> createCubeModel(Device& device);
 		static std::unique_ptr<Model> createGridModel(Device& device, int gridSize);
 		static std::unique_ptr<Model> createGridModelWithoutGeometry(Device& device, int samplesPerSide);
-		
+
+		static std::unique_ptr<Model> createWaterModel(Device& device, int samplesPerSide, std::vector<glm::vec4> waves);
+
 		// Generate a heightmap texture and return both the model with the heightmap and the height data
 		static std::pair<std::unique_ptr<Model>, std::vector<float>> createTerrainModel(
 			Device& device,
@@ -76,12 +83,19 @@ namespace vk {
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);
 
+		std::pair<glm::vec3, glm::vec3> getAABB() const { return { m_boundsMin, m_boundsMax }; }
+
+		void updateMesh(const std::vector<Vertex>& newVerts, const std::vector<uint32_t>& newIdx);
+
 		uint32_t patchCount = 0;
 		uint32_t pointsPerPatch = 0;
 
 	   private:
-		void createVertexBuffers(const std::vector<Vertex>& vertices);
-		void createIndexBuffers(const std::vector<uint32_t>& indices);
+		void createVertexBuffer(const std::vector<Vertex>& vertices);
+		void createIndexBuffer(const std::vector<uint32_t>& indices);
+
+		void createVertexBuffer(size_t elementCount);
+		void createIndexBuffer(size_t elementCount);
 
 		void createStandardMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex);
 		void createUIMaterialFromGltf(const tinygltf::Model& gltfModel, int materialIndex);
@@ -94,7 +108,17 @@ namespace vk {
 		bool hasVertexBuffer = false;
 		bool hasIndexBuffer = false;
 
+		bool m_dynamic = false;
+		VkMemoryPropertyFlags m_memFlags = 0;
+
+		// buffer capacities
+		size_t vertexCapacityElements = 0;
+		size_t indexCapacityElements = 0;
+
 		std::shared_ptr<Material> material;
+
+		glm::vec3 m_boundsMin{ std::numeric_limits<float>::max() };
+		glm::vec3 m_boundsMax{ -std::numeric_limits<float>::max() };
 	};
 
 }  // namespace vk

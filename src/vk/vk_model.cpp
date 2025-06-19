@@ -40,31 +40,82 @@ namespace std {
 }
 
 namespace vk {
-	Model::Model(Device& device, const Builder& builder) : device(device) {
-		createVertexBuffers(builder.vertices);
-		createIndexBuffers(builder.indices);
+	Model::Model(Device& device, const Builder& builder) : device(device), m_boundsMin(builder.boundsMin), m_boundsMax(builder.boundsMax), m_dynamic(builder.dynamic) {
+
+		m_memFlags = m_dynamic
+			? (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+			: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+		if (m_dynamic) {
+			updateMesh(builder.vertices, builder.indices);
+		}
+		else {
+			createVertexBuffer(builder.vertices);
+			createIndexBuffer(builder.indices);
+		}
+		
 		if (builder.textureMaterialIndex >= 0) {
 			// Create material from GLTF data
 			if (builder.isUI) {
 				createUIMaterialFromGltf(builder.gltfModelData, builder.textureMaterialIndex);
-			} else {
+			}
+			else {
 				createStandardMaterialFromGltf(builder.gltfModelData, builder.textureMaterialIndex);
 			}
 		}
 	}
 
 	Model::~Model() {
-	    auto destructionQueue = Engine::getDestructionQueue();
-	    if (destructionQueue) {
-	        if (vertexBuffer) {
-	            vertexBuffer->scheduleDestroy(*destructionQueue);
-	            vertexBuffer.reset();
-	        }
-	        if (indexBuffer) {
-	            indexBuffer->scheduleDestroy(*destructionQueue);
-	            indexBuffer.reset();
-	        }
-	    }
+		auto destructionQueue = Engine::getDestructionQueue();
+		if (destructionQueue) {
+			if (vertexBuffer) {
+				vertexBuffer->scheduleDestroy(*destructionQueue);
+				vertexBuffer.reset();
+			}
+			if (indexBuffer) {
+				indexBuffer->scheduleDestroy(*destructionQueue);
+				indexBuffer.reset();
+			}
+		}
+	}
+
+	static size_t nextPowerOfTwo(size_t v) {
+		size_t p = 1;
+		while (p < v) {
+			p <<= 1;
+		}
+		return p;
+	}
+
+	void Model::updateMesh(const std::vector<Vertex>& newVerts, const std::vector<uint32_t>& newIdx)
+	{
+		// if no buffers yet or too small, reallocate with headroom
+		if (!hasVertexBuffer || newVerts.size() > vertexCapacityElements) {
+			vertexBuffer.reset();
+
+			vertexCapacityElements = nextPowerOfTwo(newVerts.size());
+			createVertexBuffer(vertexCapacityElements);
+		}
+		if (!hasIndexBuffer || newIdx.size() > indexCapacityElements) {
+			indexBuffer.reset();
+
+			indexCapacityElements = nextPowerOfTwo(newIdx.size());
+			createIndexBuffer(indexCapacityElements);
+		}
+
+		vertexBuffer->map();
+		vertexBuffer->writeToBuffer((void*)newVerts.data(), sizeof(Vertex) * newVerts.size());
+		vertexBuffer->flush();
+		vertexBuffer->unmap();
+
+		indexBuffer->map();
+		indexBuffer->writeToBuffer((void*)newIdx.data(), sizeof(uint32_t) * newIdx.size());
+		indexBuffer->flush();
+		indexBuffer->unmap();
+
+		vertexCount = uint32_t(newVerts.size());
+		indexCount = uint32_t(newIdx.size());
+		hasVertexBuffer = hasIndexBuffer = true;
 	}
 
 	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename, bool isUI) {
@@ -74,7 +125,7 @@ namespace vk {
 		return std::make_unique<Model>(device, builder);
 	}
 
-	void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
+	void Model::createVertexBuffer(const std::vector<Vertex>& vertices) {
 		vertexCount = static_cast<uint32_t>(vertices.size());
 		hasVertexBuffer = vertexCount > 0;
 		if (!hasVertexBuffer) {
@@ -93,19 +144,21 @@ namespace vk {
 		};
 
 		stagingBuffer.map();
-		stagingBuffer.writeToBuffer((void*) vertices.data());
+		stagingBuffer.writeToBuffer((void*)vertices.data());
 
 		vertexBuffer = std::make_unique<Buffer>(
 			device,
 			vertexSize,
 			vertexCount,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		device.copyBuffer(stagingBuffer.getBuffer(), vertexBuffer->getBuffer(), bufferSize);
+
+		vertexCapacityElements = vertexCount;
 	}
 
-	void Model::createIndexBuffers(const std::vector<uint32_t>& indices) {
+	void Model::createIndexBuffer(const std::vector<uint32_t>& indices) {
 		indexCount = static_cast<uint32_t>(indices.size());
 		hasIndexBuffer = indexCount > 0;
 		if (!hasIndexBuffer) {
@@ -114,23 +167,60 @@ namespace vk {
 		VkDeviceSize bufferSize = sizeof(indices[0]) * indexCount;
 		uint32_t indexSize = sizeof(indices[0]);
 
-		Buffer stagingBuffer{device,
+		Buffer stagingBuffer{ device,
 			indexSize,
 			indexCount,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
 
 		stagingBuffer.map();
-		stagingBuffer.writeToBuffer((void*) indices.data());
+		stagingBuffer.writeToBuffer((void*)indices.data());
 
 		indexBuffer = std::make_unique<Buffer>(
 			device,
 			indexSize,
 			indexCount,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		device.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
+
+		indexCapacityElements = indexCount;
+	}
+
+	void Model::createVertexBuffer(size_t elementCount) {
+		hasVertexBuffer = elementCount > 0;
+		if (!hasVertexBuffer) {
+			return;
+		}
+		assert(elementCount >= 3 && "Vertex count must be at least 3");
+		uint32_t vertexSize = sizeof(Vertex);
+
+		vertexBuffer = std::make_unique<Buffer>(
+			device,
+			vertexSize,
+			elementCount,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			m_memFlags);
+
+		vertexCapacityElements = elementCount;
+	}
+
+	void Model::createIndexBuffer(size_t elementCount) {
+		hasIndexBuffer = elementCount > 0;
+		if (!hasIndexBuffer) {
+			return;
+		}
+		uint32_t indexSize = sizeof(uint32_t);
+
+		indexBuffer = std::make_unique<Buffer>(
+			device,
+			indexSize,
+			elementCount,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			m_memFlags);
+
+		indexCapacityElements = elementCount;
 	}
 
 	void Model::draw(VkCommandBuffer commandBuffer) {
@@ -235,7 +325,7 @@ namespace vk {
 			// POSITION attribute.
 			if (primitive.attributes.find("POSITION") == primitive.attributes.end())
 				throw std::runtime_error("No POSITION attribute found in glTF primitive");
-			const tinygltf::Accessor& posAccessor = gltfModel.accessors.at(primitive.attributes.find("POSITION")->second);
+			const tinygltf::Accessor& posAccessor = gltfModel.accessors.at(primitive.attributes.at("POSITION"));
 			const tinygltf::BufferView& posBufferView = gltfModel.bufferViews[posAccessor.bufferView];
 			const tinygltf::Buffer& posBuffer = gltfModel.buffers[posBufferView.buffer];
 			const unsigned char* posData = posBuffer.data.data() + posBufferView.byteOffset + posAccessor.byteOffset;
@@ -244,7 +334,7 @@ namespace vk {
 			const tinygltf::Accessor* normAccessor = nullptr;
 			const unsigned char* normData = nullptr;
 			if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
-				normAccessor = &gltfModel.accessors.at(primitive.attributes.find("NORMAL")->second);
+				normAccessor = &gltfModel.accessors.at(primitive.attributes.at("NORMAL"));
 				const tinygltf::BufferView& normBufferView = gltfModel.bufferViews[normAccessor->bufferView];
 				const tinygltf::Buffer& normBuffer = gltfModel.buffers[normBufferView.buffer];
 				normData = normBuffer.data.data() + normBufferView.byteOffset + normAccessor->byteOffset;
@@ -254,7 +344,7 @@ namespace vk {
 			const tinygltf::Accessor* uvAccessor = nullptr;
 			const unsigned char* uvData = nullptr;
 			if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
-				uvAccessor = &gltfModel.accessors.at(primitive.attributes.find("TEXCOORD_0")->second);
+				uvAccessor = &gltfModel.accessors.at(primitive.attributes.at("TEXCOORD_0"));
 				const tinygltf::BufferView& uvBufferView = gltfModel.bufferViews[uvAccessor->bufferView];
 				const tinygltf::Buffer& uvBuffer = gltfModel.buffers[uvBufferView.buffer];
 				uvData = uvBuffer.data.data() + uvBufferView.byteOffset + uvAccessor->byteOffset;
@@ -264,7 +354,7 @@ namespace vk {
 			const tinygltf::Accessor* colorAccessor = nullptr;
 			const unsigned char* colorData = nullptr;
 			if (primitive.attributes.find("COLOR_0") != primitive.attributes.end()) {
-				colorAccessor = &gltfModel.accessors.at(primitive.attributes.find("COLOR_0")->second);
+				colorAccessor = &gltfModel.accessors.at(primitive.attributes.at("COLOR_0"));
 				const tinygltf::BufferView& colorBufferView = gltfModel.bufferViews[colorAccessor->bufferView];
 				const tinygltf::Buffer& colorBuffer = gltfModel.buffers[colorBufferView.buffer];
 				colorData = colorBuffer.data.data() + colorBufferView.byteOffset + colorAccessor->byteOffset;
@@ -317,6 +407,39 @@ namespace vk {
 				materialIndex = primitive.material;
 			}
 		}
+
+		bool hasAnyAABB = false;
+		glm::vec3 aabbMin{ +FLT_MAX }, aabbMax{ -FLT_MAX };
+		for (auto& prim : mesh.primitives) {
+			const auto& acc = gltfModel.accessors[prim.attributes.at("POSITION")];
+			if (acc.minValues.size() >= 3 && acc.maxValues.size() >= 3) {
+				// throw away double precision
+				glm::vec3 pMin{ float(acc.minValues[0]),
+							   float(acc.minValues[1]),
+							   float(acc.minValues[2]) };
+				glm::vec3 pMax{ float(acc.maxValues[0]),
+							   float(acc.maxValues[1]),
+							   float(acc.maxValues[2]) };
+				aabbMin = glm::min(aabbMin, pMin);
+				aabbMax = glm::max(aabbMax, pMax);
+				hasAnyAABB = true;
+			}
+		}
+
+		if (!hasAnyAABB && !vertices.empty()) {
+			glm::vec3 vMin = vertices[0].position;
+			glm::vec3 vMax = vertices[0].position;
+			for (size_t i = 1; i < vertices.size(); i++) {
+				vMin = glm::min(vMin, vertices[i].position);
+				vMax = glm::max(vMax, vertices[i].position);
+			}
+			aabbMin = vMin;
+			aabbMax = vMax;
+		}
+
+		boundsMin = aabbMin;
+		boundsMax = aabbMax;
+
 		std::cout << "Loaded glTF model with " << vertices.size() << " vertices and " << indices.size() << " indices" << std::endl;
 
 		// Store glTF data and material index in builder for later texture creation.
@@ -537,6 +660,9 @@ namespace vk {
 
 		builder.vertices = std::move(vertices);
 		builder.indices = std::move(indices);
+		
+		builder.boundsMin = glm::vec3{ -size };
+		builder.boundsMax = glm::vec3{ size };
 
 		return std::make_unique<Model>(device, builder);
 	}
@@ -546,10 +672,10 @@ namespace vk {
 		int gridSize,
 		const std::string& tileTexturePath,
 		float noiseScale,
-		bool loadHeightTexture,
+		bool loadHeightTexture, // TODO
 		const std::string& heightTexturePath,
 		int seed,
-		bool useTessellation,
+		bool useTessellation, // TODO test this flag
 		TessellationMaterial::MaterialCreationData creationData) {
 		// Create a vector to store the heightmap data
 		std::vector<float> heightData(gridSize * gridSize);
@@ -560,19 +686,19 @@ namespace vk {
 			seed = rd();
 		}
 
-		// Generate heightmap using Perlin noise
+		// generate heightmap using Perlin noise
 		for (int z = 0; z < gridSize; z++) {
 			for (int x = 0; x < gridSize; x++) {
 				float nx = x * noiseScale / gridSize;
 				float nz = z * noiseScale / gridSize;
 
-				// Use multiple octaves for more natural terrain
+				// multiple octaves for more natural terrain
 				float h = 0.0f;
 				float amplitude = 1.0f;
 				float frequency = 1.0f;
 				float maxValue = 0.0f;
 
-				for (int i = 0; i < 4; i++) {  // Use 4 octaves
+				for (int i = 0; i < 4; i++) {  // 4 octaves
 					h += glm::perlin(glm::vec3(nx * frequency, nz * frequency, static_cast<float>(seed))) * amplitude;
 					maxValue += amplitude;
 					amplitude *= 0.5f;
@@ -582,7 +708,7 @@ namespace vk {
 				// normalize to [-1, 1]
 				h /= maxValue;
 
-				// Store in heightmap
+				// store in heightmap
 				int index = z * gridSize + x;
 				heightData[index] = h;
 
@@ -678,6 +804,9 @@ namespace vk {
 
 		builder.vertices = std::move(vertices);
 		builder.indices = std::move(indices);
+
+		builder.boundsMin = glm::vec3{-1.0f, -creationData.heightScale, -1.0f};
+		builder.boundsMax = glm::vec3{1.0f, creationData.heightScale, 1.0f};
 
 		auto model = std::make_unique<Model>(device, builder);
 
@@ -777,6 +906,9 @@ namespace vk {
 		builder.vertices = std::move(vertices);
 		builder.indices = std::move(indices);
 
+		builder.boundsMin = glm::vec3{ -size, 0, -size };
+		builder.boundsMax = glm::vec3{ size, 0, size};
+
 		return std::make_unique<Model>(device, builder);
 	}
 
@@ -788,6 +920,39 @@ namespace vk {
 		}
 
 		int numPatches = (samplesPerSide-1) * (samplesPerSide-1);
+
+		builder.boundsMin = glm::vec3{ -1, 0, -1 };
+		builder.boundsMax = glm::vec3{ 1, 0, 1 };
+
+		auto model = std::make_unique<Model>(device, builder);
+		model->pointsPerPatch = 4;
+		model->patchCount = numPatches;
+		model->vertexCount = model->pointsPerPatch * model->patchCount;
+
+		return model;
+	}
+
+	std::unique_ptr<Model> Model::createWaterModel(Device& device, int samplesPerSide, std::vector<glm::vec4> waves) {
+
+		float totalAmp = 0.0f;
+		for (auto& w : waves) {
+			float steepness = w.z;
+			float lambda = w.w;
+			float k = 2.0f * glm::pi<float>() / lambda;
+			float a = steepness / k;
+			totalAmp += a;
+		}
+
+		Builder builder{};
+
+		if (samplesPerSide < 2) {
+			samplesPerSide = 2;
+		}
+
+		int numPatches = (samplesPerSide - 1) * (samplesPerSide - 1);
+
+		builder.boundsMin = glm::vec3{ -1, -totalAmp, -1 };
+		builder.boundsMax = glm::vec3{ 1, totalAmp, 1 };
 
 		auto model = std::make_unique<Model>(device, builder);
 		model->pointsPerPatch = 4;

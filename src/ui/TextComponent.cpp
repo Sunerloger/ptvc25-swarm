@@ -68,13 +68,20 @@ namespace vk {
 		}
 		textSize = {maxX - minX, maxY - minY};
 
-		Model::Builder b;
-		b.vertices = std::move(verts);
-		b.indices = std::move(inds);
-		b.isUI = true;
-		auto mdl = std::make_shared<Model>(device, b);
-		mdl->setMaterial(material);
-		setModel(mdl);
+		if (!mdl) {
+			Model::Builder b;
+			b.vertices = verts;
+			b.indices = inds;
+			b.isUI = true;
+			b.dynamic = isTextDynamic;
+
+			mdl = std::make_shared<Model>(device, b);
+			mdl->setMaterial(material);
+			setModel(mdl);
+		}
+		else {
+			mdl->updateMesh(verts, inds);
+		}
 	}
 
 	glm::mat4 TextComponent::computeModelMatrix() const {

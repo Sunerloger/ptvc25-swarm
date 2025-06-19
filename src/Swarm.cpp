@@ -269,7 +269,7 @@ void Swarm::init() {
 		playerCreationSettings.characterSettings = characterSettings;
 		playerCreationSettings.cameraSettings = cameraSettings;
 		playerCreationSettings.playerSettings = playerSettings;
-		playerCreationSettings.position = JPH::RVec3(0.0f, maxTerrainHeight + 1, 0.0f);  // Increased Y position to start higher above terrain
+		playerCreationSettings.position = JPH::RVec3(0.0f, maxTerrainHeight + 5, 0.0f);  // Increased Y position to start higher above terrain
 
 		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
@@ -279,6 +279,7 @@ void Swarm::init() {
 		sceneManager.setSun(make_unique<lighting::Sun>(sunPos, baseSunDirection, glm::vec3(1.0f, 1.0f, 1.0f)));
 	}
 
+	// TODO terrain generation and sync of collider and model is way too complicated here
 	// Terrain
 	int samplesPerSide = 100;
 	{
@@ -286,7 +287,7 @@ void Swarm::init() {
 
 		TessellationMaterial::MaterialCreationData terrainCreationData = {};
 		terrainCreationData.textureRepetition = glm::vec2(samplesPerSide / 20.0f, samplesPerSide / 20.0f);
-		terrainCreationData.heightScale = maxTerrainHeight;
+		terrainCreationData.heightScale = maxTerrainHeight; // offset in gpu
 
 		// Generate terrain model with heightmap
 		auto result = vk::Model::createTerrainModel(
@@ -321,7 +322,7 @@ void Swarm::init() {
 			physicsSimulation.getPhysicsSystem(),
 			std::move(result.first),
 			glm::vec3{ 0.0, -2.0, 0.0 },	// position slightly below origin to prevent falling through
-			glm::vec3{ 100.0f, maxTerrainHeight, 100.0f },
+			terrainScale, // physics model scale
 			std::move(result.second));
 
 		sceneManager.addTerrainObject(std::move(terrain));
@@ -430,7 +431,6 @@ void Swarm::init() {
 	// Water
 	{
 		int samplesPerSide = 256;
-		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModelWithoutGeometry(device, samplesPerSide));
 
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
 
@@ -450,6 +450,8 @@ void Swarm::init() {
 		waves.push_back(glm::vec4{ 1.0f, 0.6f, 0.25f, 31.0f });
 		waves.push_back(glm::vec4{ 1.0f, 1.3f, 0.25f, 18.0f });
 		waterMaterial->setWaves(waves);
+
+		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createWaterModel(device, samplesPerSide, waves));
 		
 		waterModel->setMaterial(waterMaterial);
 
@@ -767,4 +769,8 @@ void Swarm::postPhysicsUpdate() {}
 void Swarm::gamePauseUpdate(float deltaTime) {
 	// Update tree parameter tuning system even when paused
 	// This allows real-time parameter visualization when escape menu is open
+}
+
+void Swarm::postRenderingUpdate(EngineStats engineStats, float deltaTime) {
+	
 }

@@ -54,6 +54,8 @@ class Swarm : public GameBase {
 	void gameActiveUpdate(float deltaTime) override;
 	void gamePauseUpdate(float deltaTime) override;
 
+	void postRenderingUpdate(EngineStats engineStats, float deltaTime) override;
+
 	static inline std::string Name = "Swarm";
 	std::string getName() const override {
 		return Name;

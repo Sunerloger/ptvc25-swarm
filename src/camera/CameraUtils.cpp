@@ -1,7 +1,7 @@
 #include "CameraUtils.h"
 
 
-glm::mat4 getOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {
+glm::mat4 getOrthographicProjection(float left, float right, float bottom, float top, float near, float far) {
 	glm::mat4 proj = glm::mat4{ 1.0f };
 	proj[0][0] = 2.f / (right - left);
 	proj[1][1] = 2.f / (bottom - top);

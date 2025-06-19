@@ -41,7 +41,8 @@ namespace vk {
 	};
 
 	class Engine {
-	   public:
+	
+	public:
 		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager);
 		~Engine();
 
@@ -54,7 +55,7 @@ namespace vk {
 		
 		static void scheduleResourceDestruction(VkBuffer buffer, VkDeviceMemory memory);
 
-		  private:
+	private:
 
 		IGame& game;
 		physics::PhysicsSimulation& physicsSimulation;
@@ -75,5 +76,7 @@ namespace vk {
 		EngineSettings engineSettings = {};
 		
 		std::unique_ptr<ShadowMap> shadowMap;
+
+		int renderedGameObjects = 0;
 	};
 }

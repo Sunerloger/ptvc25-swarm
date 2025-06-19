@@ -113,9 +113,10 @@ namespace vk {
 			descriptorSetLayout = layoutBuilder.build();
 
 			descriptorPool = DescriptorPool::Builder(device)
-								 .setMaxSets(10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
-								 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
-								 .build();
+				.setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+				.setMaxSets(10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+				.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+				.build();
 		}
 	}
 

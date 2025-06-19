@@ -10,9 +10,10 @@ namespace vk {
 		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager), renderer(window, device) {
 
 		globalPool = DescriptorPool::Builder(device)
-						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
-						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-						 .build();
+			.setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+			.setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
+			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+			.build();
 		
 		if (!destructionQueue) {
 			std::cout << "Engine: Creating destruction queue" << std::endl;
@@ -51,6 +52,8 @@ namespace vk {
 	}
 
 	void Engine::run() {
+		EngineStats engineStats{};
+
 		SceneManager& sceneManager = SceneManager::getInstance();
 		
 		sceneManager.awakeAll();
@@ -172,7 +175,7 @@ namespace vk {
 				frameInfo.commandBuffer = commandBuffer;
 
 				GlobalUbo ubo{};
-				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
+				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), window.getHeight(), 0, 0.1f, 500.0f);
 				ubo.sunDirection = glm::vec4(sceneManager.getSun()->getDirection(), 1.0f);
 				ubo.sunColor = glm::vec4(sceneManager.getSun()->getColor(), 1.0f);
 				ubo.cameraPosition = glm::vec4(sceneManager.getPlayer()->getCameraPosition(), 1.0f);
@@ -187,6 +190,8 @@ namespace vk {
 					const ShadowMap::ShadowUbo& shadowUbo = shadowMap->getShadowUbo();
 					ubo.projection = shadowUbo.lightProjectionMatrix;
 					ubo.view = shadowUbo.lightViewMatrix;
+
+					Frustum frustum = Frustum::fromMatrix(ubo.projection * ubo.view);
 					
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
@@ -207,8 +212,8 @@ namespace vk {
 						clearValues
 					);
 					
-					textureRenderSystem.renderGameObjects(frameInfo);
-					terrainRenderSystem.renderGameObjects(frameInfo);
+					textureRenderSystem.renderGameObjects(frameInfo, frustum);
+					terrainRenderSystem.renderGameObjects(frameInfo, frustum);
 					
 					renderer.endRenderPass(commandBuffer);
 				}
@@ -221,6 +226,8 @@ namespace vk {
 					ubo.view = sceneManager.getPlayer()->calculateViewMat();
 					uboBuffers[frameIndex]->writeToBuffer(&ubo);
 					uboBuffers[frameIndex]->flush();
+
+					Frustum frustum = Frustum::fromMatrix(ubo.projection * ubo.view);
 
 					if (engineSettings.useShadowMap) {
 						// specified to be on set binding 2 in shadow map class
@@ -241,9 +248,9 @@ namespace vk {
 					);
 
 					// render main scene
-					textureRenderSystem.renderGameObjects(frameInfo);
-					terrainRenderSystem.renderGameObjects(frameInfo);
-					waterRenderSystem.renderGameObjects(frameInfo);
+					renderedGameObjects += textureRenderSystem.renderGameObjects(frameInfo, frustum);
+					renderedGameObjects += terrainRenderSystem.renderGameObjects(frameInfo, frustum);
+					renderedGameObjects += waterRenderSystem.renderGameObjects(frameInfo, frustum);
 
 					VkClearAttachment clearAttachment{};
 					clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -264,13 +271,19 @@ namespace vk {
 						1,
 						&clearRect);
 
-					uiRenderSystem.renderGameObjects(frameInfo);
+					renderedGameObjects += uiRenderSystem.renderGameObjects(frameInfo, frustum);
 
 					renderer.endRenderPass(commandBuffer);
 				}
 
 				renderer.endFrame();
 			}
+
+			engineStats.renderedGameObjects = renderedGameObjects;
+
+			game.postRenderingUpdate(engineStats, deltaTime);
+
+			renderedGameObjects = 0;
 		}
 		if (destructionQueue) {
 			for (auto& bufPtr : uboBuffers) {

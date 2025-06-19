@@ -33,7 +33,6 @@ namespace physics {
 	                 glm::vec3 position, glm::vec3 scale, std::vector<float>&& heightfieldData)
 		: ManagedPhysicsEntity(physics_system), model(model), useHeightfield(true), heightfieldSamples(std::move(heightfieldData)) {
 		std::cout << "Creating heightfield-based terrain with provided height data (3D collision)" << std::endl;
-		this->scale = scale;
 		
 		// create a temporary array with the correct size
 		float* heightData = this->heightfieldSamples.data();
@@ -76,6 +75,8 @@ namespace physics {
 			shapeOffset,
 			Vec3(cellSizeX,	scale.y, cellSizeZ),
 			numSamplesPerSide);
+
+		this->scale = glm::vec3{ scale.x, 1.0f, scale.z };
 			
 		// Create the shape
 		ShapeSettings::ShapeResult heightfield_result = heightfield_settings.Create();

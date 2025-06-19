@@ -7,7 +7,8 @@
 #include <stdexcept>
 #include <glm/glm.hpp>
 
-#include "../../rendering/materials/Material.h"
+#include "../materials/Material.h"
+#include "../structures/Frustum.h"
 
 #include "../../vk/vk_pipeline.h"
 #include "../../vk/vk_frame_info.h"
@@ -95,7 +96,8 @@ namespace vk {
             }
         }
 
-        void renderGameObjects(FrameInfo& frameInfo) {
+        // @returns num of rendered objects without culling
+        int renderGameObjects(FrameInfo& frameInfo, Frustum& frustum) {
             struct RenderItem {
                 std::shared_ptr<GameObject> obj;
                 PipelineInfo* pipeline;
@@ -115,6 +117,18 @@ namespace vk {
 
                     if (!obj || !obj->getModel()) {
                         continue;
+                    }
+
+                    // frustum culling
+                    if (obj->enableFrustumCulling()) {
+                        auto model = obj->getModel();
+                        if (model) {
+                            auto [bbMin, bbMax] = model->getAABB();
+                            glm::mat4 M = obj->computeModelMatrix();
+                            if (!frustum.intersectsAABB(bbMin, bbMax, M)) {
+                                continue;
+                            }
+                        }
                     }
 
                     auto material = obj->getModel()->getMaterial();
@@ -206,6 +220,8 @@ namespace vk {
                 item.obj->getModel()->bind(frameInfo.commandBuffer);
                 item.obj->getModel()->draw(frameInfo.commandBuffer);
             }
+
+            return renderItems.size();
         }
 
     };

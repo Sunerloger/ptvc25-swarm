@@ -19,6 +19,8 @@ namespace physics {
 			// m/s^2
 			float accelerationToMaxSpeed = 1.0f;
 
+			float detectionRange = 100.0f;
+
 			// rad/s 
 			float turnSpeed = 0.5f;
 

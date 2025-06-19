@@ -127,6 +127,7 @@ namespace vk {
             descriptorSetLayout = layoutBuilder.build();
             
             descriptorPool = DescriptorPool::Builder(device)
+                .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
                 .setMaxSets(2 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 * SwapChain::MAX_FRAMES_IN_FLIGHT)

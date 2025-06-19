@@ -118,6 +118,17 @@ namespace procedural {
 			builder.vertices.push_back(modelVertex);
 		}
 
+		if (!builder.vertices.empty()) {
+			auto mn = builder.vertices[0].position;
+			auto mx = mn;
+			for (size_t i = 1; i < builder.vertices.size(); ++i) {
+				mn = glm::min(mn, builder.vertices[i].position);
+				mx = glm::max(mx, builder.vertices[i].position);
+			}
+			builder.boundsMin = mn;
+			builder.boundsMax = mx;
+		}
+
 		// Add indices
 		for (const auto& index : geometry.indices) {
 			builder.indices.push_back(index);
@@ -183,6 +194,17 @@ namespace procedural {
 				barkBuilder.vertices.push_back(modelVertex);
 			}
 
+			if (!barkBuilder.vertices.empty()) {
+				auto mn = barkBuilder.vertices[0].position;
+				auto mx = mn;
+				for (size_t i = 1; i < barkBuilder.vertices.size(); ++i) {
+					mn = glm::min(mn, barkBuilder.vertices[i].position);
+					mx = glm::max(mx, barkBuilder.vertices[i].position);
+				}
+				barkBuilder.boundsMin = mn;
+				barkBuilder.boundsMax = mx;
+			}
+
 			// Add bark indices
 			for (const auto& index : treeGeometry.bark.indices) {
 				barkBuilder.indices.push_back(index);
@@ -204,6 +226,17 @@ namespace procedural {
 				modelVertex.normal = vertex.normal;
 				modelVertex.uv = vertex.uv;
 				leafBuilder.vertices.push_back(modelVertex);
+			}
+
+			if (!leafBuilder.vertices.empty()) {
+				auto mn = leafBuilder.vertices[0].position;
+				auto mx = mn;
+				for (size_t i = 1; i < leafBuilder.vertices.size(); ++i) {
+					mn = glm::min(mn, leafBuilder.vertices[i].position);
+					mx = glm::max(mx, leafBuilder.vertices[i].position);
+				}
+				leafBuilder.boundsMin = mn;
+				leafBuilder.boundsMax = mx;
 			}
 
 			// Add leaf indices

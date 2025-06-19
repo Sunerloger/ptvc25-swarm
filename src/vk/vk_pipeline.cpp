@@ -263,8 +263,8 @@ namespace vk {
 		
 		// enable depth bias to prevent shadow acne
 		configInfo.rasterizationInfo.depthBiasEnable = VK_TRUE;
-		configInfo.rasterizationInfo.depthBiasConstantFactor = 1.25f; // constant depth bias
-		configInfo.rasterizationInfo.depthBiasSlopeFactor = 1.75f; // slope-based depth bias
+		configInfo.rasterizationInfo.depthBiasConstantFactor = 0.005f; // constant depth bias
+		configInfo.rasterizationInfo.depthBiasSlopeFactor = 1.0f; // slope-based depth bias
 	}
 	
 	void Pipeline::terrainShadowPipelineConfigInfo(PipelineConfigInfo& configInfo) {
@@ -280,7 +280,7 @@ namespace vk {
 		
 		// enable depth bias to prevent shadow acne
 		configInfo.rasterizationInfo.depthBiasEnable = VK_TRUE;
-		configInfo.rasterizationInfo.depthBiasConstantFactor = 1.25f; // constant depth bias
-		configInfo.rasterizationInfo.depthBiasSlopeFactor = 1.75f; // slope-based depth bias
+		configInfo.rasterizationInfo.depthBiasConstantFactor = 0.005f; // constant depth bias
+		configInfo.rasterizationInfo.depthBiasSlopeFactor = 1.0f; // slope-based depth bias
 	}
 }
