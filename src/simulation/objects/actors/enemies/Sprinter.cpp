@@ -36,6 +36,11 @@ namespace physics {
 	void Sprinter::updatePhysics(float cPhysicsDeltaTime) {
 		// TODO deltaTime is handled by the physics system ?
 
+		// player not within detection radius
+		if (glm::length(SceneManager::getInstance().getPlayer()->getPosition() - this->getPosition()) > sprinterSettings.detectionRange) {
+			return;
+		}
+
 		float targetAngle = calculateTargetAngle();
 		float currentHorizontalAngle = std::atan2(forward.z, forward.x);
 

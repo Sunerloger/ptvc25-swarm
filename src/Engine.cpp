@@ -6,22 +6,29 @@ namespace vk {
 
 	std::unique_ptr<DestructionQueue> Engine::destructionQueue = nullptr;
 
-	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
-		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager), renderer(window, device) {
+	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager, RenderSystemSettings& renderSystemSettings)
+		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager), renderer(window, device), renderSystemSettings(renderSystemSettings) {
 
 		globalPool = DescriptorPool::Builder(device)
-						 .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
-						 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-						 .build();
+			.setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+			.setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
+			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+			.build();
 		
 		if (!destructionQueue) {
 			std::cout << "Engine: Creating destruction queue" << std::endl;
 			destructionQueue = std::make_unique<DestructionQueue>(device, &renderer.getSwapChain());
 		}
 
+		std::cout << "Engine: Creating shadow map" << std::endl;
+		ShadowMap::ShadowMapSettings shadowSettings{};
+		shadowMap = std::make_unique<ShadowMap>(device, shadowSettings);
+
+		std::cout << "Engine: Initializing game" << std::endl;
 		game.init();
 		game.setupInput();
 		
+		std::cout << "Engine: Initializing audio system" << std::endl;
 		audio::AudioSystem::getInstance().init();
 	}
 
@@ -45,13 +52,16 @@ namespace vk {
 	}
 
 	void Engine::run() {
+		EngineStats engineStats{};
+
 		SceneManager& sceneManager = SceneManager::getInstance();
 		
 		sceneManager.awakeAll();
 
 		std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
 		for (int i = 0; i < uboBuffers.size(); i++) {
-			uboBuffers[i] = std::make_unique<Buffer>(device,
+			uboBuffers[i] = std::make_unique<Buffer>(
+				device,
 				sizeof(GlobalUbo),
 				1,
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -70,32 +80,30 @@ namespace vk {
 				.writeBuffer(0, &bufferInfo)
 				.build(globalDescriptorSets[i]);
 		}
+		// TODO create an additional binding with a uniform buffer for lighting information stored in sceneManager (updated every frame)
 
-		// TODO create an additional uniform buffer for lighting information stored in sceneManager (updated every frame)
-
-		// Create render systems
 		TextureRenderSystem textureRenderSystem{
 			device,
 			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderSystemSettings
 		};
 
 		TerrainRenderSystem terrainRenderSystem{
 			device,
 			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderSystemSettings
 		};
 
 		WaterRenderSystem waterRenderSystem{
 			device,
 			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderSystemSettings
 		};
 
 		UIRenderSystem uiRenderSystem{
 			device,
 			renderer,
-			globalSetLayout->getDescriptorSetLayout()
+			renderSystemSettings
 		};
 
 		startTime = std::chrono::high_resolution_clock::now();
@@ -165,46 +173,121 @@ namespace vk {
 			if (auto commandBuffer = renderer.beginFrame()) {
 
 				int frameIndex = renderer.getFrameIndex();
-				FrameInfo frameInfo{deltaTime, commandBuffer, globalDescriptorSets[frameIndex]};
+				
+				FrameInfo frameInfo{};
+				frameInfo.frameTime = deltaTime;
+				frameInfo.commandBuffer = commandBuffer;
 
 				GlobalUbo ubo{};
-				ubo.projection = sceneManager.getPlayer()->getProjMat();
-				ubo.view = sceneManager.getPlayer()->calculateViewMat();
-				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), 0, window.getHeight(), 0.1f, 500.0f);
+				ubo.uiOrthographicProjection = getOrthographicProjection(0, window.getWidth(), window.getHeight(), 0, 0.1f, 500.0f);
 				ubo.sunDirection = glm::vec4(sceneManager.getSun()->getDirection(), 1.0f);
 				ubo.sunColor = glm::vec4(sceneManager.getSun()->getColor(), 1.0f);
 				ubo.cameraPosition = glm::vec4(sceneManager.getPlayer()->getCameraPosition(), 1.0f);
-				uboBuffers[frameIndex]->writeToBuffer(&ubo);
-				uboBuffers[frameIndex]->flush();
+				
+				// shadow map render pass
+				if (engineSettings.useShadowMap) { // TODO parse setting from shaders in the engine init step
+					frameInfo.renderPassType = RenderPassType::SHADOW_PASS;
 
-				renderer.beginSwapChainRenderPass(commandBuffer);
-				textureRenderSystem.renderGameObjects(frameInfo);
-				terrainRenderSystem.renderGameObjects(frameInfo);
-				waterRenderSystem.renderGameObjects(frameInfo);
+					shadowMap->updateShadowUbo(frameIndex);
+					
+					// temporarily set projection and view with light's perspective
+					const ShadowMap::ShadowUbo& shadowUbo = shadowMap->getShadowUbo();
+					ubo.projection = shadowUbo.lightProjectionMatrix;
+					ubo.view = shadowUbo.lightViewMatrix;
 
-				VkClearAttachment clearAttachment{};
-				clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-				clearAttachment.clearValue.depthStencil = {/* depth = */ 1.0f, /* stencil = */ 0};
-				VkClearRect clearRect{};
-				clearRect.rect.offset = {0, 0};
-				clearRect.rect.extent = {
-					static_cast<uint32_t>(window.getWidth()),
-					static_cast<uint32_t>(window.getHeight())};
-				clearRect.baseArrayLayer = 0;
-				clearRect.layerCount = 1;
+					Frustum frustum = Frustum::fromMatrix(ubo.projection * ubo.view);
+					
+					uboBuffers[frameIndex]->writeToBuffer(&ubo);
+					uboBuffers[frameIndex]->flush();
 
-				// write values directly into color/depth attachments for ui drawing
-				vkCmdClearAttachments(
-					frameInfo.commandBuffer,
-					1,
-					&clearAttachment,
-					1,
-					&clearRect);
+					frameInfo.systemDescriptorSets.clear();
+					frameInfo.systemDescriptorSets.push_back({
+						globalDescriptorSets[frameIndex],
+						globalSetLayout->getDescriptorSetLayout(),
+						0
+					});
+					
+					std::vector<VkClearValue> clearValues = shadowMap->getClearValues();
+					renderer.beginRenderPass(
+						commandBuffer,
+						shadowMap->getRenderPass(),
+						shadowMap->getFramebuffer(),
+						shadowMap->getExtent(),
+						clearValues
+					);
+					
+					textureRenderSystem.renderGameObjects(frameInfo, frustum);
+					terrainRenderSystem.renderGameObjects(frameInfo, frustum);
+					
+					renderer.endRenderPass(commandBuffer);
+				}
+				
+				// main render pass
+				{
+					frameInfo.renderPassType = RenderPassType::DEFAULT_PASS;
 
-				uiRenderSystem.renderGameObjects(frameInfo);
-				renderer.endSwapChainRenderPass(commandBuffer);
+					ubo.projection = sceneManager.getPlayer()->getProjMat();
+					ubo.view = sceneManager.getPlayer()->calculateViewMat();
+					uboBuffers[frameIndex]->writeToBuffer(&ubo);
+					uboBuffers[frameIndex]->flush();
+
+					Frustum frustum = Frustum::fromMatrix(ubo.projection * ubo.view);
+
+					if (engineSettings.useShadowMap) {
+						// specified to be on set binding 2 in shadow map class
+						vk::DescriptorSet shadowSet = shadowMap->getDescriptorSet(frameIndex);
+						frameInfo.systemDescriptorSets.push_back(shadowSet);
+					}
+
+					std::vector<VkClearValue> clearValues = {
+						{0.01f, 0.01f, 0.01f, 1.0f},
+						{1.0f, 0}
+					};
+					renderer.beginRenderPass(
+						commandBuffer,
+						renderer.getSwapChainRenderPass(),
+						renderer.getSwapChain().getFrameBuffer(frameIndex),
+						renderer.getSwapChain().getSwapChainExtent(),
+						clearValues
+					);
+
+					// render main scene
+					renderedGameObjects += textureRenderSystem.renderGameObjects(frameInfo, frustum);
+					renderedGameObjects += terrainRenderSystem.renderGameObjects(frameInfo, frustum);
+					renderedGameObjects += waterRenderSystem.renderGameObjects(frameInfo, frustum);
+
+					VkClearAttachment clearAttachment{};
+					clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+					clearAttachment.clearValue.depthStencil = {/* depth */ 1.0f, /* stencil */ 0 };
+					VkClearRect clearRect{};
+					clearRect.rect.offset = { 0, 0 };
+					clearRect.rect.extent = {
+						static_cast<uint32_t>(window.getWidth()),
+						static_cast<uint32_t>(window.getHeight()) };
+					clearRect.baseArrayLayer = 0;
+					clearRect.layerCount = 1;
+
+					// write values directly into color/depth attachments for ui drawing
+					vkCmdClearAttachments(
+						frameInfo.commandBuffer,
+						1,
+						&clearAttachment,
+						1,
+						&clearRect);
+
+					renderedGameObjects += uiRenderSystem.renderGameObjects(frameInfo, frustum);
+
+					renderer.endRenderPass(commandBuffer);
+				}
+
 				renderer.endFrame();
 			}
+
+			engineStats.renderedGameObjects = renderedGameObjects;
+
+			game.postRenderingUpdate(engineStats, deltaTime);
+
+			renderedGameObjects = 0;
 		}
 		if (destructionQueue) {
 			for (auto& bufPtr : uboBuffers) {

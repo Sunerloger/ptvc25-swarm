@@ -4,6 +4,8 @@
 #include "asset_utils/AssetLoader.h"
 #include "asset_utils/AssetManager.h"
 
+#include "logical_systems/Settings.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -40,9 +42,11 @@ int main(int argc, char **argv) {
 		input::InputManager inputManager{window.getGLFWWindow()};
 		input::SwarmInputController inputController{window, inputManager};
 
-		Swarm game{ physicsSimulation, assetManager, window, device, inputController, debugMode };
+		RenderSystemSettings renderSystemSettings = {};
 
-		vk::Engine engine{game, physicsSimulation, window, device, inputManager};
+		Swarm game{ physicsSimulation, assetManager, window, device, inputController, renderSystemSettings, debugMode };
+
+		vk::Engine engine{game, physicsSimulation, window, device, inputManager, renderSystemSettings};
 
 		engine.run();
 

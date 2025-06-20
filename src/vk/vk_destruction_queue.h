@@ -20,6 +20,8 @@ struct DeletionQueue {
     std::vector<VkDescriptorPool> descriptorPools;
     // track descriptor sets with their parent pool
     std::vector<std::pair<VkDescriptorSet, VkDescriptorPool>> descriptorSets;
+    std::vector<VkFramebuffer> framebuffers;
+    std::vector<VkRenderPass> renderPasses;
 };
 
 class DestructionQueue {
@@ -37,6 +39,8 @@ public:
     void pushDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout);
     void pushDescriptorPool(VkDescriptorPool descriptorPool);
     void pushDescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorPool parentPool);
+    void pushFramebuffer(VkFramebuffer framebuffer);
+    void pushRenderPass(VkRenderPass renderPass);
 
     // for resize operations
     void setSwapChain(SwapChain* newSwapChain) {

@@ -38,7 +38,7 @@ namespace physics {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<vk::Model> getModel() const override;
 
-		void toggleWireframeModeIfSupported() override;
+		void toggleWireframeModeIfSupported(bool toWireframe) override;
 		
 		std::shared_ptr<vk::Model> model;
 		glm::vec3 scale;

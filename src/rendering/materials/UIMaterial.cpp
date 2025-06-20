@@ -240,9 +240,10 @@ UIMaterial::UIMaterial(Device& device, const std::vector<unsigned char>& imageDa
 			descriptorSetLayout = layoutBuilder.build();
 
 			descriptorPool = DescriptorPool::Builder(device)
-								 .setMaxSets(100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
-								 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
-								 .build();
+				.setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+				.setMaxSets(100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+				.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
+				.build();
 		}
 	}
 
@@ -398,5 +399,14 @@ UIMaterial::UIMaterial(Device& device, const std::vector<unsigned char>& imageDa
 				descriptorSetLayout.reset();
 			}
 		}
+	}
+
+	DescriptorSet UIMaterial::getDescriptorSet(int frameIndex) const {
+		DescriptorSet descriptorSet{};
+		descriptorSet.binding = 1;
+		descriptorSet.handle = textureDescriptorSets[frameIndex];
+		descriptorSet.layout = descriptorSetLayout->getDescriptorSetLayout();
+
+		return descriptorSet;
 	}
 }

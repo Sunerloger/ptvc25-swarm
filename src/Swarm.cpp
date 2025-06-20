@@ -2,13 +2,16 @@
 
 #include "scene/SceneManager.h"
 #include "procedural/VegetationIntegrator.h"
+#include <glm/gtc/matrix_transform.hpp>
 #include "procedural/VegetationSharedResources.h"
 
 #include <fmt/format.h>
 #include <random>
 
-Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
-	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
+Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController,
+	RenderSystemSettings& renderSystemSettings, bool debugMode)
+	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), 
+	renderSystemSettings(renderSystemSettings), debugMode(debugMode) {
 	enemyModel = Model::createModelFromFile(device, "models:enemy.glb");
 	grenadeModel = Model::createModelFromFile(device, "models:grenade.glb");
 }
@@ -74,8 +77,13 @@ void Swarm::bindInput() {
 	};
 
 	swarmInput.onToggleWireframeMode = [this, &sceneManager]() {
-		sceneManager.toggleWireframeOnTerrainObjects();
-		sceneManager.toggleWireframeOnWaterObjects();
+		this->isWireframeMode = !this->isWireframeMode;
+		sceneManager.toggleWireframeOnTerrainObjects(this->isWireframeMode);
+		sceneManager.toggleWireframeOnWaterObjects(this->isWireframeMode);
+	};
+
+	swarmInput.onToggleCulling = [this, &sceneManager]() {
+		toggleCulling();
 	};
 
 	if (debugMode) {
@@ -268,13 +276,17 @@ void Swarm::init() {
 		playerCreationSettings.characterSettings = characterSettings;
 		playerCreationSettings.cameraSettings = cameraSettings;
 		playerCreationSettings.playerSettings = playerSettings;
-		playerCreationSettings.position = JPH::RVec3(0.0f, maxTerrainHeight + 1, 0.0f);  // Increased Y position to start higher above terrain
+		playerCreationSettings.position = JPH::RVec3(0.0f, maxTerrainHeight + 5, 0.0f);  // Increased Y position to start higher above terrain
 
 		sceneManager.setPlayer(std::make_unique<physics::PhysicsPlayer>(playerCreationSettings, physicsSimulation.getPhysicsSystem()));
 
-		sceneManager.setSun(make_unique<lighting::Sun>(glm::vec3(0.0f), glm::vec3(1.7, -1, 3.0), glm::vec3(1.0f, 1.0f, 1.0f)));
+		glm::vec3 playerPos = sceneManager.getPlayer()->getPosition();
+		glm::vec3 sunPos = playerPos - baseSunDirection * sunDistance;
+		
+		sceneManager.setSun(make_unique<lighting::Sun>(sunPos, baseSunDirection, glm::vec3(1.0f, 1.0f, 1.0f)));
 	}
 
+	// TODO terrain generation and sync of collider and model is way too complicated here
 	// Terrain
 	int samplesPerSide = 100;
 	{
@@ -282,7 +294,7 @@ void Swarm::init() {
 
 		TessellationMaterial::MaterialCreationData terrainCreationData = {};
 		terrainCreationData.textureRepetition = glm::vec2(samplesPerSide / 20.0f, samplesPerSide / 20.0f);
-		terrainCreationData.heightScale = maxTerrainHeight;
+		terrainCreationData.heightScale = maxTerrainHeight; // offset in gpu
 
 		// Generate terrain model with heightmap
 		auto result = vk::Model::createTerrainModel(
@@ -317,7 +329,7 @@ void Swarm::init() {
 			physicsSimulation.getPhysicsSystem(),
 			std::move(result.first),
 			glm::vec3{ 0.0, -2.0, 0.0 },	// position slightly below origin to prevent falling through
-			glm::vec3{ 100.0f, maxTerrainHeight, 100.0f },
+			terrainScale, // physics model scale
 			std::move(result.second));
 
 		sceneManager.addTerrainObject(std::move(terrain));
@@ -425,34 +437,39 @@ void Swarm::init() {
 
 	// Water
 	{
-		int samplesPerSide = 2000;
-		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createGridModelWithoutGeometry(device, samplesPerSide));
-
+		int samplesPerSidePatch = 10;
+		
+		float patchSize = 50.0f;
+		int patchesPerSide = 40;
+		
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
 
 		CreateWaterData waterData{};
+		waterData.maxTessLevel = 8.0f;
 		waterData.minTessDistance = 50.0f;
 		waterData.maxTessDistance = 500.0f;
-		waterData.textureRepetition = glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f);
+		waterData.textureRepetition = glm::vec2(samplesPerSidePatch - 1.0f, samplesPerSidePatch - 1.0f);
 		waterMaterial->setWaterData(waterData);
 
 		std::vector<glm::vec4> waves;
-		// waves.push_back(glm::vec4{ 1.0f, 0.0f, 0.18f, 12.0f });
-		// waves.push_back(glm::vec4{ 0.92f, 0.38f, 0.15f, 8.0f });
-		// waves.push_back(glm::vec4{ -0.75f, 0.66f, 0.20f, 20.0f });
-		// waves.push_back(glm::vec4{ 0.34f, -0.94f, 0.06f, 16.0f });
-
 		waves.push_back(glm::vec4{ 1.0f, 1.0f, 0.25f, 60.0f });
 		waves.push_back(glm::vec4{ 1.0f, 0.6f, 0.25f, 31.0f });
 		waves.push_back(glm::vec4{ 1.0f, 1.3f, 0.25f, 18.0f });
 		waterMaterial->setWaves(waves);
+
+		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createWaterModel(device, samplesPerSidePatch, waves));
 		
 		waterModel->setMaterial(waterMaterial);
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};
-		waterCreationSettings.position = glm::vec3{ 0.0f, -20.0f, 0.0f };
-		waterCreationSettings.waterScale = samplesPerSide - 1;
-		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
+
+		for (int i = -patchesPerSide / 2; i < patchesPerSide / 2; i++) {
+			for (int j = -patchesPerSide / 2; j < patchesPerSide / 2; j++) {
+				waterCreationSettings.position = glm::vec3{ i*patchSize*2, -20.0f, j*patchSize*2 };
+				waterCreationSettings.waterScale = patchSize;
+				sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
+			}
+		}
 	}
 
 	// UI
@@ -500,6 +517,23 @@ void Swarm::init() {
 			window.getGLFWWindow());
 		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f1));
 
+		// F8: Toggle Culling
+		TextComponent* debug_text_f8 = new TextComponent(
+			device,
+			font,
+			"F8: Toggle \n Culling",
+			"debug_text_toggle_culling",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ true,
+			/* verticalOffset: */ 100.0f,
+			/* anchorRight: */ true,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
+			window.getGLFWWindow());
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f8));
+
 		// F9: Toggle Wireframe terrain
 		TextComponent* debug_text_f9 = new TextComponent(
 			device,
@@ -510,7 +544,7 @@ void Swarm::init() {
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
-			/* verticalOffset: */ 100.0f,
+			/* verticalOffset: */ 000.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ true,
@@ -527,7 +561,7 @@ void Swarm::init() {
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
-			/* verticalOffset: */ 000.0f,
+			/* verticalOffset: */ -100.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ false,
@@ -544,7 +578,7 @@ void Swarm::init() {
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
-			/* verticalOffset: */ -100.0f,
+			/* verticalOffset: */ -200.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ true,
@@ -609,6 +643,24 @@ void Swarm::init() {
 		gameTimeTextID = sceneManager.addUIObject(
 			std::unique_ptr<UIComponent>(gameTimeText));
 
+		// rendered objects
+		TextComponent* renderedObjectsText = new TextComponent(
+			device,
+			font,
+			"0",
+			"rendered_objects",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ false,
+			/* verticalOffset: */ 0.0f,
+			/* anchorRight: */ false,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
+			window.getGLFWWindow());
+		renderedObjectsTextID = sceneManager.addUIObject(
+			std::unique_ptr<UIComponent>(renderedObjectsText));
+
 		// USPS
 		hudSettings.model = Model::createModelFromFile(device, "models:USPS.glb", true);
 		hudSettings.name = "usps";
@@ -617,6 +669,7 @@ void Swarm::init() {
 		hudSettings.anchorBottom = true;
 		hudSettings.centerHorizontal = false;
 		hudSettings.centerVertical = false;
+		hudSettings.isDebugMenuComponent = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		// Crosshair
@@ -627,6 +680,7 @@ void Swarm::init() {
 		hudSettings.anchorBottom = false;
 		hudSettings.centerHorizontal = true;
 		hudSettings.centerVertical = true;
+		hudSettings.isDebugMenuComponent = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }
@@ -699,13 +753,35 @@ void Swarm::gameActiveUpdate(float deltaTime) {
 	}
 
 	sceneManager.updateEnemyVisuals(deltaTime);
+	
+	auto player = sceneManager.getPlayer();
+	auto sun = sceneManager.getSun();
+
+	// rotate sun direction around Y axis
+	const float rotationSpeed = 0.01f; // radians per second
+	sunRotationAngle += rotationSpeed * deltaTime;
+	
+	if (sunRotationAngle > 2.0f * glm::pi<float>()) {
+		sunRotationAngle -= 2.0f * glm::pi<float>();
+	}
+	
+	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), sunRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec4 rotatedDir = rotationMatrix * glm::vec4(baseSunDirection, 0.0f);
+	glm::vec3 newDir = glm::normalize(glm::vec3(rotatedDir));
+	
+	sun->setDirection(newDir);
+	
+	const float sunDistance = 100.0f;
+	glm::vec3 playerPos = player->getPosition();
+	glm::vec3 sunPos = playerPos - newDir * sunDistance;
+	sun->setPosition(sunPos);
 
 	// Update health text
 	if (isDebugActive) {
 		// In debug mode, we don't update the health text
 		return;
 	}
-	auto player = sceneManager.getPlayer();
+
 	if (player) {
 		auto objPair = sceneManager.getObject(gameHealthTextID);
 		if (objPair.first != SceneClass::INVALID) {
@@ -741,4 +817,28 @@ void Swarm::postPhysicsUpdate() {}
 void Swarm::gamePauseUpdate(float deltaTime) {
 	// Update tree parameter tuning system even when paused
 	// This allows real-time parameter visualization when escape menu is open
+}
+
+void Swarm::postRenderingUpdate(EngineStats engineStats, float deltaTime) {
+	SceneManager& sceneManager = SceneManager::getInstance();
+
+	auto objPair = sceneManager.getObject(renderedObjectsTextID);
+	if (objPair.first != SceneClass::INVALID) {
+		if (auto ui = objPair.second) {
+			if (auto text = static_cast<TextComponent*>(ui)) {
+				text->setText(fmt::format("rendered: {:d}", engineStats.renderedGameObjects));
+			}
+		}
+	}
+}
+
+void Swarm::toggleCulling() {
+	this->renderSystemSettings.enableFrustumCulling = !this->renderSystemSettings.enableFrustumCulling;
+	
+	if (this->renderSystemSettings.enableFrustumCulling) {
+		std::cout << "Culling enabled" << std::endl;
+	}
+	else {
+		std::cout << "Culling disabled" << std::endl;
+	}
 }

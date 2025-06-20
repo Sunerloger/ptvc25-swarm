@@ -44,6 +44,8 @@ namespace vk {
 		glm::vec3 getPosition() const override;
 		std::shared_ptr<Model> getModel() const override;
 
+		bool enableFrustumCulling() const override { return false; }
+
 		bool isControllable() const {
 			return controllable;
 		}

@@ -25,6 +25,8 @@ namespace vk {
         glm::vec3 getPosition() const override;
         std::shared_ptr<Model> getModel() const override;
 
+        bool enableFrustumCulling() const override { return false; }
+
     private:
         Device& device;
         std::shared_ptr<Model> skyboxModel;

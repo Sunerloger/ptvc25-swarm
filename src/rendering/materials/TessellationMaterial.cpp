@@ -247,6 +247,7 @@ namespace vk {
                 .build();
 
             descriptorPool = DescriptorPool::Builder(device)
+                .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
                 .setMaxSets(500 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 * 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -609,5 +610,14 @@ namespace vk {
         snowTextureMipLevels = createTextureFromImageData(textureData, width, height, 4, snowTextureImage, snowTextureImageMemory);
         snowTextureImageView = createImageView(snowTextureImage);
         createTextureSampler(static_cast<float>(snowTextureMipLevels), snowTextureSampler);
+    }
+
+    DescriptorSet TessellationMaterial::getDescriptorSet(int frameIndex) const {
+        DescriptorSet descriptorSet{};
+        descriptorSet.binding = 1;
+        descriptorSet.handle = textureDescriptorSets[frameIndex];
+        descriptorSet.layout = descriptorSetLayout->getDescriptorSetLayout();
+
+        return descriptorSet;
     }
 }

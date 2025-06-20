@@ -249,4 +249,38 @@ namespace vk {
 		configInfo.tessControlShaderPath = "terrain_tess_control.tesc";
 		configInfo.tessEvalShaderPath = "terrain_tess_eval.tese";
 	}
+
+	void Pipeline::shadowPipelineConfigInfo(PipelineConfigInfo& configInfo) {
+		// simple depth-only fragment shader
+		configInfo.fragShaderPath = "shadow_pass.frag";
+		
+		// Enable front face culling to prevent shadow acne
+		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_FRONT_BIT;
+		
+		// disable color attachment since only depth is needed
+		configInfo.colorBlendInfo.attachmentCount = 0;
+		configInfo.colorBlendInfo.pAttachments = nullptr;
+		
+		// enable depth bias to prevent shadow acne
+		configInfo.rasterizationInfo.depthBiasEnable = VK_TRUE;
+		configInfo.rasterizationInfo.depthBiasConstantFactor = 0.005f; // constant depth bias
+		configInfo.rasterizationInfo.depthBiasSlopeFactor = 1.0f; // slope-based depth bias
+	}
+	
+	void Pipeline::terrainShadowPipelineConfigInfo(PipelineConfigInfo& configInfo) {
+		// simple depth-only fragment shader
+		configInfo.fragShaderPath = "shadow_pass.frag";
+		
+		// disable culling for terrain because it is not a solid object
+		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+		
+		// disable color attachment since only depth is needed
+		configInfo.colorBlendInfo.attachmentCount = 0;
+		configInfo.colorBlendInfo.pAttachments = nullptr;
+		
+		// enable depth bias to prevent shadow acne
+		configInfo.rasterizationInfo.depthBiasEnable = VK_TRUE;
+		configInfo.rasterizationInfo.depthBiasConstantFactor = 0.005f; // constant depth bias
+		configInfo.rasterizationInfo.depthBiasSlopeFactor = 1.0f; // slope-based depth bias
+	}
 }

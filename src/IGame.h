@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "logical_systems/Settings.h"
 
 class IGame {
 
@@ -15,6 +16,8 @@ public:
 
 	virtual void gameActiveUpdate(float deltaTime) = 0;
 	virtual void gamePauseUpdate(float deltaTime) = 0;
+
+	virtual void postRenderingUpdate(EngineStats engineStats, float deltaTime) = 0;
 
 	virtual void setupInput() = 0;
 

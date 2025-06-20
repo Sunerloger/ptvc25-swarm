@@ -40,13 +40,13 @@ struct Scene {
 	std::shared_ptr<lighting::Sun> sun;
 
 	// rendered and not in physics engine
-	std::unordered_map<vk::id_t, std::shared_ptr<vk::WaterObject>> waterObjects = {};
+	std::unordered_map<vk::id_t, std::shared_ptr<vk::GameObject>> waterObjects = {};
 
 	// not rendered and not in physics engine
-	std::unordered_map<vk::id_t, std::shared_ptr<lighting::PointLight>> lights = {};
+	std::unordered_map<vk::id_t, std::shared_ptr<vk::GameObject>> lights = {};
 
 	// not influenced by physics engine (= no collisions) and not translated according to viewpoint (= fixed on screen)
-	std::unordered_map<vk::id_t, std::shared_ptr<vk::UIComponent>> uiObjects = {};
+	std::unordered_map<vk::id_t, std::shared_ptr<vk::GameObject>> uiObjects = {};
 
 	// not influenced by physics engine (= no collisions), but translated according to viewpoint - (also pointlights)
 	std::unordered_map<vk::id_t, std::shared_ptr<vk::GameObject>> spectralObjects = {};
@@ -144,9 +144,9 @@ class SceneManager {
 	// only change returned enemies with a lock (otherwise not thread safe)
 	std::vector<std::weak_ptr<physics::Enemy>> getActiveEnemies() const;
 
-	std::vector<std::weak_ptr<lighting::PointLight>> getLights();
+	std::vector<std::weak_ptr<vk::GameObject>> getLights();
 
-	std::vector<std::weak_ptr<vk::UIComponent>> getUIObjects();
+	std::vector<std::weak_ptr<vk::GameObject>> getUIObjects();
 
 	// don't change physics related properties of returned objects without a lock (otherwise not thread safe)
 	std::pair<SceneClass, vk::GameObject*> getObject(vk::id_t id);
@@ -155,7 +155,7 @@ class SceneManager {
 
 	std::shared_ptr<lighting::Sun> getSun();
 
-	std::vector<std::weak_ptr<vk::WaterObject>> getWaterObjects();
+	std::vector<std::weak_ptr<vk::GameObject>> getWaterObjects();
 
 	// returns the boolean and resets it to false
 	bool isBroadPhaseOptimizationNeeded();
@@ -181,8 +181,8 @@ class SceneManager {
 		isDebugMenuVisible = !isDebugMenuVisible;
 	}
 
-	void toggleWireframeOnTerrainObjects();
-	void toggleWireframeOnWaterObjects();
+	void toggleWireframeOnTerrainObjects(bool toWireframe);
+	void toggleWireframeOnWaterObjects(bool toWireframe);
 
    private:
 	SceneManager();

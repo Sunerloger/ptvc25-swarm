@@ -26,6 +26,8 @@
 #include "rendering/structures/Skybox.h"
 #include "rendering/structures/WaterObject.h"
 
+#include "logical_systems/Settings.h"
+
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
@@ -40,7 +42,8 @@ using namespace vk;
 
 class Swarm : public GameBase {
    public:
-	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode = false);
+	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController,
+		RenderSystemSettings& renderSystemSettings, bool debugMode = false);
 	~Swarm() override = default;
 
 	Swarm(const Swarm&) = delete;
@@ -53,6 +56,8 @@ class Swarm : public GameBase {
 
 	void gameActiveUpdate(float deltaTime) override;
 	void gamePauseUpdate(float deltaTime) override;
+
+	void postRenderingUpdate(EngineStats engineStats, float deltaTime) override;
 
 	static inline std::string Name = "Swarm";
 	std::string getName() const override {
@@ -68,11 +73,15 @@ class Swarm : public GameBase {
    private:
 	void bindInput() override;
 	void toggleDebug();
+	void toggleCulling();
 
 	id_t gameTimeTextID;
 	id_t gameHealthTextID;
+	id_t renderedObjectsTextID;
 	int oldSecond = 0;
 	int lastSpawnSecond = 0;
+
+	RenderSystemSettings& renderSystemSettings;
 
 	physics::PhysicsSimulation& physicsSimulation;
 	AssetManager& assetManager;
@@ -81,15 +90,20 @@ class Swarm : public GameBase {
 	Device& device;
 
 	bool debugMode;
+	bool isWireframeMode = false;
 
 	bool isDebugActive = false;
 
 	physics::PhysicsPlayer::PlayerCreationSettings originalPlayerSettings;
 
-	std::vector<float> heightfieldData;				// Store heightfield for regeneration
-	int terrainSamplesPerSide = 100;				// Store terrain resolution
-	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};	// Store terrain scale
-	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};	// Store terrain position
+	std::vector<float> heightfieldData; // heightfield for regeneration
+	int terrainSamplesPerSide = 100;
+	glm::vec3 terrainScale{100.0f, 15.0f, 100.0f};
+	glm::vec3 terrainPosition{0.0f, -2.0f, 0.0f};
+
+	float sunRotationAngle = 0.0f;
+	glm::vec3 baseSunDirection = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));
+	float sunDistance = 100.0f;
 
 	std::shared_ptr<Model> enemyModel;
 	std::shared_ptr<Model> grenadeModel;

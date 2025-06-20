@@ -11,13 +11,16 @@
 
 #include "simulation/PhysicsSimulation.h"
 
-#include "rendering/render_systems/texture_render_system.h"
-#include "rendering/render_systems/ui_render_system.h"
-#include "rendering/render_systems/terrain_render_system.h"
-#include "rendering/render_systems/water_render_system.h"
+#include "rendering/render_systems/TextureRenderSystem.h"
+#include "rendering/render_systems/UIRenderSystem.h"
+#include "rendering/render_systems/TerrainRenderSystem.h"
+#include "rendering/render_systems/WaterRenderSystem.h"
+
+#include "rendering/ShadowMap.h"
 
 #include "scene/SceneManager.h"
 #include "logical_systems/input/InputManager.h"
+#include "logical_systems/Settings.h"
 
 #include "camera/CameraUtils.h"
 
@@ -35,11 +38,13 @@ namespace vk {
 		bool debugTime = false;
 		bool debugPlayer = false;
 		bool debugEnemies = false; // be careful with this flag, it heavily impacts performance
+		bool useShadowMap = true; // broken if you use shadow mapping in the shaders and set this to false or the other way around
 	};
 
 	class Engine {
-	   public:
-		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager);
+	
+	public:
+		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager, RenderSystemSettings& renderSystemSettings);
 		~Engine();
 
 		Engine(const Engine&) = delete;
@@ -51,7 +56,7 @@ namespace vk {
 		
 		static void scheduleResourceDestruction(VkBuffer buffer, VkDeviceMemory memory);
 
-		  private:
+	private:
 
 		IGame& game;
 		physics::PhysicsSimulation& physicsSimulation;
@@ -70,5 +75,11 @@ namespace vk {
 		
 		// TODO read via ini file
 		EngineSettings engineSettings = {};
+		
+		RenderSystemSettings& renderSystemSettings;
+		
+		std::unique_ptr<ShadowMap> shadowMap;
+
+		int renderedGameObjects = 0;
 	};
 }

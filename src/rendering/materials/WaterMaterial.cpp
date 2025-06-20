@@ -229,6 +229,7 @@ namespace vk {
 
             // depends on frames in flight so that in use buffers are not written to (concurrent cpu write and gpu processing)
             descriptorPool = DescriptorPool::Builder(device)
+                .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
                 .setMaxSets(200 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 * SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -526,5 +527,14 @@ namespace vk {
             }
             descriptorSetLayout.reset();
         }
+    }
+
+    DescriptorSet WaterMaterial::getDescriptorSet(int frameIndex) const {
+        DescriptorSet descriptorSet{};
+        descriptorSet.binding = 1;
+        descriptorSet.handle = textureDescriptorSets[frameIndex];
+        descriptorSet.layout = descriptorSetLayout->getDescriptorSetLayout();
+
+        return descriptorSet;
     }
 }

@@ -54,5 +54,5 @@ void main() {
     fragTexCoord = uv * modelUbo.textureParams.xy;
     rawUV = uv;
 
-    gl_Position = vec4(position, 1.0);
+    gl_Position = globalUbo.projection * globalUbo.view * vec4(fragPosWorld, 1.0); // needed e.g. for shadow pass
 }

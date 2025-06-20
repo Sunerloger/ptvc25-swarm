@@ -16,28 +16,31 @@ void SceneManager::awakeAll() {
 }
 
 void SceneManager::updateUIPosition(float deltaTime, glm::vec3 dir) {
-	for (auto& uiObject : this->getUIObjects()) {
-		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
-		if (!uiComponent)
+	for (auto& weak_go : this->getUIObjects()) {
+		std::shared_ptr<vk::GameObject> go = weak_go.lock();
+		if (!go)
 			continue;
+		auto uiComponent = std::static_pointer_cast<vk::UIComponent>(go);
 		uiComponent->updatePosition(deltaTime, dir);
 	}
 }
 
 void SceneManager::updateUIRotation(float deltaTime, glm::vec3 rotDir) {
-	for (auto& uiObject : this->getUIObjects()) {
-		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
-		if (!uiComponent)
+	for (auto& weak_go : this->getUIObjects()) {
+		std::shared_ptr<vk::GameObject> go = weak_go.lock();
+		if (!go)
 			continue;
+		auto uiComponent = std::static_pointer_cast<vk::UIComponent>(go);
 		uiComponent->updateRotation(deltaTime, rotDir);
 	}
 }
 
 void SceneManager::updateUIScale(float deltaTime, int scaleDir) {
-	for (auto& uiObject : this->getUIObjects()) {
-		std::shared_ptr<vk::UIComponent> uiComponent = uiObject.lock();
-		if (!uiComponent)
+	for (auto& weak_go : this->getUIObjects()) {
+		std::shared_ptr<vk::GameObject> go = weak_go.lock();
+		if (!go)
 			continue;
+		auto uiComponent = std::static_pointer_cast<vk::UIComponent>(go);
 		uiComponent->updateScale(deltaTime, scaleDir);
 	}
 }
@@ -520,42 +523,45 @@ std::vector<std::weak_ptr<physics::Enemy>> SceneManager::getActiveEnemies() cons
 	return enemies;
 }
 
-std::vector<std::weak_ptr<lighting::PointLight>> SceneManager::getLights() {
-	std::vector<std::weak_ptr<lighting::PointLight>> lights = {};
+std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getLights() {
+	std::vector<std::weak_ptr<vk::GameObject>> lights = {};
 
 	for (auto& it : this->scene->lights) {
-		std::weak_ptr<lighting::PointLight> light = it.second;
+		std::weak_ptr<vk::GameObject> light = it.second;
 		lights.push_back(light);
 	}
 
 	return lights;
 }
 
-std::vector<std::weak_ptr<vk::UIComponent>> SceneManager::getUIObjects() {
+std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getUIObjects() {
 	if (!this->isUIVisible) {
 		return {};
 	}
-	std::vector<std::weak_ptr<vk::UIComponent>> uiObjects = {};
+	std::vector<std::weak_ptr<vk::GameObject>> uiObjects = {};
 
-	for (auto& it : this->scene->uiObjects) {
-		std::weak_ptr<vk::UIComponent> uiObject = it.second;
-		std::shared_ptr<vk::UIComponent> uiComponentPtr = uiObject.lock();
+	for (auto& comp_pair : this->scene->uiObjects) {
+		std::weak_ptr<vk::GameObject> weak_go = comp_pair.second;
+		std::shared_ptr<vk::GameObject> go = weak_go.lock();
+		if (!go)
+			continue;
+		auto uiComponentPtr = std::static_pointer_cast<vk::UIComponent>(go);
 		if (this->isDebugMenuVisible && uiComponentPtr && uiComponentPtr->isDebugMenuComponent) {
 			// If the debug menu is visible, only include UI components that are marked as debug menu components
-			uiObjects.push_back(uiObject);
+			uiObjects.push_back(weak_go);
 			continue;
 		} else if (!this->isDebugMenuVisible && uiComponentPtr && uiComponentPtr->isDebugMenuComponent) {
 			// If the debug menu is not visible, skip debug menu components
 			continue;
 		}
-		uiObjects.push_back(uiObject);
+		uiObjects.push_back(weak_go);
 	}
 
 	return uiObjects;
 }
 // Get water objects for rendering
-std::vector<std::weak_ptr<vk::WaterObject>> SceneManager::getWaterObjects() {
-	std::vector<std::weak_ptr<vk::WaterObject>> waterObjs;
+std::vector<std::weak_ptr<vk::GameObject>> SceneManager::getWaterObjects() {
+	std::vector<std::weak_ptr<vk::GameObject>> waterObjs;
 	for (auto& it : this->scene->waterObjects) {
 		waterObjs.push_back(it.second);
 	}
@@ -657,17 +663,17 @@ void SceneManager::clearUIObjects() {
 	this->scene->uiObjects.clear();
 }
 
-void SceneManager::toggleWireframeOnTerrainObjects() {
+void SceneManager::toggleWireframeOnTerrainObjects(bool toWireframe) {
 	for (auto& it : this->scene->terrainObjects) {
 		std::shared_ptr<vk::GameObject> object = it.second;
-		object->toggleWireframeModeIfSupported();
+		object->toggleWireframeModeIfSupported(toWireframe);
 	}
 }
 
-void SceneManager::toggleWireframeOnWaterObjects() {
+void SceneManager::toggleWireframeOnWaterObjects(bool toWireframe) {
 	for (auto& it : this->scene->waterObjects) {
 		std::shared_ptr<vk::GameObject> object = it.second;
-		object->toggleWireframeModeIfSupported();
+		object->toggleWireframeModeIfSupported(toWireframe);
 	}
 }
 

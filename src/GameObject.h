@@ -39,7 +39,9 @@ namespace vk {
 		// returns a nullptr if object has no model (e.g. light)
 		virtual std::shared_ptr<Model> getModel() const = 0;
 
-		virtual void toggleWireframeModeIfSupported() {};
+		virtual void toggleWireframeModeIfSupported(bool toWireframe) {};
+
+		virtual bool enableFrustumCulling() const { return true; }
 
 		/**
 		 * The object is added to a queue of objects to destroy in the scene manager - it is still alive for now, but gets removed in the cleanup phase.
