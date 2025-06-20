@@ -445,7 +445,7 @@ void Swarm::init() {
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
 
 		CreateWaterData waterData{};
-		waterData.maxTessLevel = 16.0f;
+		waterData.maxTessLevel = 8.0f;
 		waterData.minTessDistance = 50.0f;
 		waterData.maxTessDistance = 500.0f;
 		waterData.textureRepetition = glm::vec2(samplesPerSidePatch - 1.0f, samplesPerSidePatch - 1.0f);
