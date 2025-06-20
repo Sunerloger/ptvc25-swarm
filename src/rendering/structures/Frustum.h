@@ -32,25 +32,39 @@ struct Frustum {
         return f;
     }
 
-    // test an AABB in *world* space
-    bool intersectsAABB(const glm::vec3& bbMin,
+    // test an AABB in world space
+    bool Frustum::intersectsOBB(
+        const glm::vec3& bbMin,
         const glm::vec3& bbMax,
         const glm::mat4& modelMatrix) const
     {
-        // for each plane, pick the "most outside" corner
-        for (int i = 0; i < 6; i++) {
+        glm::vec3 e = (bbMax - bbMin) * 0.5f;
+        glm::vec3 c_obj = (bbMin + bbMax) * 0.5f;
+
+        glm::vec3 c_world = glm::vec3(modelMatrix * glm::vec4(c_obj, 1.0f));
+        glm::mat3 R = glm::mat3(modelMatrix);  // assumes no non-uniform scale; otherwise orthonormalize
+        glm::mat3 halfAxes = glm::mat3(
+            R[0] * e.x,
+            R[1] * e.y,
+            R[2] * e.z
+        );
+
+        for (int i = 0; i < 6; ++i) {
             const glm::vec4& P = planes[i];
-            // choose the corner that's farthest in plane normal direction
-            glm::vec3 corner = {
-              (P.x >= 0 ? bbMax.x : bbMin.x),
-              (P.y >= 0 ? bbMax.y : bbMin.y),
-              (P.z >= 0 ? bbMax.z : bbMin.z)
-            };
-            // transform into world
-            glm::vec3 worldCorner = glm::vec3(modelMatrix * glm::vec4(corner, 1.0f));
-            // plane test: A*x + B*y + C*z + D < 0 means fully outside
-            if (glm::dot(glm::vec3(P), worldCorner) + P.w < 0.0f)
-                return false;
+            glm::vec3 n = glm::vec3(P);
+
+            // Compute the projection radius of the half-axes onto this plane’s normal:
+            // r = |n*halfAxes[:,0]| + |n*halfAxes[:,1]| + |n*halfAxes[:,2]|
+            float r =
+                std::abs(glm::dot(n, halfAxes[0])) +
+                std::abs(glm::dot(n, halfAxes[1])) +
+                std::abs(glm::dot(n, halfAxes[2]));
+
+            // Signed distance from box center to plane:
+            float s = glm::dot(n, c_world) + P.w;
+
+            // If the box is completely on the “negative” side of any plane, it’s culled:
+            if (s + r < 0.0f) return false;
         }
         return true;
     }

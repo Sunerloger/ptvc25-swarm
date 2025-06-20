@@ -18,7 +18,7 @@ namespace vk {
     public:
         static constexpr VkShaderStageFlags PushConstStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        UIRenderSystem(Device& device, Renderer& renderer);
+        UIRenderSystem(Device& device, Renderer& renderer, RenderSystemSettings& settings);
 
         std::vector<std::weak_ptr<GameObject>> gatherObjects(const FrameInfo& frameInfo);
         void tweakPipelineConfig(PipelineConfigInfo& config, const FrameInfo& frameInfo);

@@ -15,6 +15,7 @@
 #include "../../vk/vk_device.h"
 #include "../../vk/vk_renderer.h"
 #include "../../vk/vk_descriptors.h"
+#include "../../logical_systems/Settings.h"
 
 namespace vk {
 
@@ -31,6 +32,7 @@ namespace vk {
     protected:
         Device& device;
         Renderer& renderer;
+        RenderSystemSettings& settings;
 
         std::unordered_map<std::vector<VkDescriptorSetLayout>, VkPipelineLayout, DescriptorSetLayoutVectorHash> pipelineLayoutCache;
         std::unordered_map<PipelineConfigInfo, PipelineInfo> pipelineCache;
@@ -88,7 +90,7 @@ namespace vk {
 
     public:
 
-        BaseRenderSystem(Device& dev, Renderer& renderer) : device(dev), renderer(renderer) {}
+        BaseRenderSystem(Device& dev, Renderer& renderer, RenderSystemSettings& settings) : device(dev), renderer(renderer), settings(settings) {}
 
         virtual ~BaseRenderSystem() {
             for (auto& [key, layout] : pipelineLayoutCache) {
@@ -120,12 +122,12 @@ namespace vk {
                     }
 
                     // frustum culling
-                    if (obj->enableFrustumCulling()) {
+                    if (settings.enableFrustumCulling && obj->enableFrustumCulling()) {
                         auto model = obj->getModel();
                         if (model) {
                             auto [bbMin, bbMax] = model->getAABB();
                             glm::mat4 M = obj->computeModelMatrix();
-                            if (!frustum.intersectsAABB(bbMin, bbMax, M)) {
+                            if (!frustum.intersectsOBB(bbMin, bbMax, M)) {
                                 continue;
                             }
                         }

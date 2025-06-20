@@ -5,7 +5,7 @@
 
 namespace vk {
 
-    UIRenderSystem::UIRenderSystem(Device& device, Renderer& renderer) : BaseRenderSystem(device, renderer) {}
+    UIRenderSystem::UIRenderSystem(Device& device, Renderer& renderer, RenderSystemSettings& settings) : BaseRenderSystem(device, renderer, settings) {}
 
     std::vector<std::weak_ptr<GameObject>> UIRenderSystem::gatherObjects(const FrameInfo&) {
         // grab all the ui weak_ptrs

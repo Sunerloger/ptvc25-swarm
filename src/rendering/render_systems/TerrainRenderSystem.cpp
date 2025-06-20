@@ -7,7 +7,7 @@
 
 namespace vk {
 
-    TerrainRenderSystem::TerrainRenderSystem(Device& device, Renderer& renderer) : BaseRenderSystem(device, renderer) {}
+    TerrainRenderSystem::TerrainRenderSystem(Device& device, Renderer& renderer, RenderSystemSettings& settings) : BaseRenderSystem(device, renderer, settings) {}
 
     std::vector<std::weak_ptr<GameObject>> TerrainRenderSystem::gatherObjects(const FrameInfo&) {
         return SceneManager::getInstance().getTerrainRenderObjects();

@@ -247,6 +247,14 @@ namespace input {
 			},
 			this,
 			ContextID::Global);
+
+		inputManager.registerKeyCallback(
+			GLFW_KEY_F8,
+			[this]() {
+				onToggleCulling();
+			},
+			this,
+			ContextID::Global);
 	}
 
 	void SwarmInputController::deregister() {

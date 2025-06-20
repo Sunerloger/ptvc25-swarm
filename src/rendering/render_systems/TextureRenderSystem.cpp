@@ -5,7 +5,7 @@
 
 namespace vk {
 
-    TextureRenderSystem::TextureRenderSystem(Device& device, Renderer& renderer) : BaseRenderSystem(device, renderer) {}
+    TextureRenderSystem::TextureRenderSystem(Device& device, Renderer& renderer, RenderSystemSettings& settings) : BaseRenderSystem(device, renderer, settings) {}
 
     std::vector<std::weak_ptr<GameObject>> TextureRenderSystem::gatherObjects(const FrameInfo&) {
         return SceneManager::getInstance().getStandardRenderObjects();

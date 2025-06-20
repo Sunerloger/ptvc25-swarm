@@ -26,6 +26,8 @@
 #include "rendering/structures/Skybox.h"
 #include "rendering/structures/WaterObject.h"
 
+#include "logical_systems/Settings.h"
+
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
@@ -40,7 +42,8 @@ using namespace vk;
 
 class Swarm : public GameBase {
    public:
-	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode = false);
+	Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController,
+		RenderSystemSettings& renderSystemSettings, bool debugMode = false);
 	~Swarm() override = default;
 
 	Swarm(const Swarm&) = delete;
@@ -70,11 +73,15 @@ class Swarm : public GameBase {
    private:
 	void bindInput() override;
 	void toggleDebug();
+	void toggleCulling();
 
 	id_t gameTimeTextID;
 	id_t gameHealthTextID;
+	id_t renderedObjectsTextID;
 	int oldSecond = 0;
 	int lastSpawnSecond = 0;
+
+	RenderSystemSettings& renderSystemSettings;
 
 	physics::PhysicsSimulation& physicsSimulation;
 	AssetManager& assetManager;

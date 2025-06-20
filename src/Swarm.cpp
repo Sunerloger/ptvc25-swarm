@@ -8,8 +8,10 @@
 #include <fmt/format.h>
 #include <random>
 
-Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController, bool debugMode)
-	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), debugMode(debugMode) {
+Swarm::Swarm(physics::PhysicsSimulation& physicsSimulation, AssetManager& assetManager, Window& window, Device& device, input::SwarmInputController& inputController,
+	RenderSystemSettings& renderSystemSettings, bool debugMode)
+	: GameBase(inputController), physicsSimulation(physicsSimulation), assetManager(assetManager), window(window), device(device), 
+	renderSystemSettings(renderSystemSettings), debugMode(debugMode) {
 	enemyModel = Model::createModelFromFile(device, "models:enemy.glb");
 	grenadeModel = Model::createModelFromFile(device, "models:grenade.glb");
 }
@@ -77,6 +79,10 @@ void Swarm::bindInput() {
 	swarmInput.onToggleWireframeMode = [this, &sceneManager]() {
 		sceneManager.toggleWireframeOnTerrainObjects();
 		sceneManager.toggleWireframeOnWaterObjects();
+	};
+
+	swarmInput.onToggleCulling = [this, &sceneManager]() {
+		toggleCulling();
 	};
 
 	if (debugMode) {
@@ -615,6 +621,24 @@ void Swarm::init() {
 		gameTimeTextID = sceneManager.addUIObject(
 			std::unique_ptr<UIComponent>(gameTimeText));
 
+		// rendered objects
+		TextComponent* renderedObjectsText = new TextComponent(
+			device,
+			font,
+			"0",
+			"rendered_objects",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ false,
+			/* verticalOffset: */ 0.0f,
+			/* anchorRight: */ false,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
+			window.getGLFWWindow());
+		renderedObjectsTextID = sceneManager.addUIObject(
+			std::unique_ptr<UIComponent>(renderedObjectsText));
+
 		// USPS
 		hudSettings.model = Model::createModelFromFile(device, "models:USPS.glb", true);
 		hudSettings.name = "usps";
@@ -623,6 +647,7 @@ void Swarm::init() {
 		hudSettings.anchorBottom = true;
 		hudSettings.centerHorizontal = false;
 		hudSettings.centerVertical = false;
+		hudSettings.isDebugMenuComponent = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 
 		// Crosshair
@@ -633,6 +658,7 @@ void Swarm::init() {
 		hudSettings.anchorBottom = false;
 		hudSettings.centerHorizontal = true;
 		hudSettings.centerVertical = true;
+		hudSettings.isDebugMenuComponent = false;
 		sceneManager.addUIObject(std::make_unique<UIComponent>(hudSettings));
 	}
 }
@@ -772,5 +798,18 @@ void Swarm::gamePauseUpdate(float deltaTime) {
 }
 
 void Swarm::postRenderingUpdate(EngineStats engineStats, float deltaTime) {
-	
+	SceneManager& sceneManager = SceneManager::getInstance();
+
+	auto objPair = sceneManager.getObject(renderedObjectsTextID);
+	if (objPair.first != SceneClass::INVALID) {
+		if (auto ui = objPair.second) {
+			if (auto text = static_cast<TextComponent*>(ui)) {
+				text->setText(fmt::format("rendered: {:d}", engineStats.renderedGameObjects));
+			}
+		}
+	}
+}
+
+void Swarm::toggleCulling() {
+	this->renderSystemSettings.enableFrustumCulling = !this->renderSystemSettings.enableFrustumCulling;
 }

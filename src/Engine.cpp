@@ -6,8 +6,8 @@ namespace vk {
 
 	std::unique_ptr<DestructionQueue> Engine::destructionQueue = nullptr;
 
-	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager)
-		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager), renderer(window, device) {
+	Engine::Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager, RenderSystemSettings& renderSystemSettings)
+		: physicsSimulation(physicsSimulation), game(game), window(window), device(device), inputManager(inputManager), renderer(window, device), renderSystemSettings(renderSystemSettings) {
 
 		globalPool = DescriptorPool::Builder(device)
 			.setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
@@ -84,22 +84,26 @@ namespace vk {
 
 		TextureRenderSystem textureRenderSystem{
 			device,
-			renderer
+			renderer,
+			renderSystemSettings
 		};
 
 		TerrainRenderSystem terrainRenderSystem{
 			device,
-			renderer
+			renderer,
+			renderSystemSettings
 		};
 
 		WaterRenderSystem waterRenderSystem{
 			device,
-			renderer
+			renderer,
+			renderSystemSettings
 		};
 
 		UIRenderSystem uiRenderSystem{
 			device,
-			renderer
+			renderer,
+			renderSystemSettings
 		};
 
 		startTime = std::chrono::high_resolution_clock::now();

@@ -2,9 +2,7 @@
 
 #include <string>
 
-struct EngineStats {
-	int renderedGameObjects = 0;
-};
+#include "logical_systems/Settings.h"
 
 class IGame {
 

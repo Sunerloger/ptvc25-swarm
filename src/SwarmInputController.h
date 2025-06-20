@@ -46,12 +46,13 @@ namespace input {
 		std::function<void(float deltaTime, const glm::vec3& dir)> onMoveUI;
 		std::function<void(float deltaTime, const glm::vec3& rotDir)> onRotateUI;
 		std::function<void(float deltaTime, int scaleDir)> onScaleUI;
-
+		
 		std::function<void(float dt, const glm::vec3& dir)> onMoveDebug;
 		std::function<void(float dx, float dy)> onLookDebug;
 		std::function<void(float scrollOffset)> onChangeSpeedDebug;
 		std::function<void()> onToggleHudDebug;
 		std::function<void()> onToggleWireframeMode;
+		std::function<void()> onToggleCulling;
 
 	   private:
 		vk::Window& window;

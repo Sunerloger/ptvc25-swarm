@@ -20,7 +20,7 @@ namespace vk {
             VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT |
             VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 
-        TerrainRenderSystem(Device& device, Renderer& renderer);
+        TerrainRenderSystem(Device& device, Renderer& renderer, RenderSystemSettings& settings);
 
         std::vector<std::weak_ptr<GameObject>> gatherObjects(const FrameInfo& frameInfo);
         void tweakPipelineConfig(PipelineConfigInfo& config, const FrameInfo& frameInfo);

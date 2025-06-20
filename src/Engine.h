@@ -20,6 +20,7 @@
 
 #include "scene/SceneManager.h"
 #include "logical_systems/input/InputManager.h"
+#include "logical_systems/Settings.h"
 
 #include "camera/CameraUtils.h"
 
@@ -43,7 +44,7 @@ namespace vk {
 	class Engine {
 	
 	public:
-		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager);
+		Engine(IGame& game, physics::PhysicsSimulation& physicsSimulation, vk::Window& window, vk::Device& device, input::InputManager& inputManager, RenderSystemSettings& renderSystemSettings);
 		~Engine();
 
 		Engine(const Engine&) = delete;
@@ -74,6 +75,8 @@ namespace vk {
 		
 		// TODO read via ini file
 		EngineSettings engineSettings = {};
+		
+		RenderSystemSettings& renderSystemSettings;
 		
 		std::unique_ptr<ShadowMap> shadowMap;
 

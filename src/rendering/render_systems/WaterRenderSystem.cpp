@@ -5,7 +5,7 @@
 
 namespace vk {
 
-    WaterRenderSystem::WaterRenderSystem(Device& device, Renderer& renderer) : BaseRenderSystem(device, renderer) {}
+    WaterRenderSystem::WaterRenderSystem(Device& device, Renderer& renderer, RenderSystemSettings& settings) : BaseRenderSystem(device, renderer, settings) {}
 
     std::vector<std::weak_ptr<GameObject>> WaterRenderSystem::gatherObjects(const FrameInfo&) {
         return SceneManager::getInstance().getWaterObjects();
