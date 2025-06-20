@@ -812,4 +812,11 @@ void Swarm::postRenderingUpdate(EngineStats engineStats, float deltaTime) {
 
 void Swarm::toggleCulling() {
 	this->renderSystemSettings.enableFrustumCulling = !this->renderSystemSettings.enableFrustumCulling;
+	
+	if (this->renderSystemSettings.enableFrustumCulling) {
+		std::cout << "Culling enabled" << std::endl;
+	}
+	else {
+		std::cout << "Culling disabled" << std::endl;
+	}
 }
