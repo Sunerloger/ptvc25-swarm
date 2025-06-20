@@ -512,6 +512,23 @@ void Swarm::init() {
 			window.getGLFWWindow());
 		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f1));
 
+		// F8: Toggle Culling
+		TextComponent* debug_text_f8 = new TextComponent(
+			device,
+			font,
+			"F8: Toggle \n Culling",
+			"debug_text_toggle_culling",
+			/* controllable: */ false,
+			/* centerHorizontal: */ false,
+			/* horizontalOffset: */ 0.0f,
+			/* centerVertical:   */ true,
+			/* verticalOffset: */ 100.0f,
+			/* anchorRight: */ true,
+			/* anchorBottom: */ false,
+			/* isDebugMenuComponent: */ true,
+			window.getGLFWWindow());
+		sceneManager.addUIObject(std::unique_ptr<UIComponent>(debug_text_f8));
+
 		// F9: Toggle Wireframe terrain
 		TextComponent* debug_text_f9 = new TextComponent(
 			device,
@@ -522,7 +539,7 @@ void Swarm::init() {
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
-			/* verticalOffset: */ 100.0f,
+			/* verticalOffset: */ 000.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ true,
@@ -539,7 +556,7 @@ void Swarm::init() {
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
-			/* verticalOffset: */ 000.0f,
+			/* verticalOffset: */ -100.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ false,
@@ -556,7 +573,7 @@ void Swarm::init() {
 			/* centerHorizontal: */ false,
 			/* horizontalOffset: */ 0.0f,
 			/* centerVertical:   */ true,
-			/* verticalOffset: */ -100.0f,
+			/* verticalOffset: */ -200.0f,
 			/* anchorRight: */ true,
 			/* anchorBottom: */ false,
 			/* isDebugMenuComponent: */ true,
