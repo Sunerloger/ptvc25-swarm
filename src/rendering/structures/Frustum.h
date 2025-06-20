@@ -37,10 +37,10 @@ struct Frustum {
         const glm::vec3& bbMax,
         const glm::mat4& modelMatrix) const
     {
-        // for each plane, pick the “most outside” corner
+        // for each plane, pick the "most outside" corner
         for (int i = 0; i < 6; i++) {
             const glm::vec4& P = planes[i];
-            // choose the corner that’s farthest in plane normal direction
+            // choose the corner that's farthest in plane normal direction
             glm::vec3 corner = {
               (P.x >= 0 ? bbMax.x : bbMin.x),
               (P.y >= 0 ? bbMax.y : bbMin.y),

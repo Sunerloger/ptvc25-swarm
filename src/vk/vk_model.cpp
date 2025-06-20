@@ -96,26 +96,35 @@ namespace vk {
 			vertexCapacityElements = nextPowerOfTwo(newVerts.size());
 			createVertexBuffer(vertexCapacityElements);
 		}
-		if (!hasIndexBuffer || newIdx.size() > indexCapacityElements) {
-			indexBuffer.reset();
-
-			indexCapacityElements = nextPowerOfTwo(newIdx.size());
-			createIndexBuffer(indexCapacityElements);
-		}
 
 		vertexBuffer->map();
 		vertexBuffer->writeToBuffer((void*)newVerts.data(), sizeof(Vertex) * newVerts.size());
 		vertexBuffer->flush();
 		vertexBuffer->unmap();
 
-		indexBuffer->map();
-		indexBuffer->writeToBuffer((void*)newIdx.data(), sizeof(uint32_t) * newIdx.size());
-		indexBuffer->flush();
-		indexBuffer->unmap();
-
 		vertexCount = uint32_t(newVerts.size());
-		indexCount = uint32_t(newIdx.size());
-		hasVertexBuffer = hasIndexBuffer = true;
+		hasVertexBuffer = vertexCount > 0;
+
+
+		if (newIdx.empty()) {
+			hasIndexBuffer = false;
+			indexCount = 0;
+		}
+		else {
+			if (!hasIndexBuffer || newIdx.size() > indexCapacityElements) {
+				indexBuffer.reset();
+				indexCapacityElements = nextPowerOfTwo(newIdx.size());
+				createIndexBuffer(indexCapacityElements);
+			}
+			
+			indexBuffer->map();
+			indexBuffer->writeToBuffer((void*)newIdx.data(), sizeof(uint32_t) * newIdx.size());
+			indexBuffer->flush();
+			indexBuffer->unmap();
+
+			indexCount = uint32_t(newIdx.size());
+			hasIndexBuffer = indexCount > 0;
+		}
 	}
 
 	std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filename, bool isUI) {
