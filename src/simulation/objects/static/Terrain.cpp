@@ -138,11 +138,11 @@ namespace physics {
 		return this->model;
 	}
 
-	void Terrain::toggleWireframeModeIfSupported() {
+	void Terrain::toggleWireframeModeIfSupported(bool toWireframe) {
 		vk::PipelineConfigInfo& configInfo = this->model->getMaterial()->getPipelineConfigRef();
-		if (configInfo.rasterizationInfo.polygonMode == VK_POLYGON_MODE_FILL) {
+		if (toWireframe) {
 			configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-		} else if (configInfo.rasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE) {
+		} else {
 			configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
 		}
 	}

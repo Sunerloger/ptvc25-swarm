@@ -181,8 +181,8 @@ class SceneManager {
 		isDebugMenuVisible = !isDebugMenuVisible;
 	}
 
-	void toggleWireframeOnTerrainObjects();
-	void toggleWireframeOnWaterObjects();
+	void toggleWireframeOnTerrainObjects(bool toWireframe);
+	void toggleWireframeOnWaterObjects(bool toWireframe);
 
    private:
 	SceneManager();

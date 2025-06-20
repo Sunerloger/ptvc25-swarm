@@ -28,7 +28,7 @@ namespace vk {
 			return modelPtr;
 		}
 
-		void toggleWireframeModeIfSupported() override;
+		void toggleWireframeModeIfSupported(bool toWireframe) override;
 
 	private:
 

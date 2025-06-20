@@ -77,8 +77,9 @@ void Swarm::bindInput() {
 	};
 
 	swarmInput.onToggleWireframeMode = [this, &sceneManager]() {
-		sceneManager.toggleWireframeOnTerrainObjects();
-		sceneManager.toggleWireframeOnWaterObjects();
+		this->isWireframeMode = !this->isWireframeMode;
+		sceneManager.toggleWireframeOnTerrainObjects(this->isWireframeMode);
+		sceneManager.toggleWireframeOnWaterObjects(this->isWireframeMode);
 	};
 
 	swarmInput.onToggleCulling = [this, &sceneManager]() {
@@ -436,35 +437,39 @@ void Swarm::init() {
 
 	// Water
 	{
-		int samplesPerSide = 256;
-
+		int samplesPerSidePatch = 10;
+		
+		float patchSize = 50.0f;
+		int patchesPerSide = 40;
+		
 		auto waterMaterial = std::make_shared<WaterMaterial>(device, "textures:water.png");
 
 		CreateWaterData waterData{};
+		waterData.maxTessLevel = 16.0f;
 		waterData.minTessDistance = 50.0f;
-		waterData.maxTessDistance = 600.0f;
-		waterData.textureRepetition = glm::vec2(samplesPerSide - 1.0f, samplesPerSide - 1.0f);
+		waterData.maxTessDistance = 500.0f;
+		waterData.textureRepetition = glm::vec2(samplesPerSidePatch - 1.0f, samplesPerSidePatch - 1.0f);
 		waterMaterial->setWaterData(waterData);
 
 		std::vector<glm::vec4> waves;
-		// waves.push_back(glm::vec4{ 1.0f, 0.0f, 0.18f, 12.0f });
-		// waves.push_back(glm::vec4{ 0.92f, 0.38f, 0.15f, 8.0f });
-		// waves.push_back(glm::vec4{ -0.75f, 0.66f, 0.20f, 20.0f });
-		// waves.push_back(glm::vec4{ 0.34f, -0.94f, 0.06f, 16.0f });
-
 		waves.push_back(glm::vec4{ 1.0f, 1.0f, 0.25f, 60.0f });
 		waves.push_back(glm::vec4{ 1.0f, 0.6f, 0.25f, 31.0f });
 		waves.push_back(glm::vec4{ 1.0f, 1.3f, 0.25f, 18.0f });
 		waterMaterial->setWaves(waves);
 
-		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createWaterModel(device, samplesPerSide, waves));
+		std::shared_ptr<Model> waterModel = std::shared_ptr<Model>(Model::createWaterModel(device, samplesPerSidePatch, waves));
 		
 		waterModel->setMaterial(waterMaterial);
 
 		WaterObject::WaterCreationSettings waterCreationSettings = {};
-		waterCreationSettings.position = glm::vec3{ 0.0f, -20.0f, 0.0f };
-		waterCreationSettings.waterScale = 2000;
-		sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
+
+		for (int i = -patchesPerSide / 2; i < patchesPerSide / 2; i++) {
+			for (int j = -patchesPerSide / 2; j < patchesPerSide / 2; j++) {
+				waterCreationSettings.position = glm::vec3{ i*patchSize*2, -20.0f, j*patchSize*2 };
+				waterCreationSettings.waterScale = patchSize;
+				sceneManager.addWaterObject(std::make_unique<WaterObject>(waterModel, waterCreationSettings));
+			}
+		}
 	}
 
 	// UI

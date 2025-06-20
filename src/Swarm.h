@@ -90,6 +90,7 @@ class Swarm : public GameBase {
 	Device& device;
 
 	bool debugMode;
+	bool isWireframeMode = false;
 
 	bool isDebugActive = false;
 

@@ -663,17 +663,17 @@ void SceneManager::clearUIObjects() {
 	this->scene->uiObjects.clear();
 }
 
-void SceneManager::toggleWireframeOnTerrainObjects() {
+void SceneManager::toggleWireframeOnTerrainObjects(bool toWireframe) {
 	for (auto& it : this->scene->terrainObjects) {
 		std::shared_ptr<vk::GameObject> object = it.second;
-		object->toggleWireframeModeIfSupported();
+		object->toggleWireframeModeIfSupported(toWireframe);
 	}
 }
 
-void SceneManager::toggleWireframeOnWaterObjects() {
+void SceneManager::toggleWireframeOnWaterObjects(bool toWireframe) {
 	for (auto& it : this->scene->waterObjects) {
 		std::shared_ptr<vk::GameObject> object = it.second;
-		object->toggleWireframeModeIfSupported();
+		object->toggleWireframeModeIfSupported(toWireframe);
 	}
 }
 
