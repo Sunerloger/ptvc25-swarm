@@ -54,27 +54,7 @@ struct Frustum {
         f.planes[5].z = vp[2][3] - vp[2][2];
         f.planes[5].w = vp[3][3] - vp[3][2];
         
-        // Debug output for plane normals
-        std::cout << "Frustum planes after creation:" << std::endl;
-        for (int i = 0; i < 6; i++) {
-            std::cout << "Plane " << i << " normal: ("
-                      << f.planes[i].x << ", "
-                      << f.planes[i].y << ", "
-                      << f.planes[i].z << "), D: "
-                      << f.planes[i].w << std::endl;
-        }
-        
         f.normalizePlanes();
-        
-        // Debug output for normalized plane normals
-        std::cout << "Frustum planes after normalization:" << std::endl;
-        for (int i = 0; i < 6; i++) {
-            std::cout << "Plane " << i << " normal: ("
-                      << f.planes[i].x << ", "
-                      << f.planes[i].y << ", "
-                      << f.planes[i].z << "), D: "
-                      << f.planes[i].w << std::endl;
-        }
         
         return f;
     }
@@ -89,15 +69,7 @@ struct Frustum {
         glm::vec3 c_obj = (bbMin + bbMax) * 0.5f;
 
         glm::vec3 c_world = glm::vec3(modelMatrix * glm::vec4(c_obj, 1.0f));
-        
-        // Extract rotation matrix and handle non-uniform scaling by orthonormalizing
-        glm::mat3 R = glm::mat3(modelMatrix);
-        
-        // Orthonormalize the rotation matrix to handle non-uniform scaling
-        // Gram-Schmidt process
-        R[0] = glm::normalize(R[0]);
-        R[1] = glm::normalize(R[1] - glm::dot(R[1], R[0]) * R[0]);
-        R[2] = glm::normalize(R[2] - glm::dot(R[2], R[0]) * R[0] - glm::dot(R[2], R[1]) * R[1]);
+        glm::mat3 R = glm::mat3(modelMatrix);  // Use the model matrix directly, including any scaling
         
         glm::mat3 halfAxes = glm::mat3(
             R[0] * e.x,
@@ -119,26 +91,8 @@ struct Frustum {
             // Signed distance from box center to plane:
             float s = glm::dot(n, c_world) + P.w;
 
-            // Debug output for specific objects (limit to avoid spam)
-            static int debugCounter = 0;
-            if (debugCounter < 10) {
-                std::cout << "OBB test - Plane " << i << ": s=" << s << ", r=" << r 
-                          << ", s+r=" << (s+r) << ", center=" 
-                          << c_world.x << "," << c_world.y << "," << c_world.z 
-                          << std::endl;
-                debugCounter++;
-            }
-
             // If the box is completely on the "negative" side of any plane, it's culled:
             if (s + r < 0.0f) {
-                // Debug output for culled objects
-                static int cullCounter = 0;
-                if (cullCounter < 10) {
-                    std::cout << "Object CULLED by plane " << i << ": s=" << s << ", r=" << r 
-                              << ", center=" << c_world.x << "," << c_world.y << "," << c_world.z 
-                              << std::endl;
-                    cullCounter++;
-                }
                 return false;
             }
         }
